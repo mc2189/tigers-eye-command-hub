@@ -96,6 +96,25 @@ export function isRealClinikoAppointment(item: LiveDemoAppointmentCandidate): bo
   return true;
 }
 
+export function hasDemoPatientName(
+  appointment: Pick<ClinikoIndividualAppointmentLike, "patientName" | "patientLabel">
+): boolean {
+  const name =
+    appointment.patientName?.trim() ??
+    appointment.patientLabel?.trim() ??
+    "";
+  return /^DEMO/i.test(name) && !isBrokenAbbreviatedDemoLabel(name);
+}
+
+export function matchesDemoPatientById(
+  appointment: Pick<ClinikoIndividualAppointmentLike, "patientId">,
+  demoPatientIds: Set<string>
+): boolean {
+  return Boolean(
+    appointment.patientId && demoPatientIds.has(appointment.patientId)
+  );
+}
+
 export function isLiveDemoClinikoAppointment(
   appointment: ClinikoIndividualAppointmentLike,
   demoPatientIds: Set<string>
@@ -110,15 +129,14 @@ export function isLiveDemoClinikoAppointment(
     return false;
   }
 
-  if (!appointment.patientId || !demoPatientIds.has(appointment.patientId)) {
-    return false;
-  }
-
   if (appointment.cancelledAt || appointment.archivedAt) {
     return false;
   }
 
-  return true;
+  return (
+    matchesDemoPatientById(appointment, demoPatientIds) ||
+    hasDemoPatientName(appointment)
+  );
 }
 
 export function shortenClinikoId(id: string): string {
@@ -149,6 +167,14 @@ export function partitionLiveDemoAppointments(
   for (const appointment of rawAppointments) {
     if (isLiveDemoClinikoAppointment(appointment, demoPatientIds)) {
       accepted.push(appointment);
+      if (
+        hasDemoPatientName(appointment) &&
+        !matchesDemoPatientById(appointment, demoPatientIds)
+      ) {
+        warnings.push(
+          `Appointment ${shortenClinikoId(appointment.id)} has a DEMO patient name but is not linked to a current test lab patient_id — re-create or re-link in Cliniko for reliable filtering.`
+        );
+      }
       continue;
     }
 

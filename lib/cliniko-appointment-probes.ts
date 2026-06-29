@@ -3,7 +3,9 @@ import "server-only";
 import { ClinikoApiError } from "@/lib/cliniko-api-error";
 import {
   getSafeDemoPatientLabel,
+  hasDemoPatientName,
   isLiveDemoClinikoAppointment,
+  matchesDemoPatientById,
 } from "@/lib/cliniko-demo-appointments";
 import {
   buildClinikoDateTime,
@@ -103,10 +105,28 @@ function countDemoMatches(
   appointments: ClinikoIndividualAppointment[],
   demoPatientIds: Set<string>
 ): number {
-  return appointments.filter(
-    (appointment) =>
-      appointment.patientId && demoPatientIds.has(appointment.patientId)
+  return appointments.filter((appointment) =>
+    isLiveDemoClinikoAppointment(appointment, demoPatientIds)
   ).length;
+}
+
+async function enrichAppointmentsPatientIds(
+  appointments: ClinikoIndividualAppointment[]
+): Promise<void> {
+  const needsEnrichment = appointments.filter((appointment) => !appointment.patientId);
+  for (const appointment of needsEnrichment.slice(0, 20)) {
+    try {
+      const raw = await clinikoFetch<{ individual_appointment?: Record<string, unknown> }>(
+        `/individual_appointments/${appointment.id}`
+      );
+      const row = raw.individual_appointment ?? (raw as Record<string, unknown>);
+      const enriched = parseIndividualAppointment(row);
+      if (enriched.patientId) appointment.patientId = enriched.patientId;
+      if (enriched.patientName) appointment.patientName = enriched.patientName;
+    } catch {
+      // Keep name-based matching when single-record fetch is unavailable.
+    }
+  }
 }
 
 async function runListProbe(
@@ -159,18 +179,35 @@ export function deriveProbeConclusion(probes: AppointmentProbeResult[]): string 
 
   const anyReturned = probes.some((probe) => probe.ok && probe.returnedCount > 0);
   const anyDemoMatch = probes.some((probe) => probe.demoMatchCount > 0);
-  const patientHasMatches = patientProbes.some((probe) => probe.demoMatchCount > 0);
+  const patientHasRows = patientProbes.some((probe) => probe.returnedCount > 0);
+  const unfilteredHasDemoNames = (unfiltered?.sample ?? []).some((sample) =>
+    /^DEMO/i.test(sample.patientLabel)
+  );
 
   if (!anyReturned) {
     return "The API key/user cannot see these appointments, or they are not individual appointments in the API response. Check business/practitioner/account context.";
   }
 
-  if (unfiltered?.ok && unfiltered.returnedCount > 0 && !anyDemoMatch) {
-    return "Cliniko is returning appointments, but DEMO patient matching is too strict.";
+  if (
+    unfiltered?.ok &&
+    unfiltered.returnedCount > 0 &&
+    anyDemoMatch &&
+    !patientHasRows
+  ) {
+    return "DEMO appointments are visible via broad queries, but patient_id filters for current test lab patients return 0. Re-create appointments for the current DEMO patient, or use appointment ID lookup.";
   }
 
-  if (patientHasMatches) {
+  if (patientHasRows) {
     return "Use patient_id filter for DEMO appointment read-back.";
+  }
+
+  if (
+    unfiltered?.ok &&
+    unfiltered.returnedCount > 0 &&
+    unfilteredHasDemoNames &&
+    !anyDemoMatch
+  ) {
+    return "Cliniko is returning appointments with DEMO patient names, but they are not linked to current test lab patient_id records.";
   }
 
   if (
@@ -190,7 +227,7 @@ export function deriveProbeConclusion(probes: AppointmentProbeResult[]): string 
     return "DEMO appointments were found by at least one probe. Prefer patient_id-specific queries for read-back.";
   }
 
-  return "Cliniko returned appointments, but none matched DEMO patients on patient_id. Check that manual appointments are linked to DEMO patients.";
+  return "Cliniko returned appointments, but none matched DEMO patients. Check that manual appointments are linked to DEMO patients.";
 }
 
 export async function probeIndividualAppointments(input: {
@@ -361,9 +398,11 @@ export async function lookupIndividualAppointmentById(input: {
       ? patientsById.get(appointment.patientId)
       : undefined;
     const isDemoPatient = Boolean(
-      linkedPatient && isDemoPatientName(linkedPatient.firstName)
+      (linkedPatient && isDemoPatientName(linkedPatient.firstName)) ||
+        hasDemoPatientName(appointment)
     );
     const canMap = isLiveDemoClinikoAppointment(appointment, demoPatientIds);
+    const linkedToTestLab = matchesDemoPatientById(appointment, demoPatientIds);
 
     return {
       ok: true,
@@ -375,7 +414,9 @@ export async function lookupIndividualAppointmentById(input: {
       canMap,
       appointment: toProbeSample(appointment, patientsById, row),
       message: canMap
-        ? "Cliniko returned this appointment and it maps to a live DEMO test lab row."
+        ? linkedToTestLab
+          ? "Cliniko returned this appointment and it maps to a live DEMO test lab row."
+          : "Cliniko returned this DEMO appointment by patient name, but it is not linked to a current test lab patient_id."
         : isDemoPatient
           ? "Cliniko returned this appointment for a DEMO patient, but it is cancelled/archived or missing required fields."
           : "Cliniko returned this appointment, but it is not linked to a DEMO patient in the test lab.",
@@ -476,13 +517,16 @@ export async function fetchDemoAppointmentsMerged(input: {
     })
   );
 
-  const merged = [...byId.values()].filter((appointment) =>
+  const candidates = [...byId.values()];
+  await enrichAppointmentsPatientIds(candidates);
+
+  const merged = candidates.filter((appointment) =>
     isLiveDemoClinikoAppointment(appointment, demoPatientIds)
   );
 
   if (merged.length === 0 && byId.size > 0) {
     probeNotes.push(
-      "Cliniko returned appointments, but none passed live DEMO validation (patient_id, active status, numeric id)."
+      "Cliniko returned appointments, but none passed live DEMO validation (DEMO patient name or patient_id, active status, numeric id)."
     );
   }
 

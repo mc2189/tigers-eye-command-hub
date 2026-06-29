@@ -1226,6 +1226,9 @@ function AppointmentDiscoveryPanel({
                   {probe.sample.map((sample) => (
                     <li key={sample.id}>
                       ID {shortenClinikoId(sample.id)} · {sample.patientLabel}
+                      {sample.patientId
+                        ? ` · patient ${shortenClinikoId(sample.patientId)}`
+                        : " · patient id not in list response"}
                       {sample.startsAt
                         ? ` · ${formatClinikoDateTimeLocal(sample.startsAt)}`
                         : ""}

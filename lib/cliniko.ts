@@ -1368,6 +1368,21 @@ function coerceClinikoField(value: unknown): string | undefined {
   return undefined;
 }
 
+function resolvePatientIdFromRaw(appt: Record<string, unknown>): string | undefined {
+  if (appt.patient_id != null) {
+    const id = String(appt.patient_id).trim();
+    if (id) return id;
+  }
+
+  const fromPatient = extractResourceId(appt.patient);
+  if (fromPatient) return fromPatient;
+
+  const fromLinks = extractLinkId(appt.links, "patient");
+  if (fromLinks) return fromLinks;
+
+  return extractResourceId(appt.patient_name);
+}
+
 function mapIndividualAppointment(appt: Record<string, unknown>): ClinikoIndividualAppointment {
   const links = appt.links;
   const patientName =
@@ -1383,10 +1398,7 @@ function mapIndividualAppointment(appt: Record<string, unknown>): ClinikoIndivid
     id: String(appt.id ?? ""),
     startsAt: String(appt.starts_at ?? appt.start_time ?? ""),
     endsAt: String(appt.ends_at ?? appt.end_time ?? ""),
-    patientId:
-      appt.patient_id != null
-        ? String(appt.patient_id)
-        : extractResourceId(appt.patient) ?? extractLinkId(links, "patient"),
+    patientId: resolvePatientIdFromRaw(appt),
     patientName,
     patientLabel: patientName ? toPatientLabel(patientName) : undefined,
     appointmentTypeId:
