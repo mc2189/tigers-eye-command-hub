@@ -130,10 +130,31 @@ function normalizeSnapshot(raw: Partial<Snapshot> | null | undefined): Snapshot 
     mode: raw.mode ?? "unavailable",
     writesEnabled: Boolean(raw.writesEnabled),
     message: raw.message,
-    patients: asArray<DemoPatient>(raw.patients),
-    appointments: asArray<DemoAppointment>(raw.appointments),
-    businesses: asArray<NamedResource>(raw.businesses),
-    appointmentTypes: asArray<NamedResource>(raw.appointmentTypes),
+    patients: asArray<DemoPatient>(raw.patients).map((patient) => ({
+      id: safeString(patient.id, "unknown"),
+      firstName: safeString(patient.firstName, "DEMO"),
+      lastName: safeString(patient.lastName, "Patient"),
+      email: patient.email ? safeString(patient.email) : undefined,
+    })),
+    appointments: asArray<DemoAppointment>(raw.appointments).map((appointment) => ({
+      id: safeString(appointment.id, "unknown"),
+      patientId: appointment.patientId,
+      patientLabel: safeString(appointment.patientLabel, "DEMO patient"),
+      startsAt: safeString(appointment.startsAt),
+      appointmentTypeName: safeString(appointment.appointmentTypeName, "Appointment"),
+      businessName: safeString(appointment.businessName, "Clinic"),
+      cancelled: Boolean(appointment.cancelled),
+    })),
+    businesses: asArray<NamedResource>(raw.businesses).map((business) => ({
+      id: safeString(business.id, "unknown"),
+      name: safeString(business.name, "Clinic"),
+      durationMinutes: business.durationMinutes,
+    })),
+    appointmentTypes: asArray<NamedResource>(raw.appointmentTypes).map((type) => ({
+      id: safeString(type.id, "unknown"),
+      name: safeString(type.name, "Appointment"),
+      durationMinutes: type.durationMinutes,
+    })),
     practitionerSource: safeString(raw.practitionerSource, "none"),
     practitionerBookable: Boolean(raw.practitionerBookable),
     practitionerId: raw.practitionerId,
@@ -641,7 +662,7 @@ function SelectionSummary({
           label="DEMO appointment"
           value={
             appointment
-              ? `${appointment.startsAt}${appointment.cancelled ? " (cancelled)" : ""}`
+              ? `${safeDateLabel(appointment.startsAt)}${appointment.cancelled ? " (cancelled)" : ""}`
               : "—"
           }
         />
@@ -890,8 +911,8 @@ function AppointmentList({
                   {safeString(a.patientLabel, "DEMO patient")} · {safeDateLabel(a.startsAt)}
                 </p>
                 <p className="text-xs text-slate">
-                  {a.appointmentTypeName ?? "Appointment"}
-                  {a.businessName ? ` · ${a.businessName}` : ""}
+                  {safeString(a.appointmentTypeName, "Appointment")}
+                  {safeString(a.businessName) ? ` · ${safeString(a.businessName, "Clinic")}` : ""}
                   {a.cancelled ? " · Cancelled" : ""}
                 </p>
               </button>

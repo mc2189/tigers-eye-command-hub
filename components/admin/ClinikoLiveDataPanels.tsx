@@ -97,9 +97,9 @@ export function ClinikoLiveDataPanels() {
             connectedEmptyMessage="Connected to Cliniko, but no businesses were found."
             renderItem={(b) => (
               <>
-                <p className="font-medium text-navy">{b.name}</p>
-                {b.address && <p className="text-slate">{b.address}</p>}
-                {b.timezone && <p className="text-xs text-slate">{b.timezone}</p>}
+                <p className="font-medium text-navy">{safeString(b.name, "Clinic")}</p>
+                {b.address && <p className="text-slate">{safeString(b.address)}</p>}
+                {b.timezone && <p className="text-xs text-slate">{safeString(b.timezone)}</p>}
               </>
             )}
           />
@@ -110,9 +110,9 @@ export function ClinikoLiveDataPanels() {
             connectedEmptyMessage="Connected to Cliniko, but no practitioners were found."
             renderItem={(p) => (
               <>
-                <p className="font-medium text-navy">{p.name}</p>
-                {p.role && <p className="text-slate">{p.role}</p>}
-                {p.email && <p className="text-xs text-slate">{p.email}</p>}
+                <p className="font-medium text-navy">{safeString(p.name, "Practitioner")}</p>
+                {p.role && <p className="text-slate">{safeString(p.role)}</p>}
+                {p.email && <p className="text-xs text-slate">{safeString(p.email)}</p>}
               </>
             )}
           />
@@ -129,7 +129,7 @@ export function ClinikoLiveDataPanels() {
             connectedEmptyMessage="Connected to Cliniko, but no appointment types were found."
             renderItem={(t) => (
               <>
-                <p className="font-medium text-navy">{t.name}</p>
+                <p className="font-medium text-navy">{safeString(t.name, "Appointment type")}</p>
                 <p className="text-slate">
                   {t.durationMinutes ? `${t.durationMinutes} min` : "—"}
                   {t.price !== undefined ? ` · £${t.price}` : ""}

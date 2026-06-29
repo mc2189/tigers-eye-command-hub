@@ -231,15 +231,30 @@ function mapAppointmentFromIndividual(
   appointment: ClinikoIndividualAppointment
 ): DemoAppointmentRecord {
   return {
-    id: appointment.id,
+    id: String(appointment.id ?? ""),
     patientId: appointment.patientId,
-    patientLabel: appointment.patientLabel ?? appointment.patientName,
-    startsAt: appointment.startsAt,
-    endsAt: appointment.endsAt,
-    appointmentTypeName: appointment.appointmentTypeName,
-    businessName: appointment.businessName,
+    patientLabel:
+      coerceDemoLabel(appointment.patientLabel ?? appointment.patientName) ??
+      "DEMO patient",
+    startsAt: String(appointment.startsAt ?? ""),
+    endsAt: appointment.endsAt ? String(appointment.endsAt) : undefined,
+    appointmentTypeName:
+      coerceDemoLabel(appointment.appointmentTypeName) ?? "Appointment",
+    businessName: coerceDemoLabel(appointment.businessName) ?? "Clinic",
     cancelled: Boolean(appointment.cancelledAt),
   };
+}
+
+function coerceDemoLabel(value: unknown): string | undefined {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed || undefined;
+  }
+  if (!value || typeof value !== "object") return undefined;
+  const record = value as Record<string, unknown>;
+  const direct = record.name ?? record.label;
+  if (typeof direct === "string" && direct.trim()) return direct.trim();
+  return undefined;
 }
 
 async function fetchDemoAppointmentsLive(

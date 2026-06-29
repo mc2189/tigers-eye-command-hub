@@ -1,4 +1,5 @@
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { ClinikoPanelErrorBoundary } from "@/components/admin/ClinikoPanelErrorBoundary";
 import { AviemoreClinikoPanel } from "@/components/admin/AviemoreClinikoPanel";
 import { ClinikoTestLabPanel } from "@/components/admin/ClinikoTestLabPanel";
 import { ConfigureDemoButton } from "@/components/admin/ConfigureDemoButton";
@@ -42,12 +43,20 @@ export default function ClinikoPage() {
       </p>
 
       <div className="mb-6 space-y-6">
-        <ClinikoConnectionPanel />
+        <ClinikoPanelErrorBoundary title="Cliniko connection">
+          <ClinikoConnectionPanel />
+        </ClinikoPanelErrorBoundary>
         <AviemoreClinikoPanel />
-        <ClinikoTestLabPanel />
+        <ClinikoPanelErrorBoundary title="Cliniko test lab">
+          <ClinikoTestLabPanel />
+        </ClinikoPanelErrorBoundary>
         <ClinikoHealthSummary />
-        <ClinikoLiveDataPanels />
-        <ClinikoMappingHealthPanel />
+        <ClinikoPanelErrorBoundary title="Live Cliniko data">
+          <ClinikoLiveDataPanels />
+        </ClinikoPanelErrorBoundary>
+        <ClinikoPanelErrorBoundary title="Mapping health">
+          <ClinikoMappingHealthPanel />
+        </ClinikoPanelErrorBoundary>
         <DataHandlingPanel />
       </div>
 

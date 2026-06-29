@@ -1294,13 +1294,48 @@ function extractLinkId(links: unknown, key: string): string | undefined {
   return match ? match[1] : undefined;
 }
 
+function coerceClinikoField(value: unknown): string | undefined {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed || undefined;
+  }
+  if (!value || typeof value !== "object") return undefined;
+
+  const record = value as Record<string, unknown>;
+  const direct =
+    record.name ??
+    record.label ??
+    record.business_name ??
+    record.appointment_type_name ??
+    record.patient_name ??
+    record.practitioner_name;
+  if (typeof direct === "string" && direct.trim()) return direct.trim();
+
+  const first = record.first_name;
+  const last = record.last_name;
+  if (typeof first === "string" || typeof last === "string") {
+    const parts = [first, last].filter((part) => typeof part === "string" && part.trim());
+    if (parts.length > 0) return parts.join(" ");
+  }
+
+  return undefined;
+}
+
 function mapIndividualAppointment(appt: Record<string, unknown>): ClinikoIndividualAppointment {
   const links = appt.links;
-  const patientName = (appt.patient_name as string | undefined) ?? undefined;
+  const patientName =
+    coerceClinikoField(appt.patient_name) ?? coerceClinikoField(appt.patient);
+  const appointmentTypeName =
+    coerceClinikoField(appt.appointment_type_name) ??
+    coerceClinikoField(appt.appointment_type);
+  const practitionerName =
+    coerceClinikoField(appt.practitioner_name) ?? coerceClinikoField(appt.practitioner);
+  const businessName =
+    coerceClinikoField(appt.business_name) ?? coerceClinikoField(appt.business);
   return {
     id: String(appt.id ?? ""),
-    startsAt: String(appt.starts_at ?? ""),
-    endsAt: String(appt.ends_at ?? ""),
+    startsAt: String(appt.starts_at ?? appt.start_time ?? ""),
+    endsAt: String(appt.ends_at ?? appt.end_time ?? ""),
     patientId:
       appt.patient_id != null
         ? String(appt.patient_id)
@@ -1311,19 +1346,17 @@ function mapIndividualAppointment(appt: Record<string, unknown>): ClinikoIndivid
       appt.appointment_type_id != null
         ? String(appt.appointment_type_id)
         : extractLinkId(links, "appointment_type"),
-    appointmentTypeName:
-      (appt.appointment_type_name as string | undefined) ??
-      (appt.appointment_type as string | undefined),
+    appointmentTypeName,
     practitionerId:
       appt.practitioner_id != null
         ? String(appt.practitioner_id)
         : extractLinkId(links, "practitioner"),
-    practitionerName: appt.practitioner_name as string | undefined,
+    practitionerName,
     businessId:
       appt.business_id != null
         ? String(appt.business_id)
         : extractLinkId(links, "business"),
-    businessName: appt.business_name as string | undefined,
+    businessName,
     noteStatus: mapNoteStatus(appt.treatment_note_status as number | undefined),
     invoiceStatus: mapInvoiceStatus(appt.invoice_status as number | undefined),
     telehealthUrl: appt.telehealth_url as string | undefined,
@@ -1371,12 +1404,19 @@ function individualAppointmentToBooking(
 function mapOnlineBooking(booking: Record<string, unknown>): ClinikoBooking {
   return {
     id: String(booking.id ?? ""),
-    startsAt: String(booking.starts_at ?? ""),
-    endsAt: String(booking.ends_at ?? ""),
-    appointmentTypeName: booking.appointment_type_name as string | undefined,
-    practitionerName: booking.practitioner_name as string | undefined,
-    businessName: booking.business_name as string | undefined,
-    patientLabel: toPatientLabel(booking.patient_name as string | undefined),
+    startsAt: String(booking.starts_at ?? booking.start_time ?? ""),
+    endsAt: String(booking.ends_at ?? booking.end_time ?? ""),
+    appointmentTypeName:
+      coerceClinikoField(booking.appointment_type_name) ??
+      coerceClinikoField(booking.appointment_type),
+    practitionerName:
+      coerceClinikoField(booking.practitioner_name) ??
+      coerceClinikoField(booking.practitioner),
+    businessName:
+      coerceClinikoField(booking.business_name) ?? coerceClinikoField(booking.business),
+    patientLabel: toPatientLabel(
+      coerceClinikoField(booking.patient_name) ?? coerceClinikoField(booking.patient)
+    ),
     source: "cliniko",
     rawLinks: booking.links,
   };
