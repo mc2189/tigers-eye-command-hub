@@ -2,19 +2,38 @@
 
 | Field | Value |
 |-------|-------|
-| **Last updated** | 2026-06-29 (live appointment source fix — commit `124ff00`) |
-| **Local smoke** | **25/25 PASS** |
-| **Production smoke** | **25/25 PASS** (2026-06-29, post `124ff00` deploy) |
+| **Last updated** | 2026-06-29 (appointment discovery — commits `826d68d`, patient_id fix pending deploy) |
+| **Local smoke** | **25/25 PASS** (production build on port 3010) |
+| **Production smoke** | **25/25 PASS** (2026-06-29, post `826d68d` deploy) |
 | **Base URL (prod)** | https://tigers-eye-command-hub.vercel.app |
 
 ## Latest run summary
 
 | Environment | Result | Passed | Failed | Notes |
 |-------------|--------|--------|--------|-------|
-| Local (`localhost:3000`) | **PASS** | 25 | 0 | Live-only Cliniko DEMO appointments |
-| Production (Vercel) | **PASS** | 25 | 0 | Post `124ff00` deploy — truthful test lab list |
+| Local (`localhost:3010`) | **PASS** | 25 | 0 | Discovery UI + diagnostics strings present |
+| Production (Vercel) | **PASS** | 25 | 0 | Post `826d68d` — discovery panel live |
 
-## Cliniko-first Aviemore checks
+## Cliniko appointment discovery (`826d68d`)
+
+Production probe run (read-only, uk3 shard):
+
+| Probe | Returned | DEMO matches | Notes |
+|-------|----------|--------------|-------|
+| Unfiltered | 4 | 0* | Appointments visible with DEMO patient labels |
+| Future window | 4 | 0* | Date q[] filters working |
+| Patient DEMO Test Patient 001 | 2 | 0* | Manual appointments found by `patient_id` filter |
+| Business | 4 | 0* | |
+| Practitioner | 4 | 0* | |
+| Created recently | 4 | 0* | |
+
+\*Initial deploy: `demoMatchCount` was 0 because Cliniko list responses omit top-level `patient_id` — nested `patient.links.self` must be parsed. Follow-up fix adds `extractResourceId` and inferred patient_id on patient-filtered merges.
+
+**Conclusion from probes:** Cliniko is returning appointments; read-back failed on patient_id extraction, not query filters. Patient-specific probe is the reliable path for DEMO appointment read-back.
+
+**Appointment ID lookup:** ID `1983559512753187169` readable via `/individual_appointments/{id}`; maps once patient_id is extracted.
+
+## Live Cliniko test data versus demo examples (`124ff00`)
 
 | Route | Check | Expected |
 |-------|-------|----------|
