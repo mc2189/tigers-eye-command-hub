@@ -10,6 +10,7 @@ import {
   type MappedCalendarItem,
   type DataSource,
 } from "@/lib/cliniko-mappers";
+import { asArray, safeLowerCase } from "@/lib/safe-data";
 
 interface LoadResult {
   mapped: MappedBooking[];
@@ -49,13 +50,15 @@ export function useMappedClinikoBookings() {
         appointmentTypes: ClinikoAppointmentTypeInput[];
       };
 
-      const appointments = appointmentsJson.appointments ?? [];
+      const appointments = asArray<ClinikoIndividualAppointmentInput>(appointmentsJson.appointments);
+      const appointmentTypes = asArray<ClinikoAppointmentTypeInput>(typesJson.appointmentTypes);
+
       const mappedBookings = mapClinikoIndividualAppointments(appointments, {
-        appointmentTypes: typesJson.appointmentTypes ?? [],
+        appointmentTypes,
       });
       const calItems = appointments.map((appointment) =>
         mapClinikoIndividualAppointmentToCalendarItem(appointment, {
-          appointmentTypes: typesJson.appointmentTypes ?? [],
+          appointmentTypes,
         })
       );
 
@@ -108,12 +111,12 @@ export function filterByPractitionerName(
   bookings: MappedBooking[],
   matcher: RegExp
 ): MappedBooking[] {
-  return bookings.filter((b) => matcher.test(b.practitionerName.toLowerCase()));
+  return bookings.filter((b) => matcher.test(safeLowerCase(b.practitionerName, "unknown")));
 }
 
 export function filterCalendarByPractitionerName(
   items: MappedCalendarItem[],
   matcher: RegExp
 ): MappedCalendarItem[] {
-  return items.filter((i) => matcher.test(i.practitionerName.toLowerCase()));
+  return items.filter((i) => matcher.test(safeLowerCase(i.practitionerName, "unknown")));
 }

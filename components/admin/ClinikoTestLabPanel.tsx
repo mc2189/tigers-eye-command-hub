@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { DataSourceBadge } from "./DataSourceBadge";
 import { CalloutBox } from "./AdminUI";
 import { DemoFeedbackToast, useDemoFeedback } from "./DemoActionFeedback";
+import { asArray, safeDateLabel, safeString } from "@/lib/safe-data";
 
 type ProofStatus = "proven" | "failed" | "not-tested" | "needs-setup";
 
@@ -121,19 +122,86 @@ const DEFAULT_PROOF: ProofCard[] = [
   { id: "mapping", label: "Command Hub mapping", status: "not-tested" },
 ];
 
+function normalizeSnapshot(raw: Partial<Snapshot> | null | undefined): Snapshot | null {
+  if (!raw || typeof raw !== "object") return null;
+
+  return {
+    ok: Boolean(raw.ok),
+    mode: raw.mode ?? "unavailable",
+    writesEnabled: Boolean(raw.writesEnabled),
+    message: raw.message,
+    patients: asArray<DemoPatient>(raw.patients),
+    appointments: asArray<DemoAppointment>(raw.appointments),
+    businesses: asArray<NamedResource>(raw.businesses),
+    appointmentTypes: asArray<NamedResource>(raw.appointmentTypes),
+    practitionerSource: safeString(raw.practitionerSource, "none"),
+    practitionerBookable: Boolean(raw.practitionerBookable),
+    practitionerId: raw.practitionerId,
+    practitionerName: raw.practitionerName,
+    practitionerSourceLabel: safeString(raw.practitionerSourceLabel, "unknown"),
+    defaults: raw.defaults,
+    preflight: raw.preflight
+      ? {
+          ready: Boolean(raw.preflight.ready),
+          checks: asArray<PreflightCheck>(raw.preflight.checks),
+          proposedStartsAt: raw.preflight.proposedStartsAt,
+          proposedEndsAt: raw.preflight.proposedEndsAt,
+          usingManualTime: raw.preflight.usingManualTime,
+          manualTimeMessage: raw.preflight.manualTimeMessage,
+        }
+      : undefined,
+    proofDiagnostics: raw.proofDiagnostics
+      ? {
+          lastEndpoint: raw.proofDiagnostics.lastEndpoint,
+          dataSource: raw.proofDiagnostics.dataSource ?? "individual_appointments",
+          availableTimeEndpoint: raw.proofDiagnostics.availableTimeEndpoint,
+          availableTimeResult: raw.proofDiagnostics.availableTimeResult,
+          availableTimeHttpStatus: raw.proofDiagnostics.availableTimeHttpStatus,
+          availableTimeSeverity: raw.proofDiagnostics.availableTimeSeverity ?? "soft",
+          proposedStartsAt: raw.proofDiagnostics.proposedStartsAt,
+          proposedEndsAt: raw.proofDiagnostics.proposedEndsAt,
+          usingManualTime: raw.proofDiagnostics.usingManualTime,
+          selectedPatientId: raw.proofDiagnostics.selectedPatientId,
+          selectedBusinessId: raw.proofDiagnostics.selectedBusinessId,
+          selectedPractitionerId: raw.proofDiagnostics.selectedPractitionerId,
+          selectedAppointmentTypeId: raw.proofDiagnostics.selectedAppointmentTypeId,
+        }
+      : undefined,
+  };
+}
+
 function loadProofCards(): ProofCard[] {
   if (typeof window === "undefined") return DEFAULT_PROOF;
   try {
-    const raw = localStorage.getItem(PROOF_STORAGE_KEY);
+    const raw = window.localStorage.getItem(PROOF_STORAGE_KEY);
     if (!raw) return DEFAULT_PROOF;
-    return JSON.parse(raw) as ProofCard[];
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return DEFAULT_PROOF;
+    return parsed
+      .filter(
+        (card): card is ProofCard =>
+          Boolean(card) &&
+          typeof card === "object" &&
+          typeof (card as ProofCard).id === "string" &&
+          typeof (card as ProofCard).label === "string"
+      )
+      .map((card) => ({
+        id: card.id,
+        label: card.label,
+        status: card.status ?? "not-tested",
+      }));
   } catch {
     return DEFAULT_PROOF;
   }
 }
 
 function saveProofCards(cards: ProofCard[]) {
-  localStorage.setItem(PROOF_STORAGE_KEY, JSON.stringify(cards));
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(PROOF_STORAGE_KEY, JSON.stringify(cards));
+  } catch {
+    // Ignore storage failures in private browsing or quota errors.
+  }
 }
 
 function updateProofFromAction(cards: ProofCard[], result: ActionResult): ProofCard[] {
@@ -200,7 +268,11 @@ export function ClinikoTestLabPanel() {
     setLoading(true);
     try {
       const res = await fetch(`/api/cliniko/test-data${snapshotQuery}`, { cache: "no-store" });
-      const json = (await res.json()) as Snapshot;
+      const json = normalizeSnapshot((await res.json()) as Partial<Snapshot>);
+      if (!json) {
+        setSnapshot(null);
+        return;
+      }
       setSnapshot(json);
       setSelectedPatientId((prev) => prev ?? json.patients[0]?.id ?? null);
       setSelectedBusinessId((prev) => prev ?? json.defaults?.businessId ?? json.businesses[0]?.id ?? null);
@@ -500,9 +572,10 @@ export function ClinikoTestLabPanel() {
 }
 
 function ProofStatusGrid({ cards }: { cards: ProofCard[] }) {
+  const safeCards = asArray<ProofCard>(cards);
   return (
     <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-      {cards.map((card) => (
+      {safeCards.map((card) => (
         <div
           key={card.id}
           className="rounded-lg border border-cream-dark px-3 py-2 text-sm"
@@ -558,8 +631,8 @@ function SelectionSummary({
         <Row label="Practitioner source" value={practitionerSourceLabel} />
         <Row label="Business / location" value={business?.name ?? "—"} />
         <Row label="Appointment type" value={appointmentType?.name ?? "—"} />
-        <Row label="Proposed date/time" value={proposedStartsAt ? formatDateTime(proposedStartsAt) : "—"} />
-        <Row label="Proposed ends_at" value={proposedEndsAt ? formatDateTime(proposedEndsAt) : "—"} />
+        <Row label="Proposed date/time" value={proposedStartsAt ? safeDateLabel(proposedStartsAt) : "—"} />
+        <Row label="Proposed ends_at" value={proposedEndsAt ? safeDateLabel(proposedEndsAt) : "—"} />
         <Row
           label="Manual test time"
           value={usingManualTime ? "Using safe manual test time" : "—"}
@@ -605,7 +678,7 @@ function PreflightPanel({
         <p className="mt-2 text-amber-800">{preflight.manualTimeMessage}</p>
       )}
       <ul className="mt-2 space-y-1">
-        {preflight.checks.map((check) => (
+        {asArray<PreflightCheck>(preflight.checks).map((check) => (
           <li
             key={check.id}
             className={
@@ -753,16 +826,17 @@ function PatientList({
   selectedPatientId: string | null;
   onSelect: (id: string) => void;
 }) {
+  const safePatients = asArray<DemoPatient>(patients);
   return (
     <div>
-      <h3 className="font-semibold text-navy">DEMO patients ({patients.length})</h3>
-      {patients.length === 0 ? (
+      <h3 className="font-semibold text-navy">DEMO patients ({safePatients.length})</h3>
+      {safePatients.length === 0 ? (
         <p className="mt-2 text-sm text-slate">
           No DEMO patients yet. Create one to prove live Cliniko writes.
         </p>
       ) : (
         <ul className="mt-3 space-y-2">
-          {patients.map((p) => (
+          {safePatients.map((p) => (
             <li
               key={p.id}
               className={`rounded-lg border p-3 text-sm ${
@@ -794,16 +868,17 @@ function AppointmentList({
   selectedAppointmentId: string | null;
   onSelect: (id: string) => void;
 }) {
+  const safeAppointments = asArray<DemoAppointment>(appointments);
   return (
     <div>
-      <h3 className="font-semibold text-navy">DEMO appointments ({appointments.length})</h3>
-      {appointments.length === 0 ? (
+      <h3 className="font-semibold text-navy">DEMO appointments ({safeAppointments.length})</h3>
+      {safeAppointments.length === 0 ? (
         <p className="mt-2 text-sm text-slate">No upcoming DEMO appointments loaded.</p>
       ) : (
         <ul className="mt-3 space-y-2">
-          {appointments.map((a) => (
+          {safeAppointments.map((a) => (
             <li
-              key={a.id}
+              key={a.id || a.startsAt}
               className={`rounded-lg border p-3 text-sm ${
                 selectedAppointmentId === a.id
                   ? "border-green bg-green-muted/20"
@@ -812,7 +887,7 @@ function AppointmentList({
             >
               <button type="button" onClick={() => onSelect(a.id)} className="w-full text-left">
                 <p className="font-medium text-navy">
-                  {a.patientLabel ?? "DEMO patient"} · {formatDateTime(a.startsAt)}
+                  {safeString(a.patientLabel, "DEMO patient")} · {safeDateLabel(a.startsAt)}
                 </p>
                 <p className="text-xs text-slate">
                   {a.appointmentTypeName ?? "Appointment"}
@@ -841,6 +916,7 @@ function ResourcePicker({
   onSelect: (id: string) => void;
   renderExtra?: (item: NamedResource) => string | undefined;
 }) {
+  const safeItems = asArray<NamedResource>(items);
   return (
     <div>
       <label className="text-sm font-medium text-navy">{label}</label>
@@ -849,12 +925,12 @@ function ResourcePicker({
         value={selectedId ?? ""}
         onChange={(e) => onSelect(e.target.value)}
       >
-        {items.length === 0 ? (
+        {safeItems.length === 0 ? (
           <option value="">None available</option>
         ) : (
-          items.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.name}
+          safeItems.map((item) => (
+            <option key={item.id || item.name} value={item.id}>
+              {safeString(item.name, "Unknown")}
               {renderExtra?.(item) ? ` (${renderExtra(item)})` : ""}
             </option>
           ))
@@ -888,15 +964,5 @@ function ActionButton({
 }
 
 function formatDateTime(iso: string): string {
-  try {
-    return new Date(iso).toLocaleString("en-GB", {
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return iso;
-  }
+  return safeDateLabel(iso, iso);
 }

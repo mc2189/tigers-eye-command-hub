@@ -8,6 +8,7 @@ import {
   practitioners as demoPractitioners,
 } from "@/lib/demo-data";
 import { clinics } from "@/lib/tigers-eye-content";
+import { asArray, safeDateLabel, safeString } from "@/lib/safe-data";
 
 type DataSource = "cliniko" | "demo" | "unavailable";
 
@@ -41,7 +42,7 @@ function LiveDataPanel<T extends { id: string }>({
       .then((json: Record<string, unknown>) => {
         const src = (json.source as string) ?? "demo";
         setSource(src === "cliniko" ? "cliniko" : src === "demo" ? "demo" : "unavailable");
-        setItems((json[dataKey] as T[]) ?? []);
+        setItems(asArray<T>(json[dataKey]));
       })
       .catch(() => {
         setItems([]);
@@ -154,15 +155,15 @@ export function ClinikoLiveDataPanels() {
             renderItem={(a) => (
               <>
                 <p className="font-medium text-navy">
-                  {a.patientLabel ?? a.patientName ?? "Cliniko patient"}
+                  {safeString(a.patientLabel ?? a.patientName, "Cliniko patient")}
                 </p>
                 <p className="text-slate">
-                  {formatDateTime(a.startsAt)}
-                  {a.appointmentTypeName ? ` · ${a.appointmentTypeName}` : ""}
+                  {safeDateLabel(a.startsAt)}
+                  {a.appointmentTypeName ? ` · ${safeString(a.appointmentTypeName, "Appointment")}` : ""}
                 </p>
                 <p className="text-xs text-slate">
-                  {a.practitionerName ? `${a.practitionerName} · ` : ""}
-                  {a.businessName ?? "Cliniko test account"}
+                  {a.practitionerName ? `${safeString(a.practitionerName, "Practitioner")} · ` : ""}
+                  {safeString(a.businessName, "Cliniko test account")}
                 </p>
               </>
             )}
@@ -181,10 +182,10 @@ export function ClinikoLiveDataPanels() {
             connectedEmptyMessage="Connected to Cliniko, but no online bookings were found. Manual appointments are listed under Individual appointments."
             renderItem={(b) => (
               <>
-                <p className="font-medium text-navy">{b.patientLabel ?? "Cliniko patient"}</p>
+                <p className="font-medium text-navy">{safeString(b.patientLabel, "Cliniko patient")}</p>
                 <p className="text-slate">
-                  {formatDateTime(b.startsAt)}
-                  {b.appointmentTypeName ? ` · ${b.appointmentTypeName}` : ""}
+                  {safeDateLabel(b.startsAt)}
+                  {b.appointmentTypeName ? ` · ${safeString(b.appointmentTypeName, "Appointment")}` : ""}
                 </p>
                 {b.noteStatus && <p className="text-xs text-slate">Note: {b.noteStatus}</p>}
               </>
@@ -260,8 +261,8 @@ function ClinikoBookingsVsAppointmentsNote() {
       ),
     ])
       .then(([bookingsJson, appointmentsJson]) => {
-        const bookings = (bookingsJson.bookings as unknown[]) ?? [];
-        const appointments = (appointmentsJson.appointments as unknown[]) ?? [];
+        const bookings = asArray(bookingsJson.bookings);
+        const appointments = asArray(appointmentsJson.appointments);
         if (
           bookingsJson.source === "cliniko" &&
           bookings.length === 0 &&
@@ -307,15 +308,5 @@ function DemoExamplesPanel({
 }
 
 function formatDateTime(iso: string): string {
-  try {
-    return new Date(iso).toLocaleString("en-GB", {
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return iso;
-  }
+  return safeDateLabel(iso, iso);
 }

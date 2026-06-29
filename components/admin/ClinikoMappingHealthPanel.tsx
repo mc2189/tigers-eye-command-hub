@@ -11,6 +11,7 @@ import {
   type ClinikoPractitionerInput,
   type MappingHealthSummary,
 } from "@/lib/cliniko-mappers";
+import { asArray } from "@/lib/safe-data";
 
 export function ClinikoMappingHealthPanel() {
   const [summary, setSummary] = useState<MappingHealthSummary | null>(null);
@@ -28,17 +29,28 @@ export function ClinikoMappingHealthPanel() {
             fetch("/api/cliniko/individual-appointments?perPage=50", { cache: "no-store" }),
           ]);
 
-        const businesses = ((await businessesRes.json()) as { businesses: ClinikoBusinessInput[]; source: "cliniko" | "demo" }).businesses ?? [];
-        const practitioners = ((await practitionersRes.json()) as { practitioners: ClinikoPractitionerInput[] }).practitioners ?? [];
-        const appointmentTypes = ((await typesRes.json()) as { appointmentTypes: ClinikoAppointmentTypeInput[] }).appointmentTypes ?? [];
+        const businesses = asArray<ClinikoBusinessInput>(
+          ((await businessesRes.json()) as { businesses?: ClinikoBusinessInput[] }).businesses
+        );
+        const practitioners = asArray<ClinikoPractitionerInput>(
+          ((await practitionersRes.json()) as { practitioners?: ClinikoPractitionerInput[] })
+            .practitioners
+        );
+        const appointmentTypes = asArray<ClinikoAppointmentTypeInput>(
+          ((await typesRes.json()) as { appointmentTypes?: ClinikoAppointmentTypeInput[] })
+            .appointmentTypes
+        );
         const appointmentsJson = (await appointmentsRes.json()) as {
-          appointments: ClinikoIndividualAppointmentInput[];
+          appointments?: ClinikoIndividualAppointmentInput[];
           source: "cliniko" | "demo";
         };
 
-        const mapped = mapClinikoIndividualAppointments(appointmentsJson.appointments ?? [], {
-          appointmentTypes,
-        });
+        const mapped = mapClinikoIndividualAppointments(
+          asArray<ClinikoIndividualAppointmentInput>(appointmentsJson.appointments),
+          {
+            appointmentTypes,
+          }
+        );
 
         setSummary(
           buildMappingHealthSummary(

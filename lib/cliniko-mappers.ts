@@ -11,6 +11,7 @@ import {
   getFinanceWarningsForAppointmentType,
   getPaymentRuleForAppointmentType,
 } from "@/lib/pricing-rules";
+import { safeString } from "@/lib/safe-data";
 
 // ─── Shared input shapes (match API route outputs) ───────────────────────────
 
@@ -569,13 +570,19 @@ export function mapClinikoIndividualAppointmentToBookingInput(
   appointment: ClinikoIndividualAppointmentInput
 ): ClinikoBookingInput {
   return {
-    id: appointment.id,
-    startsAt: appointment.startsAt,
-    endsAt: appointment.endsAt,
-    appointmentTypeName: appointment.appointmentTypeName,
-    practitionerName: appointment.practitionerName,
-    businessName: appointment.businessName,
-    patientLabel: appointment.patientLabel ?? appointment.patientName,
+    id: safeString(appointment.id, "unknown"),
+    startsAt: safeString(appointment.startsAt),
+    endsAt: safeString(appointment.endsAt, appointment.startsAt),
+    appointmentTypeName: safeString(
+      appointment.appointmentTypeName,
+      "Appointment"
+    ),
+    practitionerName: safeString(appointment.practitionerName, "Practitioner"),
+    businessName: safeString(appointment.businessName, "Clinic"),
+    patientLabel: safeString(
+      appointment.patientLabel ?? appointment.patientName,
+      "Cliniko patient"
+    ),
     noteStatus: appointment.noteStatus,
     invoiceStatus: appointment.invoiceStatus,
   };

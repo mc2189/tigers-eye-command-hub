@@ -8,20 +8,52 @@ import {
   createDemoPatient,
   getDemoTestLabSnapshot,
   updateDemoPatient,
+  type DemoTestLabSnapshot,
   type TestLabAction,
 } from "@/lib/cliniko-test-lab";
 
 export const dynamic = "force-dynamic";
 
+function emptySnapshot(message: string): DemoTestLabSnapshot {
+  return {
+    ok: false,
+    mode: "unavailable",
+    writesEnabled: false,
+    message,
+    patients: [],
+    appointments: [],
+    businesses: [],
+    appointmentTypes: [],
+    practitionerSource: "none",
+    practitionerBookable: false,
+    practitionerSourceLabel: "none",
+  };
+}
+
 export async function GET(request: NextRequest) {
-  const { searchParams } = request.nextUrl;
-  const snapshot = await getDemoTestLabSnapshot({
-    patientId: searchParams.get("patientId") ?? undefined,
-    businessId: searchParams.get("businessId") ?? undefined,
-    practitionerId: searchParams.get("practitionerId") ?? undefined,
-    appointmentTypeId: searchParams.get("appointmentTypeId") ?? undefined,
-  });
-  return NextResponse.json(snapshot);
+  try {
+    const { searchParams } = request.nextUrl;
+    const snapshot = await getDemoTestLabSnapshot({
+      patientId: searchParams.get("patientId") ?? undefined,
+      businessId: searchParams.get("businessId") ?? undefined,
+      practitionerId: searchParams.get("practitionerId") ?? undefined,
+      appointmentTypeId: searchParams.get("appointmentTypeId") ?? undefined,
+    });
+    return NextResponse.json({
+      ...snapshot,
+      patients: snapshot.patients ?? [],
+      appointments: snapshot.appointments ?? [],
+      businesses: snapshot.businesses ?? [],
+      appointmentTypes: snapshot.appointmentTypes ?? [],
+    });
+  } catch (err) {
+    return NextResponse.json(
+      emptySnapshot(
+        err instanceof Error ? err.message : "Could not load Cliniko test lab snapshot."
+      ),
+      { status: 502 }
+    );
+  }
 }
 
 interface TestDataBody {
@@ -126,5 +158,12 @@ export async function POST(request: NextRequest) {
   }
 
   const status = result.ok ? 200 : result.proofStatus === "needs-setup" ? 403 : 502;
-  return NextResponse.json(result, { status });
+  return NextResponse.json(
+    {
+      ...result,
+      patients: [],
+      appointments: [],
+    },
+    { status }
+  );
 }
