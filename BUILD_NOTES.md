@@ -71,8 +71,29 @@ It must **not** appear as the active Aviemore booking provider on `/book`.
 
 - Sterile Cliniko test account only — fake `DEMO` patients and appointments
 - Controlled writes when `CLINIKO_ENABLE_WRITES=true`
-- Create, update, cancel/archive and cleanup via `/admin/cliniko` test lab panel
-- API: `GET/POST /api/cliniko/test-data` (staff auth required)
+- Independent proof steps on `/admin/cliniko`: patient create/update/archive, appointment create/cancel/read-back, explicit cleanup
+- API: `GET/POST /api/cliniko/test-data` (staff auth required) with explicit snake_case actions and `proofStatus` responses
+- Live Cliniko panels show real sandbox data only; demo examples are in a separate section
+- Appointment creation uses practitioner IDs from `/practitioners` (not `/users`); preflight checks run before writes
+
+### Appointment proof troubleshooting
+
+| Step | Status (sterile uk3 test account) |
+|------|-----------------------------------|
+| DEMO patient create | Proven |
+| DEMO patient update | Proven |
+| DEMO patient archive / cleanup | Proven when manually triggered |
+| DEMO appointment create | Pending — depends on practitioner availability and Cliniko validation |
+| Manual Cliniko appointment read-back | Use “Check for DEMO appointments” after creating in Cliniko UI |
+| Command Hub mapping | Verify bookings/calendar after read-back succeeds |
+
+Possible setup causes when appointment create fails:
+
+- Practitioner missing or resolved from `/users` instead of `/practitioners`
+- Appointment type missing or not bookable
+- Practitioner daily availability not configured
+- Online booking / available-times constraints
+- Payload rejected by Cliniko (422) — see diagnostics panel on `/admin/cliniko`
 
 ## Environment variables
 

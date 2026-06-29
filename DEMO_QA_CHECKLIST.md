@@ -140,6 +140,20 @@ Use this before showing George. Tick each item after verifying in the browser.
 - [ ] Demo banner visible on all admin pages
 - [ ] Demo staff login required for Command Hub
 - [ ] Cliniko test lab only creates DEMO-prefixed fake patients
+- [ ] Patient actions (create/update/archive) are separate from appointment actions
+- [ ] Appointment create does not run cleanup automatically
+- [ ] Cleanup requires explicit confirmation
+- [ ] Live Cliniko panels do not show demo bookings when connected with zero bookings
+- [ ] “Check for DEMO appointments” finds manually created Cliniko bookings for DEMO patients
+- [ ] Appointment preflight and diagnostics visible when create fails
+
+### Appointment proof troubleshooting
+
+- [ ] DEMO patient create/update/archive proven in test lab
+- [ ] Cleanup proven when manually triggered
+- [ ] DEMO appointment create — pending or proven with diagnostics if failed
+- [ ] Manual Cliniko appointment read-back test documented and working
+- [ ] Possible causes understood: practitioner, appointment type, availability, online booking, payload rejected
 - [ ] No real patient names from production (sandbox/demo only)
 - [ ] No API key visible in browser or page source
 - [ ] Notes: no audio/transcript stored messaging clear

@@ -2,34 +2,37 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   archiveDemoPatient,
   cancelDemoAppointment,
+  checkDemoAppointments,
   cleanupDemoTestData,
   createDemoAppointment,
   createDemoPatient,
   getDemoTestLabSnapshot,
   updateDemoPatient,
+  type TestLabAction,
 } from "@/lib/cliniko-test-lab";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  const snapshot = await getDemoTestLabSnapshot();
+export async function GET(request: NextRequest) {
+  const { searchParams } = request.nextUrl;
+  const snapshot = await getDemoTestLabSnapshot({
+    patientId: searchParams.get("patientId") ?? undefined,
+    businessId: searchParams.get("businessId") ?? undefined,
+    practitionerId: searchParams.get("practitionerId") ?? undefined,
+    appointmentTypeId: searchParams.get("appointmentTypeId") ?? undefined,
+  });
   return NextResponse.json(snapshot);
 }
 
 interface TestDataBody {
-  action:
-    | "create-patient"
-    | "update-patient"
-    | "create-appointment"
-    | "cancel-appointment"
-    | "archive-patient"
-    | "cleanup";
+  action: TestLabAction;
   patientId?: string;
   appointmentId?: string;
   lastName?: string;
   businessId?: string;
   practitionerId?: string;
   appointmentTypeId?: string;
+  startsAt?: string;
 }
 
 export async function POST(request: NextRequest) {
@@ -37,56 +40,91 @@ export async function POST(request: NextRequest) {
   try {
     body = (await request.json()) as TestDataBody;
   } catch {
-    return NextResponse.json({ ok: false, message: "Invalid JSON." }, { status: 400 });
+    return NextResponse.json(
+      {
+        ok: false,
+        action: "unknown",
+        proofStatus: "failed",
+        message: "Invalid JSON.",
+      },
+      { status: 400 }
+    );
   }
 
   let result;
   switch (body.action) {
-    case "create-patient":
+    case "create_demo_patient":
       result = await createDemoPatient();
       break;
-    case "update-patient":
+    case "update_demo_patient":
       if (!body.patientId) {
         return NextResponse.json(
-          { ok: false, message: "patientId is required." },
+          {
+            ok: false,
+            action: body.action,
+            proofStatus: "failed",
+            message: "patientId is required.",
+          },
           { status: 400 }
         );
       }
       result = await updateDemoPatient(body.patientId, { lastName: body.lastName });
       break;
-    case "create-appointment":
+    case "create_demo_appointment":
       result = await createDemoAppointment({
         patientId: body.patientId,
         businessId: body.businessId,
         practitionerId: body.practitionerId,
         appointmentTypeId: body.appointmentTypeId,
+        startsAt: body.startsAt,
       });
       break;
-    case "cancel-appointment":
+    case "cancel_demo_appointment":
       if (!body.appointmentId) {
         return NextResponse.json(
-          { ok: false, message: "appointmentId is required." },
+          {
+            ok: false,
+            action: body.action,
+            proofStatus: "failed",
+            message: "appointmentId is required.",
+          },
           { status: 400 }
         );
       }
       result = await cancelDemoAppointment(body.appointmentId);
       break;
-    case "archive-patient":
+    case "archive_demo_patient":
       if (!body.patientId) {
         return NextResponse.json(
-          { ok: false, message: "patientId is required." },
+          {
+            ok: false,
+            action: body.action,
+            proofStatus: "failed",
+            message: "patientId is required.",
+          },
           { status: 400 }
         );
       }
       result = await archiveDemoPatient(body.patientId);
       break;
-    case "cleanup":
+    case "check_demo_appointments":
+      result = await checkDemoAppointments();
+      break;
+    case "cleanup_demo_records":
       result = await cleanupDemoTestData();
       break;
     default:
-      return NextResponse.json({ ok: false, message: "Unknown action." }, { status: 400 });
+      return NextResponse.json(
+        {
+          ok: false,
+          action: "unknown",
+          proofStatus: "failed",
+          message: "Unknown action.",
+        },
+        { status: 400 }
+      );
   }
 
-  const status = result.ok ? 200 : result.mode === "blocked" ? 403 : 502;
+  const status = result.ok ? 200 : result.proofStatus === "needs-setup" ? 403 : 502;
   return NextResponse.json(result, { status });
 }

@@ -6,6 +6,11 @@ import {
   practitioners as demoPractitioners,
 } from "@/lib/demo-data";
 import { clinics } from "@/lib/tigers-eye-content";
+import {
+  ClinikoApiError,
+  parseClinikoErrorBody,
+  redactClinikoBody,
+} from "@/lib/cliniko-api-error";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -179,6 +184,10 @@ function isConfigured(): boolean {
   return Boolean(getClinikoConfig().apiKey);
 }
 
+export function clinikoIsConfigured(): boolean {
+  return isConfigured();
+}
+
 function buildAuthHeader(apiKey: string): string {
   return `Basic ${Buffer.from(`${apiKey}:`).toString("base64")}`;
 }
@@ -218,10 +227,23 @@ export async function clinikoFetch<T>(
   });
 
   if (!response.ok) {
-    throw new Error(redactError(response.status, response.statusText));
+    const bodyText = await response.text().catch(() => "");
+    const clinikoMessage = parseClinikoErrorBody(bodyText);
+    throw new ClinikoApiError({
+      message: redactError(response.status, response.statusText),
+      status: response.status,
+      path,
+      bodyText: bodyText ? redactClinikoBody(bodyText) : undefined,
+      clinikoMessage,
+    });
   }
 
   if (response.status === 204) {
+    return {} as T;
+  }
+
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.includes("application/json")) {
     return {} as T;
   }
 
@@ -392,11 +414,11 @@ export async function getBusinesses(): Promise<ClinikoResult<ClinikoBusiness[]>>
   } catch (err) {
     return {
       ok: false,
-      source: "demo",
+      source: "cliniko",
       status: "error",
-      data: demoBusinesses(),
+      data: [],
       error: err instanceof Error ? err.message : "Failed to fetch businesses",
-      warning: "Falling back to demo businesses.",
+      warning: "Connected to Cliniko, but businesses could not be loaded.",
     };
   }
 }
@@ -442,11 +464,117 @@ export async function getPractitioners(): Promise<
   } catch (err) {
     return {
       ok: false,
-      source: "demo",
+      source: "cliniko",
       status: "error",
-      data: demoPractitionersList(),
+      data: [],
       error: err instanceof Error ? err.message : "Failed to fetch practitioners",
-      warning: "Falling back to demo practitioners.",
+      warning: "Connected to Cliniko, but practitioners could not be loaded.",
+    };
+  }
+}
+
+export type PractitionerSourceKind =
+  | "practitioners"
+  | "users"
+  | "none"
+  | "demo";
+
+export interface PractitionerBookingResolution {
+  practitionerId?: string;
+  practitionerName?: string;
+  source: PractitionerSourceKind;
+  bookable: boolean;
+  message: string;
+}
+
+export async function resolvePractitionerForBooking(): Promise<PractitionerBookingResolution> {
+  if (!isConfigured()) {
+    return {
+      source: "demo",
+      bookable: false,
+      message: "No Cliniko API key configured.",
+    };
+  }
+
+  try {
+    const practitionersRaw = await clinikoFetch<{
+      practitioners?: Record<string, unknown>[];
+    }>("/practitioners?per_page=50");
+
+    const practitionersList = practitionersRaw.practitioners ?? [];
+    if (practitionersList.length > 0) {
+      const p = mapPractitioner(practitionersList[0]);
+      return {
+        practitionerId: p.id,
+        practitionerName: p.name,
+        source: "practitioners",
+        bookable: true,
+        message: "Practitioner resolved from practitioners endpoint.",
+      };
+    }
+
+    const usersRaw = await clinikoFetch<{ users?: Record<string, unknown>[] }>(
+      "/users?per_page=50"
+    );
+    const users = usersRaw.users ?? [];
+    if (users.length > 0) {
+      const u = mapPractitioner(users[0]);
+      return {
+        practitionerId: u.id,
+        practitionerName: u.name,
+        source: "users",
+        bookable: false,
+        message:
+          "A real Cliniko practitioner is required before appointments can be created. The users endpoint returned IDs, but appointments must use practitioner IDs.",
+      };
+    }
+
+    return {
+      source: "none",
+      bookable: false,
+      message: "No practitioner found in Cliniko test account.",
+    };
+  } catch (err) {
+    return {
+      source: "none",
+      bookable: false,
+      message: err instanceof Error ? err.message : "Could not resolve practitioner.",
+    };
+  }
+}
+
+export async function fetchNextAvailableTime(input: {
+  businessId: string;
+  practitionerId: string;
+  appointmentTypeId: string;
+}): Promise<{ startsAt?: string; message?: string }> {
+  const from = new Date();
+  const to = new Date();
+  to.setDate(to.getDate() + 14);
+
+  const formatDate = (d: Date) => d.toISOString().slice(0, 10);
+  const query = new URLSearchParams({
+    from: formatDate(from),
+    to: formatDate(to),
+  });
+
+  try {
+    const raw = await clinikoFetch<{
+      appointment_start?: string;
+      next_available_time?: { appointment_start?: string };
+    }>(
+      `/businesses/${input.businessId}/practitioners/${input.practitionerId}/appointment_types/${input.appointmentTypeId}/next_available_time?${query.toString()}`
+    );
+
+    const startsAt =
+      raw.appointment_start ?? raw.next_available_time?.appointment_start;
+    return startsAt
+      ? { startsAt }
+      : { message: "No next available time returned from Cliniko." };
+  } catch (err) {
+    return {
+      message:
+        err instanceof Error ? err.message : "Could not fetch next available time.",
     };
   }
 }
@@ -491,11 +619,11 @@ export async function getAppointmentTypes(): Promise<
   } catch (err) {
     return {
       ok: false,
-      source: "demo",
+      source: "cliniko",
       status: "error",
-      data: demoAppointmentTypesList(),
+      data: [],
       error: err instanceof Error ? err.message : "Failed to fetch appointment types",
-      warning: "Falling back to demo appointment types.",
+      warning: "Connected to Cliniko, but appointment types could not be loaded.",
     };
   }
 }
@@ -561,11 +689,15 @@ export async function getBookings(params?: {
   } catch (err) {
     return {
       ok: false,
-      source: "demo",
+      source: "cliniko",
       status: "error",
-      data: demoResponse,
+      data: {
+        bookings: [],
+        totalEntries: 0,
+        source: "cliniko",
+      },
       error: err instanceof Error ? err.message : "Failed to fetch bookings",
-      warning: "Falling back to demo bookings.",
+      warning: "Connected to Cliniko, but bookings could not be loaded.",
     };
   }
 }

@@ -1,4 +1,7 @@
-#!/usr/bin/env node
+import { existsSync, readFileSync } from "fs";
+import { dirname, join } from "path";
+import { fileURLToPath } from "url";
+
 /**
  * Tigers Eye Command Hub — route smoke checker.
  * Usage:
@@ -7,7 +10,33 @@
  *
  * Admin and Cliniko API routes require demo staff auth when configured.
  * Set DEMO_STAFF_PASSWORD (and ensure the server has matching auth env).
+ * For local runs, DEMO_STAFF_PASSWORD is read from .env.local when not set in the shell.
  */
+
+function loadDemoStaffPasswordFromEnvLocal() {
+  if (process.env.DEMO_STAFF_PASSWORD?.trim()) return;
+  const envPath = join(dirname(fileURLToPath(import.meta.url)), "..", ".env.local");
+  if (!existsSync(envPath)) return;
+  for (const line of readFileSync(envPath, "utf8").split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const eq = trimmed.indexOf("=");
+    if (eq === -1) continue;
+    const key = trimmed.slice(0, eq).trim();
+    if (key !== "DEMO_STAFF_PASSWORD") continue;
+    let val = trimmed.slice(eq + 1).trim();
+    if (
+      (val.startsWith('"') && val.endsWith('"')) ||
+      (val.startsWith("'") && val.endsWith("'"))
+    ) {
+      val = val.slice(1, -1);
+    }
+    if (val) process.env.DEMO_STAFF_PASSWORD = val;
+    break;
+  }
+}
+
+loadDemoStaffPasswordFromEnvLocal();
 
 const BASE_URL = (process.env.BASE_URL || "http://localhost:3000").replace(/\/$/, "");
 const STAFF_PASSWORD = process.env.DEMO_STAFF_PASSWORD?.trim() || "";
@@ -87,7 +116,9 @@ const contentChecks = {
     if (!/location|migration|Aviemore|test lab/i.test(body)) {
       return "missing migration/location/test lab wording";
     }
-    if (!/DEMO/i.test(body)) return "missing DEMO test lab wording";
+    if (!/Manual Cliniko appointment test|Check for DEMO appointments/i.test(body)) {
+      return "missing manual appointment read-back panel";
+    }
     return null;
   },
   "/admin/settings": (body) => {
@@ -128,6 +159,8 @@ const contentChecks = {
     }
     if (typeof json.writesEnabled !== "boolean") return "missing writesEnabled";
     if (!Array.isArray(json.patients)) return "missing patients array";
+    if (typeof json.practitionerBookable !== "boolean") return "missing practitionerBookable";
+    if (typeof json.practitionerSourceLabel !== "string") return "missing practitionerSourceLabel";
     return null;
   },
 };
@@ -157,9 +190,16 @@ async function staffLogin() {
     body: JSON.stringify({ password: STAFF_PASSWORD }),
   });
 
-  if (!res.ok) return false;
+  if (!res.ok) {
+    console.log(`Auth: login failed (HTTP ${res.status})`);
+    return false;
+  }
 
-  const cookie = parseSetCookie(res.headers.getSetCookie?.() ?? res.headers.get("set-cookie"));
+  const setCookie =
+    typeof res.headers.getSetCookie === "function"
+      ? res.headers.getSetCookie()
+      : res.headers.get("set-cookie");
+  const cookie = parseSetCookie(setCookie);
   authCookie = cookie;
   return Boolean(cookie);
 }
