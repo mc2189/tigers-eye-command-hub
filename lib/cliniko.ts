@@ -1317,6 +1317,30 @@ function extractLinkId(links: unknown, key: string): string | undefined {
   return match ? match[1] : undefined;
 }
 
+function extractResourceId(value: unknown): string | undefined {
+  if (value == null) return undefined;
+  if (typeof value === "string" || typeof value === "number") {
+    const asString = String(value).trim();
+    if (/^\d+$/.test(asString)) return asString;
+    const fromUrl = asString.match(/\/(\d+)(?:\?.*)?$/);
+    return fromUrl ? fromUrl[1] : undefined;
+  }
+  if (typeof value !== "object") return undefined;
+
+  const record = value as Record<string, unknown>;
+  if (record.id != null) {
+    const id = String(record.id).trim();
+    if (id) return id;
+  }
+
+  return (
+    extractLinkId(record.links, "self") ??
+    extractLinkId(record.links, "patient") ??
+    extractLinkId(record.links, "practitioner") ??
+    extractLinkId(record.links, "business")
+  );
+}
+
 function coerceClinikoField(value: unknown): string | undefined {
   if (typeof value === "string") {
     const trimmed = value.trim();
@@ -1362,23 +1386,24 @@ function mapIndividualAppointment(appt: Record<string, unknown>): ClinikoIndivid
     patientId:
       appt.patient_id != null
         ? String(appt.patient_id)
-        : extractLinkId(links, "patient"),
+        : extractResourceId(appt.patient) ?? extractLinkId(links, "patient"),
     patientName,
     patientLabel: patientName ? toPatientLabel(patientName) : undefined,
     appointmentTypeId:
       appt.appointment_type_id != null
         ? String(appt.appointment_type_id)
-        : extractLinkId(links, "appointment_type"),
+        : extractResourceId(appt.appointment_type) ??
+          extractLinkId(links, "appointment_type"),
     appointmentTypeName,
     practitionerId:
       appt.practitioner_id != null
         ? String(appt.practitioner_id)
-        : extractLinkId(links, "practitioner"),
+        : extractResourceId(appt.practitioner) ?? extractLinkId(links, "practitioner"),
     practitionerName,
     businessId:
       appt.business_id != null
         ? String(appt.business_id)
-        : extractLinkId(links, "business"),
+        : extractResourceId(appt.business) ?? extractLinkId(links, "business"),
     businessName,
     noteStatus: mapNoteStatus(appt.treatment_note_status as number | undefined),
     invoiceStatus: mapInvoiceStatus(appt.invoice_status as number | undefined),

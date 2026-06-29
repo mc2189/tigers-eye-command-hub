@@ -407,7 +407,11 @@ export async function fetchDemoAppointmentsMerged(input: {
   const probeNotes: string[] = [];
   const now = new Date();
 
-  async function mergeFromPath(label: string, path: string) {
+  async function mergeFromPath(
+    label: string,
+    path: string,
+    inferredPatientId?: string
+  ) {
     try {
       const raw = await clinikoFetch<{
         individual_appointments?: Record<string, unknown>[];
@@ -415,6 +419,9 @@ export async function fetchDemoAppointmentsMerged(input: {
       const rows = raw.individual_appointments ?? [];
       for (const row of rows) {
         const appointment = parseIndividualAppointment(row);
+        if (!appointment.patientId && inferredPatientId) {
+          appointment.patientId = inferredPatientId;
+        }
         byId.set(appointment.id, appointment);
       }
       probeNotes.push(`${label}: ${rows.length} row(s)`);
@@ -432,7 +439,8 @@ export async function fetchDemoAppointmentsMerged(input: {
         perPage: 100,
         sort: "starts_at:desc",
         qFilters: [buildClinikoQFilter("patient_id", ":=", patient.id)],
-      })
+      }),
+      patient.id
     );
   }
 
