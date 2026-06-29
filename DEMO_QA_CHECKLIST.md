@@ -83,6 +83,9 @@ Use this before showing George. Tick each item after verifying in the browser.
 - [ ] **Appointment source diagnostics** panel visible after refresh
 - [ ] **Clear local proof state** clears badges only (does not change Cliniko)
 - [ ] **Demo examples** section clearly separated from live test lab data
+- [ ] **Cliniko appointment discovery** — run probes when Cliniko UI shows appointments but Command Hub does not
+- [ ] **Run appointment discovery** button returns probe cards with counts
+- [ ] **Lookup appointment by ID** works for a Cliniko appointment ID copied from Cliniko
 
 ### Bookings (`/admin/bookings`)
 - [ ] Load sandbox bookings works or shows friendly error

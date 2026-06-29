@@ -7,6 +7,8 @@ import {
   createDemoAppointment,
   createDemoPatient,
   getDemoTestLabSnapshot,
+  lookupDemoAppointmentById,
+  runAppointmentDiscoveryProbe,
   updateDemoPatient,
   type DemoTestLabSnapshot,
   type TestLabAction,
@@ -200,6 +202,31 @@ export async function POST(request: NextRequest) {
     case "check_demo_appointments":
       result = await checkDemoAppointments();
       break;
+    case "probe_individual_appointments":
+      result = await runAppointmentDiscoveryProbe({
+        businessId: body.businessId,
+        practitionerId: body.practitionerId,
+      });
+      break;
+    case "lookup_appointment_by_id":
+      if (!body.appointmentId) {
+        return NextResponse.json(
+          {
+            ok: false,
+            action: body.action,
+            proofStatus: "failed",
+            message: "appointmentId is required.",
+            source: "unavailable",
+            patients: [],
+            appointments: [],
+            counts: { patients: 0, appointments: 0 },
+            generatedAt: new Date().toISOString(),
+          },
+          { status: 400 }
+        );
+      }
+      result = await lookupDemoAppointmentById(body.appointmentId);
+      break;
     case "cleanup_demo_records":
       result = await cleanupDemoTestData();
       break;
@@ -221,7 +248,10 @@ export async function POST(request: NextRequest) {
   }
 
   const snapshot =
-    body.action === "check_demo_appointments" || body.action === "cleanup_demo_records"
+    body.action === "check_demo_appointments" ||
+    body.action === "cleanup_demo_records" ||
+    body.action === "probe_individual_appointments" ||
+    body.action === "lookup_appointment_by_id"
       ? await getDemoTestLabSnapshot()
       : null;
 

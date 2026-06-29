@@ -11,6 +11,11 @@ import {
   parseClinikoErrorBody,
   redactClinikoBody,
 } from "@/lib/cliniko-api-error";
+import {
+  buildClinikoQFilter,
+  buildIndividualAppointmentsQueryString,
+  offsetClinikoDate,
+} from "@/lib/cliniko-query";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -678,38 +683,14 @@ export function isDemoIndividualAppointment(
   return false;
 }
 
-function buildIndividualAppointmentsQuery(params?: {
-  page?: number;
-  perPage?: number;
-  from?: string;
-  to?: string;
-  query?: string;
-}): URLSearchParams {
-  const query = new URLSearchParams({
-    page: String(params?.page ?? 1),
-    per_page: String(params?.perPage ?? 100),
-    sort: "starts_at:asc",
-  });
-
-  if (params?.from) {
-    query.append("q[]", `starts_at:>=${params.from.includes("T") ? params.from : `${params.from}T00:00:00Z`}`);
-  }
-  if (params?.to) {
-    query.append("q[]", `starts_at:<=${params.to.includes("T") ? params.to : `${params.to}T23:59:59Z`}`);
-  }
-  if (params?.query) {
-    query.append("q[]", params.query);
-  }
-
-  return query;
-}
-
 export async function getIndividualAppointments(params?: {
   page?: number;
   perPage?: number;
   from?: string;
   to?: string;
   query?: string;
+  qFilters?: string[];
+  sort?: string;
   includeArchived?: boolean;
 }): Promise<ClinikoResult<ClinikoIndividualAppointmentsResponse>> {
   const config = getClinikoConfig();
@@ -729,11 +710,40 @@ export async function getIndividualAppointments(params?: {
   }
 
   try {
-    const query = buildIndividualAppointmentsQuery(params);
+    const qFilters = [...(params?.qFilters ?? [])];
+    if (params?.from) {
+      qFilters.push(
+        buildClinikoQFilter(
+          "starts_at",
+          ":>=",
+          params.from.includes("T") ? params.from : `${params.from}T00:00:00.000Z`
+        )
+      );
+    }
+    if (params?.to) {
+      qFilters.push(
+        buildClinikoQFilter(
+          "starts_at",
+          ":<=",
+          params.to.includes("T") ? params.to : `${params.to}T23:59:59.999Z`
+        )
+      );
+    }
+    if (params?.query) {
+      qFilters.push(params.query);
+    }
+
+    const queryString = buildIndividualAppointmentsQueryString({
+      page: params?.page,
+      perPage: params?.perPage,
+      sort: params?.sort,
+      qFilters,
+    });
+
     const raw = await clinikoFetch<{
       individual_appointments?: Record<string, unknown>[];
       total_entries?: number;
-    }>(`/individual_appointments?${query.toString()}`);
+    }>(`/individual_appointments?${queryString}`);
 
     let appointments = (raw.individual_appointments ?? []).map((appt) =>
       mapIndividualAppointment(appt)
@@ -776,19 +786,26 @@ export async function getUpcomingIndividualAppointments(params?: {
   page?: number;
   perPage?: number;
 }): Promise<ClinikoResult<ClinikoIndividualAppointmentsResponse>> {
-  const fromDate = params?.from ?? new Date().toISOString().slice(0, 10);
-  const toDate = (() => {
-    if (params?.to) return params.to;
-    const d = new Date();
-    d.setDate(d.getDate() + 30);
-    return d.toISOString().slice(0, 10);
-  })();
+  const now = new Date();
+  const fromIso = params?.from
+    ? params.from.includes("T")
+      ? params.from
+      : `${params.from}T00:00:00.000Z`
+    : offsetClinikoDate(-7, now).toISOString();
+  const toIso = params?.to
+    ? params.to.includes("T")
+      ? params.to
+      : `${params.to}T23:59:59.999Z`
+    : offsetClinikoDate(90, now).toISOString();
 
   return getIndividualAppointments({
-    from: fromDate,
-    to: toDate,
+    qFilters: [
+      buildClinikoQFilter("starts_at", ":>=", fromIso),
+      buildClinikoQFilter("starts_at", ":<=", toIso),
+    ],
     page: params?.page,
     perPage: params?.perPage ?? 100,
+    sort: "starts_at:asc",
   });
 }
 

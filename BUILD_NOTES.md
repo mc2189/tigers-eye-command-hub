@@ -86,6 +86,14 @@ It must **not** appear as the active Aviemore booking provider on `/book`.
 - Cleanup refreshes from Cliniko and does not repopulate placeholder appointments
 - Patient labels use full DEMO patient names — not abbreviated labels like `DEMO 0.`
 
+## Cliniko appointment discovery
+
+- Manual appointments can exist in Cliniko but not appear if the API query/filter is wrong
+- Discovery probes: unfiltered, future window, patient-specific, business-specific, practitioner-specific, created-recently
+- Read-back prefers `patient_id:=` filters for each DEMO patient, then merges unique appointment ids
+- Direct appointment ID lookup via `/individual_appointments/{id}` proves API visibility for a specific row
+- Date filters use proper Cliniko `q[]` syntax with ISO UTC datetimes (`field:>=`, `field:<=`, `field:=`)
+
 ## Cliniko appointment proof update
 
 - Manual Cliniko appointments are read from `/individual_appointments`

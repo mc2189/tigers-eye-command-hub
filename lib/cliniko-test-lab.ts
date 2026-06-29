@@ -7,6 +7,13 @@ import {
   type DemoAppointmentRawType,
 } from "@/lib/cliniko-demo-appointments";
 import {
+  fetchDemoAppointmentsMerged,
+  lookupIndividualAppointmentById,
+  probeIndividualAppointments,
+  type AppointmentLookupResult,
+  type AppointmentProbeReport,
+} from "@/lib/cliniko-appointment-probes";
+import {
   ClinikoApiError,
   classifyAppointmentFailure,
 } from "@/lib/cliniko-api-error";
@@ -39,7 +46,9 @@ export type TestLabAction =
   | "create_demo_appointment"
   | "cancel_demo_appointment"
   | "check_demo_appointments"
-  | "cleanup_demo_records";
+  | "cleanup_demo_records"
+  | "probe_individual_appointments"
+  | "lookup_appointment_by_id";
 
 export interface DemoPatientRecord {
   id: string;
@@ -317,47 +326,52 @@ async function fetchDemoAppointmentsLive(patients: DemoPatientRecord[]): Promise
   const patientIds = new Set(patients.map((p) => p.id));
   const patientsById = new Map(patients.map((p) => [p.id, p]));
   const generatedAt = new Date().toISOString();
+  const config = getClinikoConfig();
 
-  const result = await getDemoIndividualAppointments({
-    demoPatientIds: patientIds,
-    strictPatientMatch: true,
-  });
-
-  const demoFallbackActive =
-    result.source === "demo" || result.status === "not_configured";
-
-  if (demoFallbackActive || !result.ok) {
+  if (!config.apiKey) {
     return {
       appointments: [],
-      diagnostics: emptyAppointmentDiagnostics(generatedAt, demoFallbackActive, [
-        demoFallbackActive
-          ? "Demo fallback appointments are not shown in the live test lab list."
-          : result.error ?? "Could not load individual appointments from Cliniko.",
+      diagnostics: emptyAppointmentDiagnostics(generatedAt, true, [
+        "Demo fallback appointments are not shown in the live test lab list.",
       ]),
     };
   }
 
-  const raw = result.data?.appointments ?? [];
-  const { accepted, excluded, warnings } = partitionLiveDemoAppointments(
-    raw,
-    patientIds
-  );
+  try {
+    const { appointments: merged, probeNotes } = await fetchDemoAppointmentsMerged({
+      patients,
+    });
 
-  return {
-    appointments: accepted.map((appointment) =>
-      mapAppointmentFromIndividual(appointment, patientsById)
-    ),
-    diagnostics: {
-      lastRefreshAt: generatedAt,
-      endpoint: "/individual_appointments",
-      returnedByCliniko: raw.length,
-      excludedInvalid: excluded.length,
-      displayed: accepted.length,
-      demoFallbackActive: false,
-      localProofStateActive: false,
-      warnings,
-    },
-  };
+    const { accepted, excluded, warnings } = partitionLiveDemoAppointments(
+      merged,
+      patientIds
+    );
+
+    const combinedWarnings = [...warnings, ...probeNotes];
+
+    return {
+      appointments: accepted.map((appointment) =>
+        mapAppointmentFromIndividual(appointment, patientsById)
+      ),
+      diagnostics: {
+        lastRefreshAt: generatedAt,
+        endpoint: "/individual_appointments",
+        returnedByCliniko: merged.length,
+        excludedInvalid: excluded.length,
+        displayed: accepted.length,
+        demoFallbackActive: false,
+        localProofStateActive: false,
+        warnings: combinedWarnings,
+      },
+    };
+  } catch (err) {
+    return {
+      appointments: [],
+      diagnostics: emptyAppointmentDiagnostics(generatedAt, false, [
+        err instanceof Error ? err.message : "Could not load individual appointments from Cliniko.",
+      ]),
+    };
+  }
 }
 
 async function fetchDemoPatientsLive(): Promise<DemoPatientRecord[]> {
@@ -1062,3 +1076,66 @@ export async function cleanupDemoTestData(): Promise<DemoTestLabActionResult> {
     );
   }
 }
+
+export async function runAppointmentDiscoveryProbe(input?: {
+  businessId?: string;
+  practitionerId?: string;
+}): Promise<DemoTestLabActionResult> {
+  try {
+    const [patients, businessesResult, practitionerResolution] = await Promise.all([
+      fetchDemoPatientsLive(),
+      getBusinesses(),
+      resolvePractitionerForBooking(),
+    ]);
+
+    const report = await probeIndividualAppointments({
+      patients,
+      businessId: input?.businessId ?? businessesResult.data?.[0]?.id,
+      practitionerId: input?.practitionerId ?? practitionerResolution.practitionerId,
+    });
+
+    return {
+      ok: report.ok,
+      action: "probe_individual_appointments",
+      proofStatus: report.probes.some((probe) => probe.demoMatchCount > 0)
+        ? "proven"
+        : "not-tested",
+      message: report.message,
+      result: report,
+    };
+  } catch (err) {
+    return actionFailure(
+      "probe_individual_appointments",
+      err instanceof Error ? err.message : "Appointment discovery failed.",
+      "failed"
+    );
+  }
+}
+
+export async function lookupDemoAppointmentById(
+  appointmentId: string
+): Promise<DemoTestLabActionResult> {
+  try {
+    const patients = await fetchDemoPatientsLive();
+    const lookup = await lookupIndividualAppointmentById({
+      appointmentId,
+      patients,
+    });
+
+    return {
+      ok: lookup.ok,
+      action: "lookup_appointment_by_id",
+      proofStatus: lookup.canMap ? "proven" : lookup.readable ? "not-tested" : "failed",
+      message: lookup.message,
+      result: lookup,
+    };
+  } catch (err) {
+    return actionFailure(
+      "lookup_appointment_by_id",
+      err instanceof Error ? err.message : "Appointment lookup failed.",
+      "failed"
+    );
+  }
+}
+
+export type { AppointmentLookupResult, AppointmentProbeReport };

@@ -116,8 +116,8 @@ const contentChecks = {
     if (!/location|migration|Aviemore|test lab/i.test(body)) {
       return "missing migration/location/test lab wording";
     }
-    if (!/Live Cliniko DEMO appointments|Appointment source diagnostics|Clear local proof state|Cliniko test lab|Manual Cliniko appointment test/i.test(body)) {
-      return "missing Cliniko test lab live appointment sections";
+    if (!/Cliniko appointment discovery|Run appointment discovery|Appointment source diagnostics|Live Cliniko DEMO appointments/i.test(body)) {
+      return "missing Cliniko appointment discovery sections";
     }
     return null;
   },

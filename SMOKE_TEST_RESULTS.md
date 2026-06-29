@@ -40,6 +40,14 @@
 - Added `lib/safe-data.ts` helpers, admin error boundaries, defensive rendering in Cliniko panels
 - `/api/cliniko/test-data` always returns predictable array fields even on errors
 
+## Cliniko appointment discovery
+
+- Manual appointments can exist in Cliniko but not appear in Command Hub if the API query/filter is wrong
+- Discovery probes: unfiltered, future window, patient-specific, business-specific, practitioner-specific, created-recently
+- Read-back prefers `patient_id:=` filters for each DEMO patient, then merges unique appointment ids
+- Direct appointment ID lookup via `/individual_appointments/{id}` proves API visibility for a specific row
+- Run **Run appointment discovery** on `/admin/cliniko` when Cliniko UI shows appointments but the test lab list is empty
+
 ## Cliniko appointment proof update
 
 - Manual Cliniko appointments read from `/individual_appointments`

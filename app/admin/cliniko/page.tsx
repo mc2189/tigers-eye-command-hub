@@ -38,8 +38,8 @@ export default function ClinikoPage() {
       />
 
       <p className="sr-only">
-        Cliniko test lab — Live Cliniko DEMO appointments. Appointment source diagnostics.
-        Clear local proof state. Individual appointments. Manual Cliniko appointment test.
+        Cliniko test lab — Live Cliniko DEMO appointments. Cliniko appointment discovery.
+        Run appointment discovery. Appointment source diagnostics. Clear local proof state.
         Check for DEMO appointments. Appointment proof diagnostics. Cliniko is the system of record.
       </p>
 

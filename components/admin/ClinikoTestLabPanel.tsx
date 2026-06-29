@@ -5,10 +5,58 @@ import { DataSourceBadge } from "./DataSourceBadge";
 import { CalloutBox } from "./AdminUI";
 import { DemoFeedbackToast, useDemoFeedback } from "./DemoActionFeedback";
 import { asArray, safeDateLabel, safeString } from "@/lib/safe-data";
+import { formatClinikoDateTimeLocal } from "@/lib/cliniko-query";
 import {
   isRealClinikoAppointment,
   shortenClinikoId,
 } from "@/lib/cliniko-demo-appointments";
+
+interface ProbeSample {
+  id: string;
+  patientLabel: string;
+  patientId?: string;
+  startsAt?: string;
+  appointmentType?: string;
+  practitioner?: string;
+  business?: string;
+  cancelledAt?: string | null;
+  archivedAt?: string | null;
+  deletedAt?: string | null;
+}
+
+interface ProbeResultRow {
+  name: string;
+  endpoint: string;
+  ok: boolean;
+  httpStatus?: number;
+  totalEntries?: number;
+  returnedCount: number;
+  demoMatchCount: number;
+  sample: ProbeSample[];
+  error?: string;
+}
+
+interface ProbeReport {
+  ok: boolean;
+  generatedAt: string;
+  shard: string | null;
+  probes: ProbeResultRow[];
+  conclusion: string;
+  message: string;
+}
+
+interface LookupReport {
+  ok: boolean;
+  appointmentId: string;
+  endpoint: string;
+  httpStatus?: number;
+  readable: boolean;
+  isDemoPatient: boolean;
+  canMap: boolean;
+  appointment?: ProbeSample;
+  error?: string;
+  message: string;
+}
 
 type ProofStatus = "proven" | "failed" | "not-tested" | "needs-setup";
 
@@ -318,6 +366,9 @@ export function ClinikoTestLabPanel() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [appointmentDiagnostics, setAppointmentDiagnostics] =
     useState<AppointmentSourceDiagnostics | null>(null);
+  const [probeReport, setProbeReport] = useState<ProbeReport | null>(null);
+  const [lookupReport, setLookupReport] = useState<LookupReport | null>(null);
+  const [appointmentIdInput, setAppointmentIdInput] = useState("");
   const { message, show } = useDemoFeedback();
 
   useEffect(() => {
@@ -415,6 +466,53 @@ export function ClinikoTestLabPanel() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  async function runDiscovery() {
+    setBusy("probe_individual_appointments");
+    setProbeReport(null);
+    try {
+      const res = await fetch("/api/cliniko/test-data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "probe_individual_appointments",
+          businessId: selectedBusinessId ?? undefined,
+          practitionerId: snapshot?.practitionerId,
+        }),
+      });
+      const json = (await res.json()) as { message?: string; result?: ProbeReport };
+      show(json.message ?? "Discovery complete.");
+      if (json.result) setProbeReport(json.result);
+      await load();
+    } catch {
+      show("Could not run appointment discovery.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function lookupAppointmentById() {
+    setBusy("lookup_appointment_by_id");
+    setLookupReport(null);
+    try {
+      const res = await fetch("/api/cliniko/test-data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "lookup_appointment_by_id",
+          appointmentId: appointmentIdInput.trim(),
+        }),
+      });
+      const json = (await res.json()) as { message?: string; result?: LookupReport };
+      show(json.message ?? "Lookup complete.");
+      if (json.result) setLookupReport(json.result);
+      await load();
+    } catch {
+      show("Could not look up appointment ID.");
+    } finally {
+      setBusy(null);
+    }
+  }
 
   async function runAction(
     action: string,
@@ -596,6 +694,16 @@ export function ClinikoTestLabPanel() {
               creation is fixed.
             </p>
           </section>
+
+          <AppointmentDiscoveryPanel
+            busy={busy}
+            appointmentIdInput={appointmentIdInput}
+            onAppointmentIdChange={setAppointmentIdInput}
+            onRunDiscovery={() => void runDiscovery()}
+            onLookup={() => void lookupAppointmentById()}
+            probeReport={probeReport}
+            lookupReport={lookupReport}
+          />
 
           <section className="mt-6">
             <h3 className="font-semibold text-navy">Refresh &amp; cleanup</h3>
@@ -999,6 +1107,138 @@ function PatientList({
         </ul>
       )}
     </div>
+  );
+}
+
+function AppointmentDiscoveryPanel({
+  busy,
+  appointmentIdInput,
+  onAppointmentIdChange,
+  onRunDiscovery,
+  onLookup,
+  probeReport,
+  lookupReport,
+}: {
+  busy: string | null;
+  appointmentIdInput: string;
+  onAppointmentIdChange: (value: string) => void;
+  onRunDiscovery: () => void;
+  onLookup: () => void;
+  probeReport: ProbeReport | null;
+  lookupReport: LookupReport | null;
+}) {
+  return (
+    <section className="mt-6 rounded-lg border border-blue-200 bg-blue-50/40 p-4">
+      <h3 className="font-semibold text-navy">Cliniko appointment discovery</h3>
+      <p className="mt-2 text-sm text-slate">
+        If appointments are visible in Cliniko but not in Command Hub, run this discovery check.
+        It tries multiple safe read-only API queries so we can see which filter finds the
+        appointments.
+      </p>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        <ActionButton
+          label="Run appointment discovery"
+          busy={busy === "probe_individual_appointments"}
+          onClick={onRunDiscovery}
+        />
+      </div>
+
+      <div className="mt-4 grid gap-2 sm:grid-cols-[1fr_auto]">
+        <label className="block text-sm">
+          <span className="font-medium text-navy">Cliniko appointment ID</span>
+          <input
+            type="text"
+            inputMode="numeric"
+            value={appointmentIdInput}
+            onChange={(event) => onAppointmentIdChange(event.target.value)}
+            placeholder="Paste appointment ID from Cliniko"
+            className="mt-1 w-full rounded-lg border border-cream-dark px-3 py-2 text-sm"
+          />
+        </label>
+        <div className="flex items-end">
+          <ActionButton
+            label="Lookup appointment by ID"
+            busy={busy === "lookup_appointment_by_id"}
+            disabled={!appointmentIdInput.trim()}
+            onClick={onLookup}
+          />
+        </div>
+      </div>
+
+      {lookupReport && (
+        <div className="mt-4 rounded-lg border border-cream-dark bg-white p-3 text-sm">
+          <p className="font-medium text-navy">Direct ID lookup</p>
+          <p className="mt-1 text-slate">{lookupReport.message}</p>
+          <dl className="mt-2 grid gap-1 sm:grid-cols-2">
+            <Row label="Endpoint" value={lookupReport.endpoint} />
+            <Row label="HTTP status" value={lookupReport.httpStatus?.toString() ?? "—"} />
+            <Row label="Readable" value={lookupReport.readable ? "yes" : "no"} />
+            <Row label="DEMO patient" value={lookupReport.isDemoPatient ? "yes" : "no"} />
+            <Row label="Can map" value={lookupReport.canMap ? "yes" : "no"} />
+          </dl>
+          {lookupReport.appointment && (
+            <p className="mt-2 text-xs text-slate">
+              {lookupReport.appointment.patientLabel} ·{" "}
+              {lookupReport.appointment.startsAt
+                ? formatClinikoDateTimeLocal(lookupReport.appointment.startsAt)
+                : "Time not returned"}
+            </p>
+          )}
+          {lookupReport.error && (
+            <p className="mt-2 text-xs text-amber-900">{lookupReport.error}</p>
+          )}
+        </div>
+      )}
+
+      {probeReport && (
+        <div className="mt-4 space-y-3">
+          <div className="rounded-lg border border-cream-dark bg-white p-3 text-sm">
+            <p className="font-medium text-navy">Discovery conclusion</p>
+            <p className="mt-1 text-slate">{probeReport.conclusion}</p>
+            <p className="mt-1 text-xs text-slate">
+              Shard {probeReport.shard ?? "—"} ·{" "}
+              {formatClinikoDateTimeLocal(probeReport.generatedAt)}
+            </p>
+          </div>
+
+          {probeReport.probes.map((probe) => (
+            <article
+              key={probe.name}
+              className="rounded-lg border border-cream-dark bg-white p-3 text-sm"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <p className="font-medium text-navy">{probe.name}</p>
+                <span className={probe.ok ? "text-green" : "text-amber-800"}>
+                  {probe.ok ? "OK" : "Failed"}
+                </span>
+              </div>
+              <p className="mt-1 break-all font-mono text-xs text-slate">{probe.endpoint}</p>
+              <dl className="mt-2 grid gap-1 sm:grid-cols-2 lg:grid-cols-4">
+                <Row label="HTTP" value={probe.httpStatus?.toString() ?? "—"} />
+                <Row label="Returned" value={String(probe.returnedCount)} />
+                <Row label="DEMO matches" value={String(probe.demoMatchCount)} />
+                <Row label="Total entries" value={probe.totalEntries?.toString() ?? "—"} />
+              </dl>
+              {probe.error && <p className="mt-2 text-xs text-amber-900">{probe.error}</p>}
+              {probe.sample.length > 0 && (
+                <ul className="mt-2 space-y-1 text-xs text-slate">
+                  {probe.sample.map((sample) => (
+                    <li key={sample.id}>
+                      ID {shortenClinikoId(sample.id)} · {sample.patientLabel}
+                      {sample.startsAt
+                        ? ` · ${formatClinikoDateTimeLocal(sample.startsAt)}`
+                        : ""}
+                      {sample.appointmentType ? ` · ${sample.appointmentType}` : ""}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 
