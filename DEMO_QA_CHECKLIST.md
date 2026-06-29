@@ -78,6 +78,11 @@ Use this before showing George. Tick each item after verifying in the browser.
 - [ ] Aviemore Cliniko migration panel visible
 - [ ] Mapping health and data handling panels present
 - [ ] Configure buttons show demo feedback (not dead)
+- [ ] **Live Cliniko DEMO appointments** section shows only real Cliniko rows (numeric id)
+- [ ] No phantom rows like `DEMO 0.` or `DEMO (.`
+- [ ] **Appointment source diagnostics** panel visible after refresh
+- [ ] **Clear local proof state** clears badges only (does not change Cliniko)
+- [ ] **Demo examples** section clearly separated from live test lab data
 
 ### Bookings (`/admin/bookings`)
 - [ ] Load sandbox bookings works or shows friendly error

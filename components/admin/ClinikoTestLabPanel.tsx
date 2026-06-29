@@ -5,6 +5,10 @@ import { DataSourceBadge } from "./DataSourceBadge";
 import { CalloutBox } from "./AdminUI";
 import { DemoFeedbackToast, useDemoFeedback } from "./DemoActionFeedback";
 import { asArray, safeDateLabel, safeString } from "@/lib/safe-data";
+import {
+  isRealClinikoAppointment,
+  shortenClinikoId,
+} from "@/lib/cliniko-demo-appointments";
 
 type ProofStatus = "proven" | "failed" | "not-tested" | "needs-setup";
 
@@ -17,12 +21,28 @@ interface DemoPatient {
 
 interface DemoAppointment {
   id: string;
+  clinikoId?: string;
+  rawType?: "individual_appointment";
+  source?: "cliniko-test-account";
   patientId?: string;
   patientLabel?: string;
   startsAt: string;
   appointmentTypeName?: string;
+  practitionerName?: string;
   businessName?: string;
   cancelled?: boolean;
+  archived?: boolean;
+}
+
+interface AppointmentSourceDiagnostics {
+  lastRefreshAt: string;
+  endpoint: "/individual_appointments";
+  returnedByCliniko: number;
+  excludedInvalid: number;
+  displayed: number;
+  demoFallbackActive: boolean;
+  localProofStateActive: boolean;
+  warnings: string[];
 }
 
 interface NamedResource {
@@ -74,9 +94,13 @@ interface ActionResult {
 
 interface Snapshot {
   ok: boolean;
+  source?: "cliniko-test-account" | "demo-fallback" | "unavailable";
   mode: "live" | "demo" | "unavailable";
   writesEnabled: boolean;
   message?: string;
+  generatedAt?: string;
+  counts?: { patients: number; appointments: number };
+  demoFallbackActive?: boolean;
   patients: DemoPatient[];
   appointments: DemoAppointment[];
   businesses: NamedResource[];
@@ -101,6 +125,7 @@ interface Snapshot {
     manualTimeMessage?: string;
   };
   proofDiagnostics?: ProofDiagnostics;
+  appointmentSourceDiagnostics?: AppointmentSourceDiagnostics;
 }
 
 interface ProofCard {
@@ -136,15 +161,30 @@ function normalizeSnapshot(raw: Partial<Snapshot> | null | undefined): Snapshot 
       lastName: safeString(patient.lastName, "Patient"),
       email: patient.email ? safeString(patient.email) : undefined,
     })),
-    appointments: asArray<DemoAppointment>(raw.appointments).map((appointment) => ({
-      id: safeString(appointment.id, "unknown"),
-      patientId: appointment.patientId,
-      patientLabel: safeString(appointment.patientLabel, "DEMO patient"),
-      startsAt: safeString(appointment.startsAt),
-      appointmentTypeName: safeString(appointment.appointmentTypeName, "Appointment"),
-      businessName: safeString(appointment.businessName, "Clinic"),
-      cancelled: Boolean(appointment.cancelled),
-    })),
+    appointments: asArray<DemoAppointment>(raw.appointments)
+      .filter((appointment) =>
+        isRealClinikoAppointment({
+          id: appointment.id,
+          clinikoId: appointment.clinikoId ?? appointment.id,
+          startsAt: appointment.startsAt,
+          source: appointment.source,
+          rawType: appointment.rawType,
+        })
+      )
+      .map((appointment) => ({
+        id: safeString(appointment.clinikoId ?? appointment.id),
+        clinikoId: safeString(appointment.clinikoId ?? appointment.id),
+        rawType: "individual_appointment" as const,
+        source: "cliniko-test-account" as const,
+        patientId: appointment.patientId,
+        patientLabel: safeString(appointment.patientLabel, "DEMO patient"),
+        startsAt: safeString(appointment.startsAt),
+        appointmentTypeName: safeString(appointment.appointmentTypeName, "Appointment"),
+        practitionerName: safeString(appointment.practitionerName, "Practitioner"),
+        businessName: safeString(appointment.businessName, "Clinic"),
+        cancelled: Boolean(appointment.cancelled),
+        archived: Boolean(appointment.archived),
+      })),
     businesses: asArray<NamedResource>(raw.businesses).map((business) => ({
       id: safeString(business.id, "unknown"),
       name: safeString(business.name, "Clinic"),
@@ -188,6 +228,11 @@ function normalizeSnapshot(raw: Partial<Snapshot> | null | undefined): Snapshot 
           selectedAppointmentTypeId: raw.proofDiagnostics.selectedAppointmentTypeId,
         }
       : undefined,
+    appointmentSourceDiagnostics: raw.appointmentSourceDiagnostics,
+    source: raw.source,
+    generatedAt: raw.generatedAt,
+    counts: raw.counts,
+    demoFallbackActive: raw.demoFallbackActive,
   };
 }
 
@@ -269,10 +314,17 @@ export function ClinikoTestLabPanel() {
   const [lastAction, setLastAction] = useState<string | null>(null);
   const [cleanupConfirm, setCleanupConfirm] = useState(false);
   const [proofCards, setProofCards] = useState<ProofCard[]>(DEFAULT_PROOF);
+  const [hasLocalProofState, setHasLocalProofState] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [appointmentDiagnostics, setAppointmentDiagnostics] =
+    useState<AppointmentSourceDiagnostics | null>(null);
   const { message, show } = useDemoFeedback();
 
   useEffect(() => {
     setProofCards(loadProofCards());
+    if (typeof window !== "undefined") {
+      setHasLocalProofState(Boolean(window.localStorage.getItem(PROOF_STORAGE_KEY)));
+    }
   }, []);
 
   const snapshotQuery = useMemo(() => {
@@ -287,14 +339,31 @@ export function ClinikoTestLabPanel() {
 
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const res = await fetch(`/api/cliniko/test-data${snapshotQuery}`, { cache: "no-store" });
       const json = normalizeSnapshot((await res.json()) as Partial<Snapshot>);
       if (!json) {
         setSnapshot(null);
+        setAppointmentDiagnostics(null);
+        setLoadError("Could not parse Cliniko test lab response.");
+        return;
+      }
+      if (!res.ok) {
+        setSnapshot(json);
+        setAppointmentDiagnostics(json.appointmentSourceDiagnostics ?? null);
+        setLoadError(json.message ?? "Could not load Cliniko test lab data.");
         return;
       }
       setSnapshot(json);
+      setAppointmentDiagnostics(
+        json.appointmentSourceDiagnostics
+          ? {
+              ...json.appointmentSourceDiagnostics,
+              localProofStateActive: hasLocalProofState,
+            }
+          : null
+      );
       setSelectedPatientId((prev) => prev ?? json.patients[0]?.id ?? null);
       setSelectedBusinessId((prev) => prev ?? json.defaults?.businessId ?? json.businesses[0]?.id ?? null);
       setSelectedAppointmentTypeId(
@@ -320,10 +389,28 @@ export function ClinikoTestLabPanel() {
       });
     } catch {
       setSnapshot(null);
+      setAppointmentDiagnostics(null);
+      setLoadError("Could not reach Cliniko test lab.");
     } finally {
       setLoading(false);
     }
-  }, [snapshotQuery]);
+  }, [snapshotQuery, hasLocalProofState]);
+
+  function clearLocalProofState() {
+    if (typeof window !== "undefined") {
+      try {
+        window.localStorage.removeItem(PROOF_STORAGE_KEY);
+      } catch {
+        // Ignore storage failures.
+      }
+    }
+    setProofCards(DEFAULT_PROOF);
+    setHasLocalProofState(false);
+    setAppointmentDiagnostics((prev) =>
+      prev ? { ...prev, localProofStateActive: false } : prev
+    );
+    show("Local proof badges cleared. Cliniko data was not changed.");
+  }
 
   useEffect(() => {
     void load();
@@ -520,13 +607,20 @@ export function ClinikoTestLabPanel() {
               >
                 Refresh DEMO records
               </button>
+              <button
+                type="button"
+                onClick={clearLocalProofState}
+                className="min-h-10 rounded-lg border border-cream-dark px-4 py-2 text-sm font-medium text-navy hover:bg-cream"
+              >
+                Clear local proof state
+              </button>
               {!cleanupConfirm ? (
                 <button
                   type="button"
                   onClick={() => setCleanupConfirm(true)}
                   className="min-h-10 rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-900 hover:bg-amber-100"
                 >
-                  Cleanup all DEMO records
+                  Cleanup all DEMO records in Cliniko
                 </button>
               ) : (
                 <>
@@ -548,7 +642,26 @@ export function ClinikoTestLabPanel() {
                 </>
               )}
             </div>
+            <p className="mt-2 text-xs text-slate">
+              Clear local proof state only clears browser proof badges. It does not change
+              Cliniko.
+            </p>
           </section>
+
+          {loadError && (
+            <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              {loadError}
+            </p>
+          )}
+
+          {appointmentDiagnostics && (
+            <AppointmentSourceDiagnosticsPanel
+              diagnostics={{
+                ...appointmentDiagnostics,
+                localProofStateActive: hasLocalProofState,
+              }}
+            />
+          )}
 
           {lastDiagnostics && (
             <DiagnosticPanel action={lastAction} diagnostics={lastDiagnostics} />
@@ -560,12 +673,21 @@ export function ClinikoTestLabPanel() {
               selectedPatientId={selectedPatientId}
               onSelect={setSelectedPatientId}
             />
-            <AppointmentList
+            <LiveClinikoDemoAppointmentList
               appointments={snapshot.appointments}
               selectedAppointmentId={selectedAppointmentId}
               onSelect={setSelectedAppointmentId}
+              fetchFailed={Boolean(loadError)}
             />
           </div>
+
+          <section className="mt-6 rounded-lg border border-dashed border-cream-dark bg-cream/20 p-4">
+            <h3 className="font-semibold text-navy">Demo examples</h3>
+            <p className="mt-2 text-sm text-slate">
+              These examples do not exist in Cliniko. They are only illustrative demo data.
+              See the &ldquo;Demo examples&rdquo; section under Live Cliniko data below.
+            </p>
+          </section>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             <ResourcePicker
@@ -880,26 +1002,74 @@ function PatientList({
   );
 }
 
-function AppointmentList({
+function AppointmentSourceDiagnosticsPanel({
+  diagnostics,
+}: {
+  diagnostics: AppointmentSourceDiagnostics;
+}) {
+  return (
+    <div className="mt-6 rounded-lg border border-cream-dark bg-cream/30 p-4 text-sm">
+      <h3 className="font-semibold text-navy">Appointment source diagnostics</h3>
+      <dl className="mt-2 grid gap-2 sm:grid-cols-2">
+        <DiagRow
+          label="Last refresh"
+          value={safeDateLabel(diagnostics.lastRefreshAt, diagnostics.lastRefreshAt)}
+        />
+        <DiagRow label="Endpoint used" value={diagnostics.endpoint} />
+        <DiagRow label="Returned by Cliniko" value={String(diagnostics.returnedByCliniko)} />
+        <DiagRow label="Excluded invalid/placeholders" value={String(diagnostics.excludedInvalid)} />
+        <DiagRow label="Displayed" value={String(diagnostics.displayed)} />
+        <DiagRow
+          label="Demo fallback active"
+          value={diagnostics.demoFallbackActive ? "yes" : "no"}
+        />
+        <DiagRow
+          label="Local proof state active"
+          value={diagnostics.localProofStateActive ? "yes" : "no"}
+        />
+      </dl>
+      {diagnostics.warnings.length > 0 && (
+        <ul className="mt-3 space-y-1 text-xs text-amber-900">
+          {diagnostics.warnings.map((warning) => (
+            <li key={warning}>• {warning}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function LiveClinikoDemoAppointmentList({
   appointments,
   selectedAppointmentId,
   onSelect,
+  fetchFailed,
 }: {
   appointments: DemoAppointment[];
   selectedAppointmentId: string | null;
   onSelect: (id: string) => void;
+  fetchFailed: boolean;
 }) {
   const safeAppointments = asArray<DemoAppointment>(appointments);
   return (
     <div>
-      <h3 className="font-semibold text-navy">DEMO appointments ({safeAppointments.length})</h3>
-      {safeAppointments.length === 0 ? (
-        <p className="mt-2 text-sm text-slate">No upcoming DEMO appointments loaded.</p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="font-semibold text-navy">
+          Live Cliniko DEMO appointments ({safeAppointments.length})
+        </h3>
+        <DataSourceBadge source="cliniko-test" />
+      </div>
+      {fetchFailed ? (
+        <p className="mt-2 text-sm text-amber-900">
+          Live Cliniko appointments could not be loaded. No placeholder rows are shown.
+        </p>
+      ) : safeAppointments.length === 0 ? (
+        <p className="mt-2 text-sm text-slate">No live DEMO appointments found in Cliniko.</p>
       ) : (
         <ul className="mt-3 space-y-2">
           {safeAppointments.map((a) => (
             <li
-              key={a.id || a.startsAt}
+              key={a.clinikoId ?? a.id}
               className={`rounded-lg border p-3 text-sm ${
                 selectedAppointmentId === a.id
                   ? "border-green bg-green-muted/20"
@@ -911,10 +1081,14 @@ function AppointmentList({
                   {safeString(a.patientLabel, "DEMO patient")} · {safeDateLabel(a.startsAt)}
                 </p>
                 <p className="text-xs text-slate">
-                  {safeString(a.appointmentTypeName, "Appointment")}
-                  {safeString(a.businessName) ? ` · ${safeString(a.businessName, "Clinic")}` : ""}
+                  ID {shortenClinikoId(safeString(a.clinikoId ?? a.id))} ·{" "}
+                  {safeString(a.appointmentTypeName, "Appointment")} ·{" "}
+                  {safeString(a.practitionerName, "Practitioner")} ·{" "}
+                  {safeString(a.businessName, "Clinic")}
                   {a.cancelled ? " · Cancelled" : ""}
+                  {a.archived ? " · Archived" : ""}
                 </p>
+                <p className="mt-1 text-xs text-slate">Cliniko test account</p>
               </button>
             </li>
           ))}

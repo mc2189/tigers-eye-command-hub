@@ -76,6 +76,16 @@ It must **not** appear as the active Aviemore booking provider on `/book`.
 - Live Cliniko panels show real sandbox data only; demo examples are in a separate section
 - Appointment creation uses practitioner IDs from `/practitioners` (not `/users`); preflight checks run before writes
 
+## Live Cliniko test data versus demo examples
+
+- Live test lab appointments must come only from Cliniko `/individual_appointments`
+- Each displayed appointment requires a real numeric Cliniko id linked to a DEMO-prefixed patient
+- Demo fallback appointments are never shown in the test lab live list
+- Demo examples (static walkthrough data) live in a separate clearly labelled section
+- Local proof state (`localStorage`) stores proof badge status only — never appointment rows
+- Cleanup refreshes from Cliniko and does not repopulate placeholder appointments
+- Patient labels use full DEMO patient names — not abbreviated labels like `DEMO 0.`
+
 ## Cliniko appointment proof update
 
 - Manual Cliniko appointments are read from `/individual_appointments`

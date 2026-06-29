@@ -796,6 +796,7 @@ export async function getDemoIndividualAppointments(params?: {
   from?: string;
   to?: string;
   demoPatientIds?: Set<string>;
+  strictPatientMatch?: boolean;
 }): Promise<ClinikoResult<ClinikoIndividualAppointmentsResponse>> {
   const fromDate =
     params?.from ??
@@ -813,9 +814,14 @@ export async function getDemoIndividualAppointments(params?: {
 
   if (!result.data) return result;
 
-  const demoAppointments = result.data.appointments.filter((appointment) =>
-    isDemoIndividualAppointment(appointment, params?.demoPatientIds)
-  );
+  const demoAppointments = result.data.appointments.filter((appointment) => {
+    if (params?.strictPatientMatch) {
+      return Boolean(
+        appointment.patientId && params.demoPatientIds?.has(appointment.patientId)
+      );
+    }
+    return isDemoIndividualAppointment(appointment, params?.demoPatientIds);
+  });
 
   return {
     ...result,

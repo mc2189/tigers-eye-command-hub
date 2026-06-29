@@ -197,7 +197,8 @@ export function ClinikoLiveDataPanels() {
       <section className="mb-8">
         <h2 className="mb-2 text-lg font-bold text-navy">Demo examples</h2>
         <p className="mb-4 text-sm text-slate">
-          Static Command Hub examples for walkthroughs. These are not live Cliniko records.
+          Static Command Hub examples for walkthroughs. These examples do not exist in Cliniko.
+          They are only illustrative demo data.
         </p>
         <div className="grid gap-4 lg:grid-cols-2">
           <DemoExamplesPanel title="Example businesses" badge="demo">

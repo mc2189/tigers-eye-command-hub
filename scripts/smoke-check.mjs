@@ -116,8 +116,8 @@ const contentChecks = {
     if (!/location|migration|Aviemore|test lab/i.test(body)) {
       return "missing migration/location/test lab wording";
     }
-    if (!/Cliniko test lab|Individual appointments|Manual Cliniko appointment test|Appointment proof diagnostics/i.test(body)) {
-      return "missing Cliniko test lab proof sections";
+    if (!/Live Cliniko DEMO appointments|Appointment source diagnostics|Clear local proof state|Cliniko test lab|Manual Cliniko appointment test/i.test(body)) {
+      return "missing Cliniko test lab live appointment sections";
     }
     return null;
   },
@@ -159,6 +159,11 @@ const contentChecks = {
     }
     if (typeof json.writesEnabled !== "boolean") return "missing writesEnabled";
     if (!Array.isArray(json.patients)) return "missing patients array";
+    if (!Array.isArray(json.appointments)) return "missing appointments array";
+    if (typeof json.generatedAt !== "string") return "missing generatedAt";
+    if (!json.counts || typeof json.counts.patients !== "number") return "missing counts.patients";
+    if (typeof json.counts.appointments !== "number") return "missing counts.appointments";
+    if (typeof json.source !== "string") return "missing source";
     if (typeof json.practitionerBookable !== "boolean") return "missing practitionerBookable";
     if (typeof json.practitionerSourceLabel !== "string") return "missing practitionerSourceLabel";
     return null;

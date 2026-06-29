@@ -1,6 +1,12 @@
 import "server-only";
 
 import {
+  getSafeDemoPatientLabel,
+  partitionLiveDemoAppointments,
+  type ClinikoIndividualAppointmentLike,
+  type DemoAppointmentRawType,
+} from "@/lib/cliniko-demo-appointments";
+import {
   ClinikoApiError,
   classifyAppointmentFailure,
 } from "@/lib/cliniko-api-error";
@@ -45,13 +51,29 @@ export interface DemoPatientRecord {
 
 export interface DemoAppointmentRecord {
   id: string;
+  clinikoId: string;
+  rawType: DemoAppointmentRawType;
+  source: "cliniko-test-account";
   patientId?: string;
-  patientLabel?: string;
+  patientLabel: string;
   startsAt: string;
   endsAt?: string;
   appointmentTypeName?: string;
+  practitionerName?: string;
   businessName?: string;
   cancelled?: boolean;
+  archived?: boolean;
+}
+
+export interface AppointmentSourceDiagnostics {
+  lastRefreshAt: string;
+  endpoint: "/individual_appointments";
+  returnedByCliniko: number;
+  excludedInvalid: number;
+  displayed: number;
+  demoFallbackActive: boolean;
+  localProofStateActive: boolean;
+  warnings: string[];
 }
 
 export interface DemoTestLabDiagnostics {
@@ -106,9 +128,16 @@ export interface AppointmentProofDiagnostics {
 
 export interface DemoTestLabSnapshot {
   ok: boolean;
+  source: "cliniko-test-account" | "demo-fallback" | "unavailable";
   mode: "live" | "demo" | "unavailable";
   writesEnabled: boolean;
-  message?: string;
+  message: string;
+  generatedAt: string;
+  counts: {
+    patients: number;
+    appointments: number;
+  };
+  demoFallbackActive: boolean;
   patients: DemoPatientRecord[];
   appointments: DemoAppointmentRecord[];
   businesses: ClinikoBusiness[];
@@ -126,6 +155,7 @@ export interface DemoTestLabSnapshot {
   };
   preflight?: AppointmentPreflightResult;
   proofDiagnostics?: AppointmentProofDiagnostics;
+  appointmentSourceDiagnostics?: AppointmentSourceDiagnostics;
 }
 
 function writesAllowed(): { ok: true } | { ok: false; message: string } {
@@ -228,20 +258,26 @@ function mapPatient(raw: Record<string, unknown>): DemoPatientRecord {
 }
 
 function mapAppointmentFromIndividual(
-  appointment: ClinikoIndividualAppointment
+  appointment: ClinikoIndividualAppointment | ClinikoIndividualAppointmentLike,
+  patientsById: Map<string, DemoPatientRecord> = new Map()
 ): DemoAppointmentRecord {
+  const clinikoId = String(appointment.id ?? "").trim();
   return {
-    id: String(appointment.id ?? ""),
+    id: clinikoId,
+    clinikoId,
+    rawType: "individual_appointment",
+    source: "cliniko-test-account",
     patientId: appointment.patientId,
-    patientLabel:
-      coerceDemoLabel(appointment.patientLabel ?? appointment.patientName) ??
-      "DEMO patient",
+    patientLabel: getSafeDemoPatientLabel(appointment, patientsById),
     startsAt: String(appointment.startsAt ?? ""),
     endsAt: appointment.endsAt ? String(appointment.endsAt) : undefined,
     appointmentTypeName:
       coerceDemoLabel(appointment.appointmentTypeName) ?? "Appointment",
+    practitionerName:
+      coerceDemoLabel(appointment.practitionerName) ?? "Practitioner",
     businessName: coerceDemoLabel(appointment.businessName) ?? "Clinic",
     cancelled: Boolean(appointment.cancelledAt),
+    archived: Boolean(appointment.archivedAt),
   };
 }
 
@@ -257,11 +293,71 @@ function coerceDemoLabel(value: unknown): string | undefined {
   return undefined;
 }
 
-async function fetchDemoAppointmentsLive(
-  patientIds: Set<string>
-): Promise<DemoAppointmentRecord[]> {
-  const result = await getDemoIndividualAppointments({ demoPatientIds: patientIds });
-  return (result.data?.appointments ?? []).map(mapAppointmentFromIndividual);
+function emptyAppointmentDiagnostics(
+  generatedAt: string,
+  demoFallbackActive: boolean,
+  warnings: string[]
+): AppointmentSourceDiagnostics {
+  return {
+    lastRefreshAt: generatedAt,
+    endpoint: "/individual_appointments",
+    returnedByCliniko: 0,
+    excludedInvalid: 0,
+    displayed: 0,
+    demoFallbackActive,
+    localProofStateActive: false,
+    warnings,
+  };
+}
+
+async function fetchDemoAppointmentsLive(patients: DemoPatientRecord[]): Promise<{
+  appointments: DemoAppointmentRecord[];
+  diagnostics: AppointmentSourceDiagnostics;
+}> {
+  const patientIds = new Set(patients.map((p) => p.id));
+  const patientsById = new Map(patients.map((p) => [p.id, p]));
+  const generatedAt = new Date().toISOString();
+
+  const result = await getDemoIndividualAppointments({
+    demoPatientIds: patientIds,
+    strictPatientMatch: true,
+  });
+
+  const demoFallbackActive =
+    result.source === "demo" || result.status === "not_configured";
+
+  if (demoFallbackActive || !result.ok) {
+    return {
+      appointments: [],
+      diagnostics: emptyAppointmentDiagnostics(generatedAt, demoFallbackActive, [
+        demoFallbackActive
+          ? "Demo fallback appointments are not shown in the live test lab list."
+          : result.error ?? "Could not load individual appointments from Cliniko.",
+      ]),
+    };
+  }
+
+  const raw = result.data?.appointments ?? [];
+  const { accepted, excluded, warnings } = partitionLiveDemoAppointments(
+    raw,
+    patientIds
+  );
+
+  return {
+    appointments: accepted.map((appointment) =>
+      mapAppointmentFromIndividual(appointment, patientsById)
+    ),
+    diagnostics: {
+      lastRefreshAt: generatedAt,
+      endpoint: "/individual_appointments",
+      returnedByCliniko: raw.length,
+      excludedInvalid: excluded.length,
+      displayed: accepted.length,
+      demoFallbackActive: false,
+      localProofStateActive: false,
+      warnings,
+    },
+  };
 }
 
 async function fetchDemoPatientsLive(): Promise<DemoPatientRecord[]> {
@@ -453,13 +549,18 @@ export async function getDemoTestLabSnapshot(input?: {
   appointmentTypeId?: string;
 }): Promise<DemoTestLabSnapshot> {
   const config = getClinikoConfig();
+  const generatedAt = new Date().toISOString();
 
   if (!config.apiKey) {
     return {
       ok: true,
+      source: "demo-fallback",
       mode: "demo",
       writesEnabled: config.writesEnabled,
-      message: "No Cliniko API key — test lab preview uses demo fallbacks only.",
+      message: "No Cliniko API key — live test lab appointments are unavailable.",
+      generatedAt,
+      counts: { patients: 0, appointments: 0 },
+      demoFallbackActive: true,
       patients: [],
       appointments: [],
       businesses: [],
@@ -467,6 +568,9 @@ export async function getDemoTestLabSnapshot(input?: {
       practitionerSource: "demo",
       practitionerBookable: false,
       practitionerSourceLabel: practitionerSourceLabel("demo"),
+      appointmentSourceDiagnostics: emptyAppointmentDiagnostics(generatedAt, true, [
+        "Demo fallback appointments are not shown in the live test lab list.",
+      ]),
     };
   }
 
@@ -479,8 +583,7 @@ export async function getDemoTestLabSnapshot(input?: {
         resolvePractitionerForBooking(),
       ]);
 
-    const patientIds = new Set(patients.map((p) => p.id));
-    const appointments = await fetchDemoAppointmentsLive(patientIds);
+    const { appointments, diagnostics } = await fetchDemoAppointmentsLive(patients);
 
     const businessId = input?.businessId ?? businessesResult.data?.[0]?.id;
     const practitionerId =
@@ -514,8 +617,19 @@ export async function getDemoTestLabSnapshot(input?: {
 
     return {
       ok: true,
+      source: "cliniko-test-account",
       mode: "live",
       writesEnabled: config.writesEnabled,
+      message:
+        appointments.length > 0
+          ? `Loaded ${appointments.length} live DEMO appointment(s) from Cliniko.`
+          : "No live DEMO appointments found in Cliniko.",
+      generatedAt,
+      counts: {
+        patients: patients.length,
+        appointments: appointments.length,
+      },
+      demoFallbackActive: false,
       patients,
       appointments,
       businesses: businessesResult.data ?? [],
@@ -547,13 +661,18 @@ export async function getDemoTestLabSnapshot(input?: {
         selectedPractitionerId: practitionerId,
         selectedAppointmentTypeId: appointmentTypeId,
       },
+      appointmentSourceDiagnostics: diagnostics,
     };
   } catch (err) {
     return {
       ok: false,
+      source: "unavailable",
       mode: "unavailable",
       writesEnabled: config.writesEnabled,
       message: err instanceof Error ? err.message : "Could not load test lab data.",
+      generatedAt,
+      counts: { patients: 0, appointments: 0 },
+      demoFallbackActive: false,
       patients: [],
       appointments: [],
       businesses: [],
@@ -561,6 +680,9 @@ export async function getDemoTestLabSnapshot(input?: {
       practitionerSource: "none",
       practitionerBookable: false,
       practitionerSourceLabel: practitionerSourceLabel("none"),
+      appointmentSourceDiagnostics: emptyAppointmentDiagnostics(generatedAt, false, [
+        err instanceof Error ? err.message : "Could not load test lab data.",
+      ]),
     };
   }
 }
@@ -857,27 +979,19 @@ export async function checkDemoAppointments(): Promise<DemoTestLabActionResult> 
   const endpoint = "/individual_appointments";
   try {
     const patients = await fetchDemoPatientsLive();
-    const patientIds = new Set(patients.map((p) => p.id));
-    const result = await getDemoIndividualAppointments({ demoPatientIds: patientIds });
-    const appointments = (result.data?.appointments ?? []).map(mapAppointmentFromIndividual);
+    const { appointments, diagnostics } = await fetchDemoAppointmentsLive(patients);
 
     return actionSuccess(
       "check_demo_appointments",
       appointments.length > 0
-        ? `Found ${appointments.length} upcoming DEMO individual appointment(s) in Cliniko.`
-        : "No upcoming DEMO individual appointments found in Cliniko.",
+        ? `Found ${appointments.length} live DEMO individual appointment(s) in Cliniko.`
+        : "No live DEMO appointments found in Cliniko.",
       {
-        appointments: appointments.map((a) => ({
-          id: a.id,
-          patientLabel: a.patientLabel,
-          appointmentTypeName: a.appointmentTypeName,
-          businessName: a.businessName,
-          startsAt: a.startsAt,
-          source: "Cliniko test account",
-        })),
+        appointments,
         count: appointments.length,
         endpoint,
         dataSource: "individual_appointments",
+        appointmentSourceDiagnostics: diagnostics,
       },
       appointments.length > 0 ? "proven" : "not-tested"
     );
@@ -899,8 +1013,7 @@ export async function cleanupDemoTestData(): Promise<DemoTestLabActionResult> {
 
   try {
     const patients = await fetchDemoPatientsLive();
-    const patientIds = new Set(patients.map((p) => p.id));
-    const appointments = await fetchDemoAppointmentsLive(patientIds);
+    const { appointments } = await fetchDemoAppointmentsLive(patients);
 
     const warnings: string[] = [];
     let cancelledAppointments = 0;
@@ -909,7 +1022,7 @@ export async function cleanupDemoTestData(): Promise<DemoTestLabActionResult> {
 
     for (const appointment of appointments) {
       if (appointment.cancelled) continue;
-      if (!appointment.patientId || !patientIds.has(appointment.patientId)) {
+      if (!appointment.patientId || !patients.some((p) => p.id === appointment.patientId)) {
         skipped += 1;
         warnings.push(`Skipped appointment ${appointment.id} — not linked to a DEMO patient.`);
         continue;
