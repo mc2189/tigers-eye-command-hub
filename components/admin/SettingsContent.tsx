@@ -12,6 +12,7 @@ import {
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import type { ClinikoStatusData } from "@/components/admin/ClinikoConnectionPanel";
 import { practitioners, locations } from "@/lib/demo-data";
+import { bookingLinks } from "@/lib/tigers-eye-content";
 
 const transcriptionOptions = [
   "Browser dictation demo",
@@ -81,6 +82,19 @@ export function SettingsContent() {
       title: "Payment mode",
       description: "Payment rules, deposits and cash warnings — demo configuration only.",
       value: "Demo only",
+      variant: "neutral" as const,
+    },
+    {
+      title: "Aviemore Cliniko location",
+      description:
+        "Aviemore is a separate Cliniko location or business. The public site asks for location first so patients reach the right booking route.",
+      value: "Planned / sandbox",
+      variant: "warning" as const,
+    },
+    {
+      title: "Setmore (legacy)",
+      description: bookingLinks.legacySetmore.note,
+      value: "Legacy / transition",
       variant: "neutral" as const,
     },
     {

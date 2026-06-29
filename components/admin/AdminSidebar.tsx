@@ -1,5 +1,8 @@
 "use client";
 
+const ADMIN_FOOTER =
+  "Built by Mike Currie · Demo mode · Cliniko remains the system of record";
+
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -150,7 +153,7 @@ export function AdminSidebar() {
           >
             ← Public website
           </Link>
-          <p className="mt-2 text-xs text-slate">Built by Mike Currie.</p>
+          <p className="mt-2 text-xs text-slate leading-relaxed">{ADMIN_FOOTER}</p>
         </div>
       </aside>
     </>

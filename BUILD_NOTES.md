@@ -1,0 +1,101 @@
+# Build notes — Tigers Eye Command Hub
+
+## Architecture
+
+- **Framework:** Next.js 15 (App Router), React 19, Tailwind CSS 4
+- **Deployment:** Vercel — https://tigers-eye-command-hub.vercel.app
+- **Route groups:** Public site `app/(public)/`, admin hub `app/admin/`, API `app/api/cliniko/`
+- **Content:** Central copy in `lib/tigers-eye-content.ts`; demo objects in `lib/demo-data.ts`
+
+## Public website
+
+- Marketing pages: home, services, locations, team, insurance, telehealth, contact
+- **Location-first booking gateway** at `/book` — patient chooses Dundee or Aviemore, then appointment type
+- Both locations route to **Cliniko**; Setmore is not part of the patient journey
+- Subtle Command Hub notes on book, insurance, telehealth, contact pages
+- Footer includes “Command Hub (demo)” for internal demo access
+
+## Admin Command Hub
+
+- Shell: sidebar, demo banner, dashboard, walkthrough at `/admin/demo-walkthrough`
+- Modules: calendar, bookings, payments, finance, invoices, insurance, stock, notes, settings, healthcode
+- Demo data fallbacks everywhere Cliniko is unavailable
+- Demo action buttons show toasts instead of appearing dead
+
+## Cliniko integration
+
+- **Server-only** client in `lib/cliniko.ts` — API key never sent to browser
+- API routes: status, businesses, practitioners, appointment types, bookings, treatment-note-draft
+- Mapping layer `lib/cliniko-mappers.ts` feeds bookings, calendar, finance, insurance, invoices, stock, notes
+- Writes gated by `CLINIKO_ENABLE_WRITES=false` by default
+- No patient-note database; transcripts purged on save/discard
+
+## Dundee / Aviemore Cliniko-first booking strategy
+
+**Problem:** Patients booked the wrong clinic when Dundee (Cliniko) and Aviemore (Setmore) used different systems.
+
+**Solution:** Both locations use Cliniko. The website asks for **location first**, then appointment type, routing to the correct Cliniko booking link.
+
+| Location | Provider | Status |
+|----------|----------|--------|
+| Dundee | Cliniko | Active |
+| Aviemore | Cliniko | Planned / sandbox (separate Cliniko location) |
+| Setmore | Legacy | Retire after Aviemore fully in Cliniko |
+
+Configured in `lib/tigers-eye-content.ts` → `bookingLinks`, `bookingStrategy`.
+
+## Demo data / fallback behaviour
+
+- If `CLINIKO_API_KEY` is missing or Cliniko unreachable → API returns `source: "demo"` and UI shows demo data
+- Friendly loading/error/empty states on Cliniko panels
+- `NEXT_PUBLIC_DEMO_MODE=true` in env template
+
+## Setmore legacy note
+
+Setmore (`https://tigerseye.setmore.com/`) is documented only as the **previous** Aviemore booking tool. It appears in:
+
+- `bookingLinks.legacySetmore` in content file
+- Locations page transition note (if shown)
+- Admin settings (legacy / transition card)
+- Admin Cliniko Aviemore migration panel
+
+It must **not** appear as the active Aviemore booking provider on `/book`.
+
+## Environment variables
+
+Copy `.env.local.example` to `.env.local` (never commit `.env.local`):
+
+```
+CLINIKO_API_KEY=your-sandbox-key-here
+CLINIKO_SHARD=uk1
+CLINIKO_USER_AGENT=Tigers Eye Command Hub Demo / built by Mike Currie
+CLINIKO_ENABLE_WRITES=false
+NEXT_PUBLIC_DEMO_MODE=true
+```
+
+## Quality commands
+
+```bash
+npm run lint
+npm run build
+npm run smoke:local   # dev server required
+npm run smoke:prod    # production URL
+```
+
+## Known limitations
+
+- Aviemore Cliniko URL is a placeholder until separate location/business is configured in Cliniko
+- Finance figures are estimated — not accounting records
+- Insurance cases from Cliniko are inferred, not stored
+- Healthcode / Xero not connected
+- Contact form is demo-only (no email send)
+- Browser dictation demo only — no cloud transcription
+
+## Recommended next steps (post-demo)
+
+1. Configure Aviemore as separate Cliniko business/location with filtered booking links
+2. Retire Setmore once Aviemore bookings confirmed in Cliniko
+3. Enable Cliniko custom fields for insurance claim/session capture
+4. Connect Healthcode when George confirms workflow
+5. Xero integration for reconciliation
+6. Enable `CLINIKO_ENABLE_WRITES` only after clinical safety review

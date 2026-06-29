@@ -1,0 +1,158 @@
+# Tigers Eye — Demo QA Checklist
+
+Use this before showing George. Tick each item after verifying in the browser.
+
+**Recommended demo path:** `/admin` → **Start walkthrough** → follow steps 1–11.
+
+---
+
+## Public website
+
+### Homepage (`/`)
+- [ ] Hero explains Tigers Eye clearly with book + services CTAs
+- [ ] Clinics section mentions Cliniko and location-first booking
+- [ ] Insurance and telehealth sections visible
+- [ ] Footer links work; Command Hub labelled “(demo)”
+
+### Location-first booking (`/book`)
+- [ ] Step 1 asks for location before appointment type
+- [ ] Dundee shows Cliniko
+- [ ] Aviemore shows Cliniko (not Setmore as active provider)
+- [ ] Confirm step shows Command Hub connection note
+- [ ] Aviemore may show subtle legacy Setmore transition note only
+
+### Dundee booking route
+- [ ] Dundee card routes to Cliniko URL on confirm (private route)
+- [ ] Insurance route goes to `/insurance`
+- [ ] Telehealth route goes to `/telehealth`
+
+### Aviemore booking route
+- [ ] Aviemore treated equally to Dundee (not a workaround)
+- [ ] “Configuring in Cliniko” status shown if sandbox not live
+- [ ] No Setmore button in main booking journey
+
+### Services (`/services`)
+- [ ] All services readable on mobile
+- [ ] Steroid injection and telehealth notes clear
+
+### Insurance (`/insurance`)
+- [ ] Provider guidance (Aviva, Vitality, other)
+- [ ] Liability notice visible
+- [ ] Command Hub note present
+
+### Telehealth (`/telehealth`)
+- [ ] Marked as proposed/demo service
+- [ ] Payment and workflow notes clear
+
+### Locations (`/locations`)
+- [ ] Dundee and Aviemore both show Cliniko
+- [ ] Setmore only as legacy/transition note if present
+- [ ] Booking gateway CTA works
+
+### Team (`/team`)
+- [ ] George and Jamie Lee profiles render
+- [ ] Placeholder practitioner labelled clearly
+
+### Contact (`/contact`)
+- [ ] Form submits demo success message
+- [ ] Command Hub follow-up explained
+
+### Footer / admin link
+- [ ] “Command Hub (demo)” in footer — subtle, not patient-facing feature
+
+---
+
+## Admin Command Hub
+
+### Dashboard (`/admin`)
+- [ ] Demo banner visible
+- [ ] “Start demo walkthrough” card prominent
+- [ ] Today’s actions and metrics load
+
+### Walkthrough (`/admin/demo-walkthrough`)
+- [ ] All 11 steps present with Open page buttons
+- [ ] Location-first booking step mentions Dundee, Aviemore, Cliniko
+
+### Cliniko (`/admin/cliniko`)
+- [ ] Connection panel shows status (connected or demo fallback)
+- [ ] Aviemore Cliniko migration panel visible
+- [ ] Mapping health and data handling panels present
+- [ ] Configure buttons show demo feedback (not dead)
+
+### Bookings (`/admin/bookings`)
+- [ ] Load sandbox bookings works or shows friendly error
+- [ ] Demo bookings table/cards on mobile
+- [ ] Action buttons show demo toasts
+
+### Calendar (`/admin/calendar`)
+- [ ] Weekly view readable on mobile
+- [ ] Cliniko load button works
+
+### Practitioner calendars
+- [ ] George calendar (`/admin/calendar/george`)
+- [ ] Jamie Lee calendar (`/admin/calendar/practitioner-2`) — Cliniko only wording
+
+### Notes (`/admin/notes`)
+- [ ] Safe notes workflow panel visible
+- [ ] Data handling panel visible
+- [ ] Save draft shows dry-run / safety-gated badges
+
+### Payments (`/admin/payments`)
+- [ ] Payment rules readable
+
+### Finance (`/admin/finance`)
+- [ ] Clearly not accounting software
+- [ ] Estimated income disclaimer visible
+
+### Invoices (`/admin/invoices`)
+- [ ] Invoice queue loads or shows empty/error state
+- [ ] Demo invoice actions respond
+
+### Insurance (`/admin/insurance`)
+- [ ] Inferred cases callout — not stored
+- [ ] Cliniko panel loads or falls back
+
+### Stock (`/admin/stock`)
+- [ ] Stock estimate panel works
+
+### Settings (`/admin/settings`)
+- [ ] Cliniko, Aviemore, Setmore legacy cards visible
+- [ ] No API key in UI
+
+### Healthcode (`/admin/healthcode`)
+- [ ] Future integration placeholder clearly stated
+
+---
+
+## Mobile
+
+- [ ] No sideways scrolling on public or admin pages
+- [ ] Admin hamburger menu opens and closes
+- [ ] Booking gateway easy on phone (large tap targets)
+- [ ] Calendar cards readable on phone
+- [ ] Notes assistant usable on tablet/phone
+- [ ] Finance panels stack cleanly
+
+---
+
+## Data safety
+
+- [ ] Demo banner visible on all admin pages
+- [ ] No real patient names from production (sandbox/demo only)
+- [ ] No API key visible in browser or page source
+- [ ] Notes: no audio/transcript stored messaging clear
+- [ ] Writes gated unless `CLINIKO_ENABLE_WRITES=true` server-side
+- [ ] Cliniko described as system of record throughout
+- [ ] Setmore appears only as legacy/transitional text
+
+---
+
+## Automated smoke tests
+
+```bash
+npm run lint
+npm run build
+npm run dev          # terminal 1
+npm run smoke:local  # terminal 2
+npm run smoke:prod   # after Vercel deploy
+```

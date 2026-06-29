@@ -23,6 +23,13 @@ export default function HealthcodePage() {
         <StatusBadge label="Placeholder" variant="neutral" />
       </AdminPageHeader>
 
+      <CalloutBox title="Future integration placeholder" variant="warning">
+        <p>
+          Healthcode is not connected. This page is a roadmap placeholder only — no
+          live claim submission or payment reconciliation.
+        </p>
+      </CalloutBox>
+
       <CalloutBox title="Current status" variant="info">
         <p>
           Healthcode integration is not yet connected. This page outlines the planned

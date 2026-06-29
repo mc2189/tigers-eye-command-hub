@@ -12,8 +12,16 @@ export default function FinancePage() {
     <>
       <AdminPageHeader
         title="Finance"
-        subtitle="ClubOps-style finance dashboard — revenue, outstanding money and estimated net."
+        subtitle="Estimated income and workflow view — not a replacement for your accountant or Xero."
       />
+
+      <CalloutBox title="Demo finance only" variant="info">
+        <p>
+          Figures here are estimated from demo and Cliniko sandbox data. This is a
+          workflow dashboard — not accounting software. Use Cliniko reports and your
+          accountant for official records.
+        </p>
+      </CalloutBox>
 
       <ClinikoFinancePanel />
 

@@ -24,8 +24,9 @@ export default function DemoWalkthroughPage() {
       />
 
       <p className="mb-8 max-w-3xl text-base text-slate">
-        Follow these steps in order. Each section opens a live page. Cliniko remains
-        the system of record — the Command Hub adds workflow context around it.
+        Follow these steps in order for a location-first demo. Each section opens a
+        live page. Cliniko remains the system of record for Dundee and Aviemore — the
+        Command Hub adds workflow context around it.
       </p>
 
       <ol className="space-y-6">

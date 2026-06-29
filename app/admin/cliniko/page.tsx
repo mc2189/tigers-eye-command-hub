@@ -1,4 +1,6 @@
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { AviemoreClinikoPanel } from "@/components/admin/AviemoreClinikoPanel";
+import { ConfigureDemoButton } from "@/components/admin/ConfigureDemoButton";
 import { ClinikoConnectionPanel } from "@/components/admin/ClinikoConnectionPanel";
 import { ClinikoLiveDataPanels } from "@/components/admin/ClinikoLiveDataPanels";
 import { ClinikoHealthSummary } from "@/components/admin/ClinikoHealthSummary";
@@ -35,6 +37,7 @@ export default function ClinikoPage() {
 
       <div className="mb-6 space-y-6">
         <ClinikoConnectionPanel />
+        <AviemoreClinikoPanel />
         <ClinikoHealthSummary />
         <ClinikoLiveDataPanels />
         <ClinikoMappingHealthPanel />
@@ -71,12 +74,7 @@ export default function ClinikoPage() {
                       />
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    className="shrink-0 min-h-10 rounded-lg border border-cream-dark px-4 py-2 text-sm font-medium text-green hover:bg-cream"
-                  >
-                    {item.action}
-                  </button>
+                  <ConfigureDemoButton label={item.action} />
                 </div>
               ))}
             </div>

@@ -2,6 +2,9 @@ import type { ReactNode } from "react";
 import { DemoBanner } from "./DemoBanner";
 import { AdminSidebar } from "./AdminSidebar";
 
+const ADMIN_FOOTER =
+  "Built by Mike Currie · Demo mode · Cliniko remains the system of record";
+
 interface AdminShellProps {
   children: ReactNode;
 }
@@ -17,7 +20,7 @@ export function AdminShell({ children }: AdminShellProps) {
             {children}
           </main>
           <footer className="border-t border-cream-dark px-4 py-3 text-center text-xs text-slate sm:px-6 lg:hidden">
-            Built by Mike Currie.
+            {ADMIN_FOOTER}
           </footer>
         </div>
       </div>

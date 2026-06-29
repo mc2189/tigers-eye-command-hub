@@ -7,6 +7,7 @@ import { ServiceCard } from "@/components/ServiceCard";
 import { TestimonialCard } from "@/components/TestimonialCard";
 import {
   business,
+  bookingStrategy,
   clinics,
   services,
   testimonials,
@@ -56,7 +57,7 @@ export default function HomePage() {
 
       <Section
         title="Our clinics"
-        subtitle="Two locations across Scotland — choose the clinic that suits you."
+        subtitle="Dundee and Aviemore both book through Cliniko — choose your location first when you book online."
       >
         <div className="grid gap-6 sm:grid-cols-2">
           {clinics.map((clinic) => (
@@ -122,7 +123,8 @@ export default function HomePage() {
       <Section>
         <Callout title="Ready to get started?" variant="success">
           <p className="text-base">
-            Book online at Dundee or Aviemore, or contact us with any questions.
+            {bookingStrategy.headline}. Book at Dundee or Aviemore, or contact us with
+            any questions.
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
             <Button href="/book" variant="primary">

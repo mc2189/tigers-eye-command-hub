@@ -1,4 +1,5 @@
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { CalloutBox } from "@/components/admin/AdminUI";
 import { InsuranceCaseActions } from "@/components/admin/InsuranceCaseActions";
 import { ClinikoInsurancePanel } from "@/components/admin/ClinikoInsurancePanel";
 import { MetricCard } from "@/components/admin/MetricCard";
@@ -23,6 +24,14 @@ export default function InsurancePage() {
         title="Insurance cases"
         subtitle="Track authorisations, sessions and invoices — claim details captured for admin follow-up."
       />
+
+      <CalloutBox title="Inferred cases — not stored" variant="info">
+        <p>
+          Cliniko-derived insurance cases below are inferred from sandbox bookings for
+          demo purposes only. They are not saved as patient records in this app.
+          Claim details should live in Cliniko custom fields or forms.
+        </p>
+      </CalloutBox>
 
       <ClinikoInsurancePanel />
 

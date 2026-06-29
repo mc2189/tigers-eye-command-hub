@@ -6,7 +6,10 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "smoke": "node scripts/smoke-check.mjs",
+    "smoke:local": "BASE_URL=http://localhost:3000 node scripts/smoke-check.mjs",
+    "smoke:prod": "BASE_URL=https://tigers-eye-command-hub.vercel.app node scripts/smoke-check.mjs"
   },
   "dependencies": {
     "next": "^15.3.3",
