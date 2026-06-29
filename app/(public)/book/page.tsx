@@ -15,7 +15,7 @@ export default function BookPage() {
     <>
       <PageHero
         title="Book an appointment"
-        subtitle="Choose your location, appointment type, then continue to the right booking system."
+        subtitle="Choose your location first, then your appointment type — both clinics book through Cliniko."
       />
       <Section>
         <BookingGateway />

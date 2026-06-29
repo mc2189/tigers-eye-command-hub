@@ -3,6 +3,7 @@
 import { useState } from "react";
 import {
   bookingRoutes,
+  bookingStrategy,
   clinics,
   type BookingRoute,
   type ClinicId,
@@ -64,7 +65,8 @@ export function BookingGateway() {
         <div>
           <h2 className="text-xl font-bold text-navy">Where would you like to visit?</h2>
           <p className="mt-2 text-base text-slate">
-            Choose your clinic first. Dundee uses Cliniko; Aviemore uses Setmore.
+            Choose your clinic first — both Dundee and Aviemore book through Cliniko.
+            This stops patients reaching the wrong location.
           </p>
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             {clinics.map((clinic) => (
@@ -80,6 +82,9 @@ export function BookingGateway() {
                 <span className="text-lg font-bold text-navy">{clinic.name}</span>
                 <span className="mt-1 block text-sm text-slate">
                   {clinic.bookingSystem}
+                  {clinic.bookingStatus === "planned-or-sandbox" && (
+                    <span className="text-amber-700"> · configuring in Cliniko</span>
+                  )}
                 </span>
               </button>
             ))}
@@ -163,6 +168,12 @@ export function BookingGateway() {
               </p>
             )}
           </Callout>
+
+          {selectedClinic.bookingStatus === "planned-or-sandbox" && (
+            <p className="mt-4 text-sm text-slate">
+              {bookingStrategy.legacyNote}
+            </p>
+          )}
 
           <div className="mt-6 flex flex-wrap gap-3">
             {bookingUrl && isExternal && (

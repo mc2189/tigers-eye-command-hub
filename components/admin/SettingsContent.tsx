@@ -185,7 +185,7 @@ export function SettingsContent() {
       <section className="mt-8 rounded-xl border border-dashed border-cream-dark bg-white p-5">
         <h2 className="font-bold text-navy">Future integrations</h2>
         <p className="mt-2 text-sm text-slate">
-          Healthcode, Xero, Setmore sync, and room-user calendars — configure when ready.
+          Healthcode, Xero, legacy Setmore transition, and room-user calendars — configure when ready.
         </p>
         <div className="mt-4">
           <DemoActionButton

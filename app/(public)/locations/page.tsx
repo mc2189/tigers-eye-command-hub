@@ -3,7 +3,7 @@ import { Button } from "@/components/Button";
 import { LocationCard } from "@/components/LocationCard";
 import { PageHero } from "@/components/PageHero";
 import { Section } from "@/components/Section";
-import { business, clinics } from "@/lib/tigers-eye-content";
+import { business, bookingStrategy, clinics } from "@/lib/tigers-eye-content";
 
 export const metadata: Metadata = {
   title: "Locations",
@@ -15,7 +15,7 @@ export default function LocationsPage() {
     <>
       <PageHero
         title="Our locations"
-        subtitle="Two clinics across Scotland. Check the booking system for current availability."
+        subtitle="Two clinics across Scotland — both on Cliniko, with location chosen first when you book."
       />
       <Section>
         <div className="grid gap-8 lg:grid-cols-2">
@@ -24,9 +24,11 @@ export default function LocationsPage() {
           ))}
         </div>
         <p className="mt-8 max-w-2xl text-base text-slate">
-          Appointment times vary by location and practitioner. Dundee appointments
-          are managed through Cliniko; Aviemore through Setmore. Use the booking
-          gateway if you are unsure which route to take.
+          {bookingStrategy.solution} Appointment times vary by location and
+          practitioner. Use the booking gateway if you are unsure which route to take.
+        </p>
+        <p className="mt-4 max-w-2xl text-sm text-slate">
+          {bookingStrategy.legacyNote}
         </p>
         <div className="mt-6">
           <Button href="/book" variant="primary">

@@ -7,6 +7,17 @@ export type BookingRoute =
   | "cash-by-agreement"
   | "external";
 
+export type BookingLinkStatus = "active" | "planned-or-sandbox" | "legacy";
+
+export type BookingProvider = "Cliniko" | "Setmore";
+
+export interface BookingLinkConfig {
+  provider: BookingProvider;
+  status: BookingLinkStatus;
+  url: string;
+  note: string;
+}
+
 export interface Clinic {
   id: ClinicId;
   name: string;
@@ -14,7 +25,8 @@ export interface Clinic {
   address: string;
   addressLines: string[];
   bookingUrl: string;
-  bookingSystem: string;
+  bookingSystem: BookingProvider;
+  bookingStatus: BookingLinkStatus;
   availabilityNote: string;
 }
 
@@ -82,6 +94,36 @@ export const business = {
   logoPath: "/brand/tigers-eye-logo.avif",
 } as const;
 
+export const bookingLinks = {
+  dundee: {
+    provider: "Cliniko",
+    status: "active",
+    url: "https://tigers-eye.uk1.cliniko.com/bookings",
+    note: "Location-specific Cliniko booking route for Dundee",
+  },
+  aviemore: {
+    provider: "Cliniko",
+    status: "planned-or-sandbox",
+    url: "https://tigers-eye.uk1.cliniko.com/bookings",
+    note: "Aviemore should be configured as a separate Cliniko location/business with filtered booking links",
+  },
+  legacySetmore: {
+    provider: "Setmore",
+    status: "legacy",
+    url: "https://tigerseye.setmore.com/",
+    note: "Previous Aviemore booking tool. Retire once Aviemore is fully configured in Cliniko.",
+  },
+} as const satisfies Record<string, BookingLinkConfig>;
+
+export const bookingStrategy = {
+  headline: "One booking system, location chosen first",
+  problem:
+    "Patients sometimes booked the wrong clinic when Dundee and Aviemore used different booking tools.",
+  solution:
+    "Dundee and Aviemore both run through Cliniko. The website asks for location first, then appointment type, so patients reach the right Cliniko booking route.",
+  legacyNote: bookingLinks.legacySetmore.note,
+} as const;
+
 export const clinics: Clinic[] = [
   {
     id: "dundee",
@@ -94,8 +136,9 @@ export const clinics: Clinic[] = [
       "Dundee",
       "DD4 7AB",
     ],
-    bookingUrl: "https://tigers-eye.uk1.cliniko.com/bookings",
-    bookingSystem: "Cliniko",
+    bookingUrl: bookingLinks.dundee.url,
+    bookingSystem: bookingLinks.dundee.provider,
+    bookingStatus: bookingLinks.dundee.status,
     availabilityNote:
       "Check Cliniko for live appointment availability at Dundee.",
   },
@@ -111,17 +154,17 @@ export const clinics: Clinic[] = [
       "Aviemore",
       "PH22 1SB",
     ],
-    bookingUrl: "https://tigerseye.setmore.com/",
-    bookingSystem: "Setmore",
+    bookingUrl: bookingLinks.aviemore.url,
+    bookingSystem: bookingLinks.aviemore.provider,
+    bookingStatus: bookingLinks.aviemore.status,
     availabilityNote:
-      "Check Setmore for live appointment availability at Aviemore.",
+      "Aviemore is moving to Cliniko as a separate location. Check Cliniko for availability once configured.",
   },
 ];
 
-export const bookingLinks = {
-  dundee: clinics[0].bookingUrl,
-  aviemore: clinics[1].bookingUrl,
-} as const;
+export function getBookingLink(id: ClinicId): BookingLinkConfig {
+  return bookingLinks[id];
+}
 
 export const team: TeamMember[] = [
   {

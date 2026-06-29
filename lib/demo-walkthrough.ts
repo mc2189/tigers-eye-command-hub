@@ -28,12 +28,13 @@ export const walkthroughSteps: WalkthroughStep[] = [
     id: "booking",
     title: "Location-first booking",
     explanation:
-      "Patients choose Dundee or Aviemore first, then the appointment type. This reduces wrong-location bookings.",
+      "Patients choose Dundee or Aviemore first, then the appointment type. Both locations book through Cliniko — wrong-location bookings are reduced without running two systems.",
     href: "/book",
     whyItHelps: [
       "Fewer patients booking the wrong clinic",
+      "Dundee and Aviemore both on Cliniko",
       "Insurance and telehealth routes are separated",
-      "Choices mirror how the Command Hub works",
+      "Setmore retired as locations move to Cliniko",
     ],
     status: "live",
   },

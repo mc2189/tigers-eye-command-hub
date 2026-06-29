@@ -19,6 +19,9 @@ export function LocationCard({ clinic }: LocationCardProps) {
       <p className="mt-3 text-sm text-slate">{clinic.availabilityNote}</p>
       <p className="mt-1 text-sm text-slate">
         Book via <strong>{clinic.bookingSystem}</strong>
+        {clinic.bookingStatus === "planned-or-sandbox" && (
+          <span className="text-amber-700"> (Aviemore location being configured)</span>
+        )}
       </p>
       <div className="mt-5 flex flex-wrap gap-3">
         <Button href={clinic.bookingUrl} external variant="primary">
