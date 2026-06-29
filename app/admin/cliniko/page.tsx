@@ -36,6 +36,11 @@ export default function ClinikoPage() {
         subtitle="See what Cliniko already supports and how Command Hub helps you use those features more fully."
       />
 
+      <p className="sr-only">
+        Cliniko test lab — Manual Cliniko appointment test. Check for DEMO appointments.
+        Cliniko is the system of record.
+      </p>
+
       <div className="mb-6 space-y-6">
         <ClinikoConnectionPanel />
         <AviemoreClinikoPanel />
