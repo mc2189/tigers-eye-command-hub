@@ -2,7 +2,7 @@
 
 | Field | Value |
 |-------|-------|
-| **Last updated** | 2026-06-29 (staff auth + Cliniko test lab) |
+| **Last updated** | 2026-06-29 (individual appointments proof flow) |
 | **Local smoke** | **25/25 PASS** (with `DEMO_STAFF_PASSWORD` matching server env) |
 | **Production smoke** | Requires `DEMO_STAFF_PASSWORD` in Vercel env + local smoke runner |
 | **Base URL (prod)** | https://tigers-eye-command-hub.vercel.app |
@@ -11,7 +11,7 @@
 
 | Environment | Result | Passed | Failed | Notes |
 |-------------|--------|--------|--------|-------|
-| Local (`localhost:3000`) | **PASS** | 25 | 0 | Auth env required — see `.env.local.example` |
+| Local (`localhost:3000`) | **PASS** | 25 | 0 | Individual appointments proof flow |
 | Production (Vercel) | _Pending_ | — | — | Set `DEMO_STAFF_PASSWORD` + `DEMO_SESSION_SECRET` on Vercel first |
 
 ## Cliniko-first Aviemore checks
@@ -26,6 +26,13 @@
 | `/admin/cliniko` | Aviemore + system of record | PASS |
 | `/admin/settings` | Cliniko, Aviemore, Setmore legacy | PASS |
 | `/admin/demo-walkthrough` | Location-first + both locations | PASS |
+
+## Cliniko appointment proof update
+
+- Manual Cliniko appointments read from `/individual_appointments`
+- `/bookings` may be empty while individual appointments exist
+- Online available-time 404 is a soft warning in test lab preflight
+- Command Hub loads individual appointments into bookings/calendar/finance/notes panels
 
 ## Failed routes (if any)
 

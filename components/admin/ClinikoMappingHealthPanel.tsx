@@ -4,12 +4,12 @@ import { useEffect, useState } from "react";
 import { DataSourceBadge } from "./DataSourceBadge";
 import {
   buildMappingHealthSummary,
+  mapClinikoIndividualAppointments,
   type ClinikoAppointmentTypeInput,
-  type ClinikoBookingInput,
+  type ClinikoIndividualAppointmentInput,
   type ClinikoBusinessInput,
   type ClinikoPractitionerInput,
   type MappingHealthSummary,
-  mapClinikoBookings,
 } from "@/lib/cliniko-mappers";
 
 export function ClinikoMappingHealthPanel() {
@@ -20,23 +20,23 @@ export function ClinikoMappingHealthPanel() {
   useEffect(() => {
     async function load() {
       try {
-        const [businessesRes, practitionersRes, typesRes, bookingsRes] =
+        const [businessesRes, practitionersRes, typesRes, appointmentsRes] =
           await Promise.all([
             fetch("/api/cliniko/businesses", { cache: "no-store" }),
             fetch("/api/cliniko/practitioners", { cache: "no-store" }),
             fetch("/api/cliniko/appointment-types", { cache: "no-store" }),
-            fetch("/api/cliniko/bookings?perPage=50", { cache: "no-store" }),
+            fetch("/api/cliniko/individual-appointments?perPage=50", { cache: "no-store" }),
           ]);
 
         const businesses = ((await businessesRes.json()) as { businesses: ClinikoBusinessInput[]; source: "cliniko" | "demo" }).businesses ?? [];
         const practitioners = ((await practitionersRes.json()) as { practitioners: ClinikoPractitionerInput[] }).practitioners ?? [];
         const appointmentTypes = ((await typesRes.json()) as { appointmentTypes: ClinikoAppointmentTypeInput[] }).appointmentTypes ?? [];
-        const bookingsJson = (await bookingsRes.json()) as {
-          bookings: ClinikoBookingInput[];
+        const appointmentsJson = (await appointmentsRes.json()) as {
+          appointments: ClinikoIndividualAppointmentInput[];
           source: "cliniko" | "demo";
         };
 
-        const mapped = mapClinikoBookings(bookingsJson.bookings ?? [], {
+        const mapped = mapClinikoIndividualAppointments(appointmentsJson.appointments ?? [], {
           appointmentTypes,
         });
 
@@ -48,7 +48,7 @@ export function ClinikoMappingHealthPanel() {
             mapped
           )
         );
-        setSource(bookingsJson.source ?? "demo");
+        setSource(appointmentsJson.source === "cliniko" ? "cliniko" : "demo");
       } catch {
         setSummary(null);
       } finally {

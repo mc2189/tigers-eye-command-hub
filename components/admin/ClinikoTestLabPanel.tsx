@@ -35,6 +35,23 @@ interface PreflightCheck {
   label: string;
   passed: boolean;
   detail?: string;
+  severity: "hard" | "soft";
+}
+
+interface ProofDiagnostics {
+  lastEndpoint?: string;
+  dataSource: "individual_appointments" | "bookings";
+  availableTimeEndpoint?: string;
+  availableTimeResult?: string;
+  availableTimeHttpStatus?: number;
+  availableTimeSeverity: "hard" | "soft";
+  proposedStartsAt?: string;
+  proposedEndsAt?: string;
+  usingManualTime?: boolean;
+  selectedPatientId?: string;
+  selectedBusinessId?: string;
+  selectedPractitionerId?: string;
+  selectedAppointmentTypeId?: string;
 }
 
 interface Diagnostics {
@@ -74,7 +91,15 @@ interface Snapshot {
     appointmentTypeId?: string;
     proposedStartsAt?: string;
   };
-  preflight?: { ready: boolean; checks: PreflightCheck[] };
+  preflight?: {
+    ready: boolean;
+    checks: PreflightCheck[];
+    proposedStartsAt?: string;
+    proposedEndsAt?: string;
+    usingManualTime?: boolean;
+    manualTimeMessage?: string;
+  };
+  proofDiagnostics?: ProofDiagnostics;
 }
 
 interface ProofCard {
@@ -297,7 +322,9 @@ export function ClinikoTestLabPanel() {
             practitionerSourceLabel={snapshot.practitionerSourceLabel}
             business={selectedBusiness}
             appointmentType={selectedType}
-            proposedStartsAt={snapshot.defaults?.proposedStartsAt}
+            proposedStartsAt={snapshot.defaults?.proposedStartsAt ?? snapshot.preflight?.proposedStartsAt}
+            proposedEndsAt={snapshot.preflight?.proposedEndsAt}
+            usingManualTime={snapshot.preflight?.usingManualTime}
             appointment={selectedAppointment}
           />
 
@@ -339,9 +366,13 @@ export function ClinikoTestLabPanel() {
               <p className="mt-2 text-sm text-amber-800">Create a DEMO patient first.</p>
             )}
 
-            {snapshot.preflight && (
-              <PreflightPanel preflight={snapshot.preflight} />
-            )}
+          {snapshot.preflight && (
+            <PreflightPanel preflight={snapshot.preflight} />
+          )}
+
+          {snapshot.proofDiagnostics && (
+            <AppointmentProofDiagnosticsPanel diagnostics={snapshot.proofDiagnostics} />
+          )}
 
             <div className="mt-3 flex flex-wrap gap-2">
               <ActionButton
@@ -354,7 +385,7 @@ export function ClinikoTestLabPanel() {
                     businessId: selectedBusinessId ?? undefined,
                     practitionerId: snapshot.practitionerId,
                     appointmentTypeId: selectedAppointmentTypeId ?? undefined,
-                    startsAt: snapshot.defaults?.proposedStartsAt,
+                    startsAt: snapshot.preflight?.proposedStartsAt ?? snapshot.defaults?.proposedStartsAt,
                   })
                 }
               />
@@ -504,6 +535,8 @@ function SelectionSummary({
   business,
   appointmentType,
   proposedStartsAt,
+  proposedEndsAt,
+  usingManualTime,
   appointment,
 }: {
   patient?: DemoPatient;
@@ -512,6 +545,8 @@ function SelectionSummary({
   business?: NamedResource;
   appointmentType?: NamedResource;
   proposedStartsAt?: string;
+  proposedEndsAt?: string;
+  usingManualTime?: boolean;
   appointment?: DemoAppointment;
 }) {
   return (
@@ -524,6 +559,11 @@ function SelectionSummary({
         <Row label="Business / location" value={business?.name ?? "—"} />
         <Row label="Appointment type" value={appointmentType?.name ?? "—"} />
         <Row label="Proposed date/time" value={proposedStartsAt ? formatDateTime(proposedStartsAt) : "—"} />
+        <Row label="Proposed ends_at" value={proposedEndsAt ? formatDateTime(proposedEndsAt) : "—"} />
+        <Row
+          label="Manual test time"
+          value={usingManualTime ? "Using safe manual test time" : "—"}
+        />
         <Row
           label="DEMO appointment"
           value={
@@ -546,20 +586,108 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-function PreflightPanel({ preflight }: { preflight: { ready: boolean; checks: PreflightCheck[] } }) {
+function PreflightPanel({
+  preflight,
+}: {
+  preflight: {
+    ready: boolean;
+    checks: PreflightCheck[];
+    usingManualTime?: boolean;
+    manualTimeMessage?: string;
+  };
+}) {
   return (
     <div className="mt-3 rounded-lg border border-cream-dark p-3 text-sm">
       <p className="font-medium text-navy">
         Appointment preflight: {preflight.ready ? "ready" : "blocked"}
       </p>
+      {preflight.usingManualTime && preflight.manualTimeMessage && (
+        <p className="mt-2 text-amber-800">{preflight.manualTimeMessage}</p>
+      )}
       <ul className="mt-2 space-y-1">
         {preflight.checks.map((check) => (
-          <li key={check.id} className={check.passed ? "text-green" : "text-amber-800"}>
-            {check.passed ? "✓" : "✗"} {check.label}
+          <li
+            key={check.id}
+            className={
+              check.passed
+                ? check.severity === "soft"
+                  ? "text-slate"
+                  : "text-green"
+                : check.severity === "soft"
+                  ? "text-slate"
+                  : "text-amber-800"
+            }
+          >
+            {check.passed ? "✓" : check.severity === "soft" ? "!" : "✗"} {check.label}
             {check.detail ? ` — ${check.detail}` : ""}
+            {check.severity === "soft" ? " (soft warning)" : ""}
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+function AppointmentProofDiagnosticsPanel({
+  diagnostics,
+}: {
+  diagnostics: ProofDiagnostics;
+}) {
+  return (
+    <div className="mt-4 rounded-lg border border-cream-dark bg-cream/30 p-4 text-sm">
+      <h3 className="font-semibold text-navy">Appointment proof diagnostics</h3>
+      <dl className="mt-2 grid gap-2 sm:grid-cols-2">
+        <DiagRow label="Last endpoint" value={diagnostics.lastEndpoint ?? "—"} />
+        <DiagRow
+          label="Data source"
+          value={
+            diagnostics.dataSource === "individual_appointments"
+              ? "/individual_appointments"
+              : "/bookings"
+          }
+        />
+        <DiagRow label="Available-time endpoint" value={diagnostics.availableTimeEndpoint ?? "—"} />
+        <DiagRow
+          label="Available-time result"
+          value={
+            diagnostics.availableTimeHttpStatus
+              ? `HTTP ${diagnostics.availableTimeHttpStatus}: ${diagnostics.availableTimeResult ?? "—"}`
+              : diagnostics.availableTimeResult ?? "—"
+          }
+        />
+        <DiagRow
+          label="Available-time treated as"
+          value={
+            diagnostics.availableTimeSeverity === "soft" ? "soft warning" : "hard block"
+          }
+        />
+        <DiagRow label="Proposed starts_at" value={diagnostics.proposedStartsAt ?? "—"} />
+        <DiagRow label="Proposed ends_at" value={diagnostics.proposedEndsAt ?? "—"} />
+        <DiagRow
+          label="Using manual test time"
+          value={diagnostics.usingManualTime ? "yes" : "no"}
+        />
+        <DiagRow label="Patient id" value={diagnostics.selectedPatientId ?? "—"} />
+        <DiagRow label="Business id" value={diagnostics.selectedBusinessId ?? "—"} />
+        <DiagRow label="Practitioner id" value={diagnostics.selectedPractitionerId ?? "—"} />
+        <DiagRow
+          label="Appointment type id"
+          value={diagnostics.selectedAppointmentTypeId ?? "—"}
+        />
+      </dl>
+      <p className="mt-3 text-xs text-slate">
+        Online booking availability is separate from direct individual appointment creation.
+        Manual Cliniko appointments are read from /individual_appointments, not /bookings.
+      </p>
+    </div>
+  );
+}
+
+function DiagRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="text-xs text-slate">{label}</dt>
+      <dd className="break-all font-medium text-navy">{value}</dd>
     </div>
   );
 }

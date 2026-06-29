@@ -15,6 +15,7 @@ interface DataSourceBadgeProps {
 
 const labels: Record<BadgeSource, string> = {
   cliniko: "Cliniko sandbox",
+  "cliniko-test": "Cliniko test account",
   demo: "Demo data",
   inferred: "Inferred",
   future: "Future integration",
@@ -25,6 +26,7 @@ const labels: Record<BadgeSource, string> = {
 
 const styles: Record<BadgeSource, string> = {
   cliniko: "bg-blue-100 text-blue-800",
+  "cliniko-test": "bg-blue-100 text-blue-900",
   demo: "bg-amber-100 text-amber-800",
   inferred: "bg-purple-100 text-purple-800",
   future: "bg-slate-100 text-slate-700",

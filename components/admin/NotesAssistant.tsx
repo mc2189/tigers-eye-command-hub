@@ -22,7 +22,9 @@ interface SaveResult {
   noteId?: string;
 }
 
-type TaskItem = (NoteAppointment | MappedNoteTask) & { dataSource?: "cliniko" | "demo" };
+type TaskItem = (NoteAppointment | MappedNoteTask) & {
+  dataSource?: "cliniko" | "cliniko-test" | "demo";
+};
 
 export function NotesAssistant() {
   const demoTasks: TaskItem[] = noteAppointments.map((a) => ({
@@ -206,7 +208,7 @@ export function NotesAssistant() {
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-medium text-navy">{appt.clientName}</span>
-                    {appt.dataSource === "cliniko" && (
+                    {(appt.dataSource === "cliniko" || appt.dataSource === "cliniko-test") && (
                       <DataSourceBadge source="cliniko" />
                     )}
                   </div>

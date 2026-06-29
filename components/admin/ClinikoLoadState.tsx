@@ -12,7 +12,7 @@ export function ClinikoLoadState({
   loading,
   error,
   empty,
-  emptyMessage = "No sandbox bookings found yet. Add appointments in Cliniko or continue with demo data.",
+  emptyMessage = "No Cliniko individual appointments loaded yet. Create a DEMO appointment on /admin/cliniko or load sandbox data here.",
   children,
 }: ClinikoLoadStateProps) {
   if (loading) {

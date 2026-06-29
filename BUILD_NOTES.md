@@ -76,6 +76,15 @@ It must **not** appear as the active Aviemore booking provider on `/book`.
 - Live Cliniko panels show real sandbox data only; demo examples are in a separate section
 - Appointment creation uses practitioner IDs from `/practitioners` (not `/users`); preflight checks run before writes
 
+## Cliniko appointment proof update
+
+- Manual Cliniko appointments are read from `/individual_appointments`
+- `/bookings` may be empty even when manual individual appointments exist (online booking records only)
+- Online booking `next_available_time` checks are **soft warnings** in the test lab — they do not block direct appointment creation
+- Direct DEMO individual appointment creation posts to `/individual_appointments` with `starts_at` + `ends_at`
+- Safe manual test time is generated when online availability returns 404/empty
+- Command Hub maps individual appointments into bookings, calendar, finance, notes, invoices, insurance and stock via `lib/cliniko-mappers.ts`
+
 ### Appointment proof troubleshooting
 
 | Step | Status (sterile uk3 test account) |

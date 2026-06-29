@@ -95,6 +95,54 @@ export interface ClinikoBookingsResponse {
   source: "cliniko" | "demo";
 }
 
+export interface ClinikoIndividualAppointment {
+  id: string;
+  startsAt: string;
+  endsAt: string;
+  patientId?: string;
+  patientName?: string;
+  patientLabel?: string;
+  appointmentTypeId?: string;
+  appointmentTypeName?: string;
+  practitionerId?: string;
+  practitionerName?: string;
+  businessId?: string;
+  businessName?: string;
+  noteStatus?: string;
+  invoiceStatus?: string;
+  telehealthUrl?: string;
+  cancelledAt?: string;
+  archivedAt?: string;
+  source: "cliniko-test";
+  rawLinks?: unknown;
+}
+
+export interface ClinikoIndividualAppointmentsResponse {
+  appointments: ClinikoIndividualAppointment[];
+  totalEntries?: number;
+  source: "cliniko" | "demo";
+}
+
+export interface ClinikoOnlineBookingsResponse {
+  bookings: ClinikoBooking[];
+  totalEntries?: number;
+  source: "cliniko" | "demo";
+}
+
+export interface AvailableTimeLookupResult {
+  startsAt?: string;
+  message?: string;
+  httpStatus?: number;
+  endpoint: string;
+  severity: "soft";
+}
+
+export interface SafeManualTestTime {
+  startsAt: string;
+  endsAt: string;
+  message: string;
+}
+
 export interface ClinikoStatusResponse {
   ok: boolean;
   source: "cliniko" | "demo";
@@ -547,7 +595,7 @@ export async function fetchNextAvailableTime(input: {
   businessId: string;
   practitionerId: string;
   appointmentTypeId: string;
-}): Promise<{ startsAt?: string; message?: string }> {
+}): Promise<AvailableTimeLookupResult> {
   const from = new Date();
   const to = new Date();
   to.setDate(to.getDate() + 14);
@@ -558,23 +606,413 @@ export async function fetchNextAvailableTime(input: {
     to: formatDate(to),
   });
 
+  const endpoint = `/businesses/${input.businessId}/practitioners/${input.practitionerId}/appointment_types/${input.appointmentTypeId}/next_available_time?${query.toString()}`;
+
   try {
     const raw = await clinikoFetch<{
       appointment_start?: string;
       next_available_time?: { appointment_start?: string };
-    }>(
-      `/businesses/${input.businessId}/practitioners/${input.practitionerId}/appointment_types/${input.appointmentTypeId}/next_available_time?${query.toString()}`
-    );
+    }>(endpoint);
 
     const startsAt =
       raw.appointment_start ?? raw.next_available_time?.appointment_start;
     return startsAt
-      ? { startsAt }
-      : { message: "No next available time returned from Cliniko." };
+      ? { startsAt, endpoint, severity: "soft" }
+      : {
+          message: "No next available time returned from Cliniko.",
+          endpoint,
+          severity: "soft",
+        };
   } catch (err) {
     return {
       message:
-        err instanceof Error ? err.message : "Could not fetch next available time.",
+        err instanceof ClinikoApiError
+          ? err.clinikoMessage ?? err.message
+          : err instanceof Error
+            ? err.message
+            : "Could not fetch next available time.",
+      httpStatus: err instanceof ClinikoApiError ? err.status : undefined,
+      endpoint,
+      severity: "soft",
+    };
+  }
+}
+
+export function generateSafeManualTestTime(input?: {
+  durationMinutes?: number;
+  timezone?: string;
+}): SafeManualTestTime {
+  const duration = input?.durationMinutes ?? 45;
+  const now = Date.now();
+  const candidate = new Date();
+  candidate.setDate(candidate.getDate() + 1);
+  candidate.setHours(10, 30, 0, 0);
+
+  while (
+    candidate.getDay() === 0 ||
+    candidate.getDay() === 6 ||
+    candidate.getTime() - now < 24 * 60 * 60 * 1000
+  ) {
+    candidate.setDate(candidate.getDate() + 1);
+    candidate.setHours(10, 30, 0, 0);
+  }
+
+  const endsAt = new Date(candidate.getTime() + duration * 60 * 1000);
+  return {
+    startsAt: candidate.toISOString(),
+    endsAt: endsAt.toISOString(),
+    message:
+      "Using safe manual test time because online booking availability was not returned.",
+  };
+}
+
+export function isDemoIndividualAppointment(
+  appointment: ClinikoIndividualAppointment,
+  demoPatientIds?: Set<string>
+): boolean {
+  const label = appointment.patientName ?? appointment.patientLabel ?? "";
+  if (/^DEMO/i.test(label.trim())) return true;
+  if (demoPatientIds && appointment.patientId && demoPatientIds.has(appointment.patientId)) {
+    return true;
+  }
+  return false;
+}
+
+function buildIndividualAppointmentsQuery(params?: {
+  page?: number;
+  perPage?: number;
+  from?: string;
+  to?: string;
+  query?: string;
+}): URLSearchParams {
+  const query = new URLSearchParams({
+    page: String(params?.page ?? 1),
+    per_page: String(params?.perPage ?? 100),
+    sort: "starts_at:asc",
+  });
+
+  if (params?.from) {
+    query.append("q[]", `starts_at:>=${params.from.includes("T") ? params.from : `${params.from}T00:00:00Z`}`);
+  }
+  if (params?.to) {
+    query.append("q[]", `starts_at:<=${params.to.includes("T") ? params.to : `${params.to}T23:59:59Z`}`);
+  }
+  if (params?.query) {
+    query.append("q[]", params.query);
+  }
+
+  return query;
+}
+
+export async function getIndividualAppointments(params?: {
+  page?: number;
+  perPage?: number;
+  from?: string;
+  to?: string;
+  query?: string;
+  includeArchived?: boolean;
+}): Promise<ClinikoResult<ClinikoIndividualAppointmentsResponse>> {
+  const config = getClinikoConfig();
+
+  if (!isConfigured()) {
+    return {
+      ok: true,
+      source: "demo",
+      status: "not_configured",
+      data: {
+        appointments: demoBookingsList().map(individualAppointmentFromBooking),
+        totalEntries: demoBookingsList().length,
+        source: "demo",
+      },
+      warning: config.warning ?? "No Cliniko API key configured — using demo data.",
+    };
+  }
+
+  try {
+    const query = buildIndividualAppointmentsQuery(params);
+    const raw = await clinikoFetch<{
+      individual_appointments?: Record<string, unknown>[];
+      total_entries?: number;
+    }>(`/individual_appointments?${query.toString()}`);
+
+    let appointments = (raw.individual_appointments ?? []).map((appt) =>
+      mapIndividualAppointment(appt)
+    );
+
+    if (!params?.includeArchived) {
+      appointments = appointments.filter((a) => !a.archivedAt && !a.cancelledAt);
+    }
+
+    return {
+      ok: true,
+      source: "cliniko",
+      status: "connected",
+      data: {
+        appointments,
+        totalEntries: raw.total_entries ?? appointments.length,
+        source: "cliniko",
+      },
+      warning: config.warning,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      source: "cliniko",
+      status: "error",
+      data: {
+        appointments: [],
+        totalEntries: 0,
+        source: "cliniko",
+      },
+      error: err instanceof Error ? err.message : "Failed to fetch individual appointments",
+      warning: "Connected to Cliniko, but individual appointments could not be loaded.",
+    };
+  }
+}
+
+export async function getUpcomingIndividualAppointments(params?: {
+  from?: string;
+  to?: string;
+  page?: number;
+  perPage?: number;
+}): Promise<ClinikoResult<ClinikoIndividualAppointmentsResponse>> {
+  const fromDate = params?.from ?? new Date().toISOString().slice(0, 10);
+  const toDate = (() => {
+    if (params?.to) return params.to;
+    const d = new Date();
+    d.setDate(d.getDate() + 30);
+    return d.toISOString().slice(0, 10);
+  })();
+
+  return getIndividualAppointments({
+    from: fromDate,
+    to: toDate,
+    page: params?.page,
+    perPage: params?.perPage ?? 100,
+  });
+}
+
+export async function getDemoIndividualAppointments(params?: {
+  from?: string;
+  to?: string;
+  demoPatientIds?: Set<string>;
+}): Promise<ClinikoResult<ClinikoIndividualAppointmentsResponse>> {
+  const fromDate =
+    params?.from ??
+    (() => {
+      const d = new Date();
+      d.setDate(d.getDate() - 7);
+      return d.toISOString().slice(0, 10);
+    })();
+
+  const result = await getUpcomingIndividualAppointments({
+    from: fromDate,
+    to: params?.to,
+    perPage: 100,
+  });
+
+  if (!result.data) return result;
+
+  const demoAppointments = result.data.appointments.filter((appointment) =>
+    isDemoIndividualAppointment(appointment, params?.demoPatientIds)
+  );
+
+  return {
+    ...result,
+    data: {
+      ...result.data,
+      appointments: demoAppointments,
+      totalEntries: demoAppointments.length,
+    },
+  };
+}
+
+export async function createTestIndividualAppointment(input: {
+  patientId: string;
+  businessId: string;
+  practitionerId: string;
+  appointmentTypeId: string;
+  startsAt: string;
+  endsAt: string;
+}): Promise<ClinikoResult<ClinikoIndividualAppointment>> {
+  const config = getClinikoConfig();
+  if (!config.apiKey) {
+    return { ok: false, source: "demo", status: "not_configured", error: "NOT_CONFIGURED" };
+  }
+  if (!config.writesEnabled) {
+    return {
+      ok: false,
+      source: "cliniko",
+      status: "error",
+      error: "Cliniko writes disabled.",
+    };
+  }
+
+  const endpoint = "/individual_appointments";
+  try {
+    const created = await clinikoFetch<{ individual_appointment?: Record<string, unknown> }>(
+      endpoint,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          patient_id: input.patientId,
+          business_id: input.businessId,
+          practitioner_id: input.practitionerId,
+          appointment_type_id: input.appointmentTypeId,
+          starts_at: input.startsAt,
+          ends_at: input.endsAt,
+        }),
+      }
+    );
+
+    return {
+      ok: true,
+      source: "cliniko",
+      status: "connected",
+      data: mapIndividualAppointment(
+        created.individual_appointment ?? (created as Record<string, unknown>)
+      ),
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      source: "cliniko",
+      status: "error",
+      error: err instanceof Error ? err.message : "Failed to create individual appointment",
+    };
+  }
+}
+
+export async function cancelTestIndividualAppointment(
+  id: string
+): Promise<ClinikoResult<ClinikoIndividualAppointment>> {
+  const endpoint = `/individual_appointments/${id}/cancel`;
+  try {
+    await clinikoFetch(endpoint, {
+      method: "PATCH",
+      body: JSON.stringify({
+        cancellation_reason: 50,
+        cancellation_note: "DEMO cleanup — Tigers Eye Command Hub test lab.",
+        apply_to_repeats: false,
+      }),
+    });
+
+    const raw = await clinikoFetch<{ individual_appointment?: Record<string, unknown> }>(
+      `/individual_appointments/${id}`
+    );
+
+    return {
+      ok: true,
+      source: "cliniko",
+      status: "connected",
+      data: mapIndividualAppointment(
+        raw.individual_appointment ?? (raw as Record<string, unknown>)
+      ),
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      source: "cliniko",
+      status: "error",
+      error: err instanceof Error ? err.message : "Failed to cancel individual appointment",
+    };
+  }
+}
+
+export async function archiveTestIndividualAppointment(
+  id: string
+): Promise<ClinikoResult<{ id: string }>> {
+  const endpoint = `/individual_appointments/${id}/archive`;
+  try {
+    await clinikoFetch(endpoint, { method: "POST", body: JSON.stringify({}) });
+    return {
+      ok: true,
+      source: "cliniko",
+      status: "connected",
+      data: { id },
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      source: "cliniko",
+      status: "error",
+      error: err instanceof Error ? err.message : "Failed to archive individual appointment",
+    };
+  }
+}
+
+export async function getIndividualAppointmentConflicts(
+  id: string
+): Promise<ClinikoResult<unknown>> {
+  try {
+    const raw = await clinikoFetch<unknown>(`/individual_appointments/${id}/conflicts`);
+    return { ok: true, source: "cliniko", status: "connected", data: raw };
+  } catch (err) {
+    return {
+      ok: false,
+      source: "cliniko",
+      status: "error",
+      error: err instanceof Error ? err.message : "Failed to fetch appointment conflicts",
+    };
+  }
+}
+
+export async function getOnlineBookings(params?: {
+  from?: string;
+  to?: string;
+  page?: number;
+  perPage?: number;
+}): Promise<ClinikoResult<ClinikoOnlineBookingsResponse>> {
+  const config = getClinikoConfig();
+
+  if (!isConfigured()) {
+    return {
+      ok: true,
+      source: "demo",
+      status: "not_configured",
+      data: { bookings: [], totalEntries: 0, source: "demo" },
+      warning: config.warning,
+    };
+  }
+
+  try {
+    const query = new URLSearchParams({
+      page: String(params?.page ?? 1),
+      per_page: String(params?.perPage ?? 50),
+    });
+    if (params?.from) {
+      query.append("q[]", `starts_at:>=${params.from}T00:00:00Z`);
+    }
+    if (params?.to) {
+      query.append("q[]", `starts_at:<=${params.to}T23:59:59Z`);
+    }
+
+    const raw = await clinikoFetch<{
+      bookings?: Record<string, unknown>[];
+      total_entries?: number;
+    }>(`/bookings?${query.toString()}`);
+
+    const bookings = (raw.bookings ?? []).map((booking) => mapOnlineBooking(booking));
+
+    return {
+      ok: true,
+      source: "cliniko",
+      status: "connected",
+      data: {
+        bookings,
+        totalEntries: raw.total_entries ?? bookings.length,
+        source: "cliniko",
+      },
+      warning: config.warning,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      source: "cliniko",
+      status: "error",
+      data: { bookings: [], totalEntries: 0, source: "cliniko" },
+      error: err instanceof Error ? err.message : "Failed to fetch online bookings",
+      warning: "Connected to Cliniko, but online bookings could not be loaded.",
     };
   }
 }
@@ -634,72 +1072,35 @@ export async function getBookings(params?: {
   page?: number;
   perPage?: number;
 }): Promise<ClinikoResult<ClinikoBookingsResponse>> {
-  const config = getClinikoConfig();
-  const demoResponse: ClinikoBookingsResponse = {
-    bookings: demoBookingsList(),
-    totalEntries: demoBookingsList().length,
-    source: "demo",
+  const individual = await getIndividualAppointments({
+    from: params?.from,
+    to: params?.to,
+    page: params?.page,
+    perPage: params?.perPage,
+  });
+
+  if (!individual.data) {
+    return {
+      ok: individual.ok,
+      source: individual.source,
+      status: individual.status,
+      error: individual.error,
+      warning: individual.warning,
+    };
+  }
+
+  return {
+    ok: individual.ok,
+    source: individual.source,
+    status: individual.status,
+    data: {
+      bookings: individual.data.appointments.map(individualAppointmentToBooking),
+      totalEntries: individual.data.totalEntries,
+      source: individual.data.source,
+    },
+    error: individual.error,
+    warning: individual.warning,
   };
-
-  if (!isConfigured()) {
-    return {
-      ok: true,
-      source: "demo",
-      status: "not_configured",
-      data: demoResponse,
-      warning: config.warning ?? "No Cliniko API key configured — using demo data.",
-    };
-  }
-
-  try {
-    const page = params?.page ?? 1;
-    const perPage = params?.perPage ?? 50;
-    const query = new URLSearchParams({
-      page: String(page),
-      per_page: String(perPage),
-    });
-
-    if (params?.from) {
-      query.append("q[]", `starts_at:>=${params.from}T00:00:00Z`);
-    }
-    if (params?.to) {
-      query.append("q[]", `starts_at:<=${params.to}T23:59:59Z`);
-    }
-
-    const raw = await clinikoFetch<{
-      individual_appointments?: Record<string, unknown>[];
-      total_entries?: number;
-    }>(`/individual_appointments?${query.toString()}`);
-
-    const bookings = (raw.individual_appointments ?? []).map((appt) =>
-      mapBooking(appt)
-    );
-
-    return {
-      ok: true,
-      source: "cliniko",
-      status: "connected",
-      data: {
-        bookings,
-        totalEntries: raw.total_entries ?? bookings.length,
-        source: "cliniko",
-      },
-      warning: config.warning,
-    };
-  } catch (err) {
-    return {
-      ok: false,
-      source: "cliniko",
-      status: "error",
-      data: {
-        bookings: [],
-        totalEntries: 0,
-        source: "cliniko",
-      },
-      error: err instanceof Error ? err.message : "Failed to fetch bookings",
-      warning: "Connected to Cliniko, but bookings could not be loaded.",
-    };
-  }
 }
 
 export async function getClinikoStatus(): Promise<ClinikoStatusResponse> {
@@ -738,7 +1139,7 @@ export async function getClinikoStatus(): Promise<ClinikoStatusResponse> {
         getBusinesses(),
         getPractitioners(),
         getAppointmentTypes(),
-        getBookings({ perPage: 10 }),
+        getIndividualAppointments({ perPage: 10 }),
       ]);
 
     const connected = userResult.status === "connected";
@@ -756,7 +1157,7 @@ export async function getClinikoStatus(): Promise<ClinikoStatusResponse> {
         businesses: businessesResult.data?.length ?? 0,
         practitioners: practitionersResult.data?.length ?? 0,
         appointmentTypes: typesResult.data?.length ?? 0,
-        bookings: bookingsResult.data?.totalEntries ?? bookingsResult.data?.bookings.length ?? 0,
+        bookings: bookingsResult.data?.totalEntries ?? bookingsResult.data?.appointments.length ?? 0,
       },
       error: connected ? undefined : userResult.error ?? "Cliniko authentication failed",
       warning: config.warning ?? userResult.warning ?? businessesResult.warning,
@@ -857,6 +1258,12 @@ export async function createDraftTreatmentNote(
   }
 }
 
+export function parseIndividualAppointment(
+  raw: Record<string, unknown>
+): ClinikoIndividualAppointment {
+  return mapIndividualAppointment(raw);
+}
+
 // ─── Mappers ─────────────────────────────────────────────────────────────────
 
 function mapPractitioner(p: Record<string, unknown>): ClinikoPractitioner {
@@ -879,21 +1286,104 @@ function mapPractitioner(p: Record<string, unknown>): ClinikoPractitioner {
   };
 }
 
-function mapBooking(appt: Record<string, unknown>): ClinikoBooking {
+function extractLinkId(links: unknown, key: string): string | undefined {
+  if (!links || typeof links !== "object") return undefined;
+  const url = (links as Record<string, string>)[key];
+  if (!url) return undefined;
+  const match = url.match(/\/(\d+)(?:\?.*)?$/);
+  return match ? match[1] : undefined;
+}
+
+function mapIndividualAppointment(appt: Record<string, unknown>): ClinikoIndividualAppointment {
+  const links = appt.links;
+  const patientName = (appt.patient_name as string | undefined) ?? undefined;
   return {
     id: String(appt.id ?? ""),
     startsAt: String(appt.starts_at ?? ""),
     endsAt: String(appt.ends_at ?? ""),
-    appointmentTypeName: appt.appointment_type_name as string | undefined,
-    practitionerName: undefined,
-    businessName: undefined,
-    patientLabel: toPatientLabel(appt.patient_name as string | undefined),
-    source: "cliniko",
-    paymentStatus: undefined,
+    patientId:
+      appt.patient_id != null
+        ? String(appt.patient_id)
+        : extractLinkId(links, "patient"),
+    patientName,
+    patientLabel: patientName ? toPatientLabel(patientName) : undefined,
+    appointmentTypeId:
+      appt.appointment_type_id != null
+        ? String(appt.appointment_type_id)
+        : extractLinkId(links, "appointment_type"),
+    appointmentTypeName:
+      (appt.appointment_type_name as string | undefined) ??
+      (appt.appointment_type as string | undefined),
+    practitionerId:
+      appt.practitioner_id != null
+        ? String(appt.practitioner_id)
+        : extractLinkId(links, "practitioner"),
+    practitionerName: appt.practitioner_name as string | undefined,
+    businessId:
+      appt.business_id != null
+        ? String(appt.business_id)
+        : extractLinkId(links, "business"),
+    businessName: appt.business_name as string | undefined,
     noteStatus: mapNoteStatus(appt.treatment_note_status as number | undefined),
     invoiceStatus: mapInvoiceStatus(appt.invoice_status as number | undefined),
-    rawLinks: appt.links,
+    telehealthUrl: appt.telehealth_url as string | undefined,
+    cancelledAt: appt.cancelled_at ? String(appt.cancelled_at) : undefined,
+    archivedAt: appt.archived_at ? String(appt.archived_at) : undefined,
+    source: "cliniko-test",
+    rawLinks: links,
   };
+}
+
+function individualAppointmentFromBooking(booking: ClinikoBooking): ClinikoIndividualAppointment {
+  return {
+    id: booking.id,
+    startsAt: booking.startsAt,
+    endsAt: booking.endsAt,
+    patientLabel: booking.patientLabel,
+    appointmentTypeName: booking.appointmentTypeName,
+    practitionerName: booking.practitionerName,
+    businessName: booking.businessName,
+    noteStatus: booking.noteStatus,
+    invoiceStatus: booking.invoiceStatus,
+    source: "cliniko-test",
+    rawLinks: booking.rawLinks,
+  };
+}
+
+function individualAppointmentToBooking(
+  appointment: ClinikoIndividualAppointment
+): ClinikoBooking {
+  return {
+    id: appointment.id,
+    startsAt: appointment.startsAt,
+    endsAt: appointment.endsAt,
+    appointmentTypeName: appointment.appointmentTypeName,
+    practitionerName: appointment.practitionerName,
+    businessName: appointment.businessName,
+    patientLabel: appointment.patientLabel ?? appointment.patientName,
+    source: "cliniko",
+    noteStatus: appointment.noteStatus,
+    invoiceStatus: appointment.invoiceStatus,
+    rawLinks: appointment.rawLinks,
+  };
+}
+
+function mapOnlineBooking(booking: Record<string, unknown>): ClinikoBooking {
+  return {
+    id: String(booking.id ?? ""),
+    startsAt: String(booking.starts_at ?? ""),
+    endsAt: String(booking.ends_at ?? ""),
+    appointmentTypeName: booking.appointment_type_name as string | undefined,
+    practitionerName: booking.practitioner_name as string | undefined,
+    businessName: booking.business_name as string | undefined,
+    patientLabel: toPatientLabel(booking.patient_name as string | undefined),
+    source: "cliniko",
+    rawLinks: booking.links,
+  };
+}
+
+function mapBooking(appt: Record<string, unknown>): ClinikoBooking {
+  return individualAppointmentToBooking(mapIndividualAppointment(appt));
 }
 
 function formatAddress(b: Record<string, unknown>): string | undefined {

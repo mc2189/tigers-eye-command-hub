@@ -6,13 +6,18 @@ import {
 } from "@/lib/cliniko-api-error";
 import {
   clinikoFetch,
+  createTestIndividualAppointment,
   fetchNextAvailableTime,
+  generateSafeManualTestTime,
   getAppointmentTypes,
   getBusinesses,
   getClinikoConfig,
+  getDemoIndividualAppointments,
+  parseIndividualAppointment,
   resolvePractitionerForBooking,
   type ClinikoAppointmentType,
   type ClinikoBusiness,
+  type ClinikoIndividualAppointment,
   type PractitionerSourceKind,
 } from "@/lib/cliniko";
 
@@ -71,11 +76,32 @@ export interface AppointmentPreflightCheck {
   label: string;
   passed: boolean;
   detail?: string;
+  severity: "hard" | "soft";
 }
 
 export interface AppointmentPreflightResult {
   ready: boolean;
   checks: AppointmentPreflightCheck[];
+  proposedStartsAt?: string;
+  proposedEndsAt?: string;
+  usingManualTime?: boolean;
+  manualTimeMessage?: string;
+}
+
+export interface AppointmentProofDiagnostics {
+  lastEndpoint?: string;
+  dataSource: "individual_appointments" | "bookings";
+  availableTimeEndpoint?: string;
+  availableTimeResult?: string;
+  availableTimeHttpStatus?: number;
+  availableTimeSeverity: "hard" | "soft";
+  proposedStartsAt?: string;
+  proposedEndsAt?: string;
+  usingManualTime?: boolean;
+  selectedPatientId?: string;
+  selectedBusinessId?: string;
+  selectedPractitionerId?: string;
+  selectedAppointmentTypeId?: string;
 }
 
 export interface DemoTestLabSnapshot {
@@ -99,6 +125,7 @@ export interface DemoTestLabSnapshot {
     proposedStartsAt?: string;
   };
   preflight?: AppointmentPreflightResult;
+  proofDiagnostics?: AppointmentProofDiagnostics;
 }
 
 function writesAllowed(): { ok: true } | { ok: false; message: string } {
@@ -200,17 +227,26 @@ function mapPatient(raw: Record<string, unknown>): DemoPatientRecord {
   };
 }
 
-function mapAppointment(raw: Record<string, unknown>): DemoAppointmentRecord {
+function mapAppointmentFromIndividual(
+  appointment: ClinikoIndividualAppointment
+): DemoAppointmentRecord {
   return {
-    id: String(raw.id ?? ""),
-    patientId: raw.patient_id ? String(raw.patient_id) : undefined,
-    patientLabel: raw.patient_name as string | undefined,
-    startsAt: String(raw.starts_at ?? ""),
-    endsAt: raw.ends_at ? String(raw.ends_at) : undefined,
-    appointmentTypeName: raw.appointment_type_name as string | undefined,
-    businessName: raw.business_name as string | undefined,
-    cancelled: Boolean(raw.cancelled_at),
+    id: appointment.id,
+    patientId: appointment.patientId,
+    patientLabel: appointment.patientLabel ?? appointment.patientName,
+    startsAt: appointment.startsAt,
+    endsAt: appointment.endsAt,
+    appointmentTypeName: appointment.appointmentTypeName,
+    businessName: appointment.businessName,
+    cancelled: Boolean(appointment.cancelledAt),
   };
+}
+
+async function fetchDemoAppointmentsLive(
+  patientIds: Set<string>
+): Promise<DemoAppointmentRecord[]> {
+  const result = await getDemoIndividualAppointments({ demoPatientIds: patientIds });
+  return (result.data?.appointments ?? []).map(mapAppointmentFromIndividual);
 }
 
 async function fetchDemoPatientsLive(): Promise<DemoPatientRecord[]> {
@@ -221,29 +257,6 @@ async function fetchDemoPatientsLive(): Promise<DemoPatientRecord[]> {
   return (raw.patients ?? [])
     .map(mapPatient)
     .filter((p) => isDemoPatientName(p.firstName) && !p.archived);
-}
-
-async function fetchDemoAppointmentsLive(
-  patientIds: Set<string>
-): Promise<DemoAppointmentRecord[]> {
-  if (patientIds.size === 0) return [];
-
-  const from = new Date();
-  from.setDate(from.getDate() - 7);
-  const to = new Date();
-  to.setDate(to.getDate() + 60);
-
-  const query = new URLSearchParams({ per_page: "100" });
-  query.append("q[]", `starts_at:>=${from.toISOString()}`);
-  query.append("q[]", `starts_at:<=${to.toISOString()}`);
-
-  const raw = await clinikoFetch<{
-    individual_appointments?: Record<string, unknown>[];
-  }>(`/individual_appointments?${query.toString()}`);
-
-  return (raw.individual_appointments ?? [])
-    .map(mapAppointment)
-    .filter((a) => a.patientId && patientIds.has(a.patientId));
 }
 
 async function assertDemoPatient(patientId: string): Promise<DemoPatientRecord> {
@@ -263,25 +276,34 @@ export async function runAppointmentPreflight(input?: {
   practitionerId?: string;
   appointmentTypeId?: string;
   proposedStartsAt?: string;
+  proposedEndsAt?: string;
 }): Promise<AppointmentPreflightResult> {
   const config = getClinikoConfig();
   const checks: AppointmentPreflightCheck[] = [];
 
-  const add = (id: string, label: string, passed: boolean, detail?: string) => {
-    checks.push({ id, label, passed, detail });
+  const add = (
+    id: string,
+    label: string,
+    passed: boolean,
+    severity: "hard" | "soft",
+    detail?: string
+  ) => {
+    checks.push({ id, label, passed, severity, detail });
   };
 
-  add("staff_auth", "Staff authenticated (route protected)", true);
+  add("staff_auth", "Staff authenticated (route protected)", true, "hard");
   add(
     "writes_enabled",
     "Cliniko writes enabled",
     config.writesEnabled,
+    "hard",
     config.writesEnabled ? undefined : "Set CLINIKO_ENABLE_WRITES=true"
   );
   add(
     "api_key",
     "Cliniko API key configured",
     Boolean(config.apiKey),
+    "hard",
     config.apiKey ? undefined : "Add CLINIKO_API_KEY"
   );
 
@@ -291,6 +313,7 @@ export async function runAppointmentPreflight(input?: {
     "practitioner",
     "Bookable practitioner available",
     practitionerResolution.bookable && Boolean(practitionerId),
+    "hard",
     practitionerResolution.message
   );
 
@@ -300,6 +323,7 @@ export async function runAppointmentPreflight(input?: {
     "business",
     "Business / location exists",
     Boolean(businessId),
+    "hard",
     businessId ? undefined : "Add a business in Cliniko"
   );
 
@@ -308,71 +332,102 @@ export async function runAppointmentPreflight(input?: {
     types.data?.find((t) => t.id === input?.appointmentTypeId) ??
     types.data?.find((t) => !t.archived) ??
     types.data?.[0];
+  const durationMinutes = appointmentType?.durationMinutes ?? 45;
   add(
     "appointment_type",
     "Appointment type exists",
     Boolean(appointmentType?.id),
+    "hard",
     appointmentType?.id ? undefined : "Create an appointment type in Cliniko"
   );
-
-  if (appointmentType) {
-    add(
-      "duration",
-      "Appointment type has duration",
-      Boolean(appointmentType.durationMinutes),
-      appointmentType.durationMinutes
-        ? `${appointmentType.durationMinutes} min`
-        : "Duration may be required by Cliniko"
-    );
-  }
+  add(
+    "duration",
+    "Appointment type has duration (or 45 min fallback)",
+    Boolean(durationMinutes),
+    "hard",
+    `${durationMinutes} min`
+  );
 
   add(
     "demo_patient",
     "DEMO patient selected",
     Boolean(input?.patientId),
+    "hard",
     input?.patientId ? undefined : "Create a DEMO patient first"
   );
 
   let proposedStartsAt = input?.proposedStartsAt;
-  if (!proposedStartsAt && businessId && practitionerId && appointmentType?.id) {
+  let proposedEndsAt = input?.proposedEndsAt;
+  let usingManualTime = false;
+  let manualTimeMessage: string | undefined;
+
+  if (businessId && practitionerId && appointmentType?.id) {
     const next = await fetchNextAvailableTime({
       businessId,
       practitionerId,
       appointmentTypeId: appointmentType.id,
     });
-    proposedStartsAt = next.startsAt;
-    add(
-      "available_time",
-      "Available time found",
-      Boolean(proposedStartsAt),
-      proposedStartsAt ?? next.message ?? "Set practitioner availability in Cliniko"
-    );
-  } else if (proposedStartsAt) {
-    add("available_time", "Proposed time provided", true, proposedStartsAt);
+    if (next.startsAt) {
+      proposedStartsAt = next.startsAt;
+      proposedEndsAt = new Date(
+        new Date(next.startsAt).getTime() + durationMinutes * 60 * 1000
+      ).toISOString();
+      add(
+        "available_time",
+        "Online booking availability found",
+        true,
+        "soft",
+        next.startsAt
+      );
+    } else {
+      add(
+        "available_time",
+        "Online booking availability check failed — direct test appointment can still be attempted",
+        true,
+        "soft",
+        next.httpStatus
+          ? `HTTP ${next.httpStatus}: ${next.message ?? "No availability returned"}`
+          : next.message ?? "No availability returned"
+      );
+    }
   } else {
     add(
       "available_time",
-      "Available time found",
-      false,
-      "Could not resolve business, practitioner, and appointment type"
+      "Online booking availability check skipped",
+      true,
+      "soft",
+      "Resolve business, practitioner and appointment type first"
     );
   }
 
-  if (proposedStartsAt) {
-    const inFuture = new Date(proposedStartsAt).getTime() > Date.now();
-    add(
-      "future_time",
-      "Proposed time is in the future",
-      inFuture,
-      inFuture ? proposedStartsAt : "Choose a future appointment time"
-    );
-  } else {
-    add("future_time", "Proposed time is in the future", false);
+  if (!proposedStartsAt) {
+    const manual = generateSafeManualTestTime({ durationMinutes });
+    proposedStartsAt = manual.startsAt;
+    proposedEndsAt = manual.endsAt;
+    usingManualTime = true;
+    manualTimeMessage = manual.message;
+    add("manual_time", "Safe manual test time generated", true, "soft", manual.message);
   }
 
+  const inFuture = proposedStartsAt
+    ? new Date(proposedStartsAt).getTime() > Date.now()
+    : false;
+  add(
+    "future_time",
+    "Proposed time is in the future",
+    inFuture,
+    "hard",
+    inFuture ? proposedStartsAt : "Choose a future appointment time"
+  );
+
+  const hardChecks = checks.filter((c) => c.severity === "hard");
   return {
-    ready: checks.every((c) => c.passed),
+    ready: hardChecks.every((c) => c.passed),
     checks,
+    proposedStartsAt,
+    proposedEndsAt,
+    usingManualTime,
+    manualTimeMessage,
   };
 }
 
@@ -419,24 +474,28 @@ export async function getDemoTestLabSnapshot(input?: {
       input?.appointmentTypeId ??
       typesResult.data?.find((t) => !t.archived)?.id ??
       typesResult.data?.[0]?.id;
+    const selectedPatientId = input?.patientId ?? patients[0]?.id;
 
-    let proposedStartsAt: string | undefined;
-    if (businessId && practitionerId && appointmentTypeId && practitionerResolution.bookable) {
+    const preflight = await runAppointmentPreflight({
+      patientId: selectedPatientId,
+      businessId,
+      practitionerId,
+      appointmentTypeId,
+    });
+
+    let availableTimeEndpoint: string | undefined;
+    let availableTimeResult: string | undefined;
+    let availableTimeHttpStatus: number | undefined;
+    if (businessId && practitionerId && appointmentTypeId) {
       const next = await fetchNextAvailableTime({
         businessId,
         practitionerId,
         appointmentTypeId,
       });
-      proposedStartsAt = next.startsAt;
+      availableTimeEndpoint = next.endpoint;
+      availableTimeResult = next.startsAt ?? next.message;
+      availableTimeHttpStatus = next.httpStatus;
     }
-
-    const preflight = await runAppointmentPreflight({
-      patientId: input?.patientId ?? patients[0]?.id,
-      businessId,
-      practitionerId,
-      appointmentTypeId,
-      proposedStartsAt,
-    });
 
     return {
       ok: true,
@@ -455,9 +514,24 @@ export async function getDemoTestLabSnapshot(input?: {
         businessId,
         practitionerId,
         appointmentTypeId,
-        proposedStartsAt,
+        proposedStartsAt: preflight.proposedStartsAt,
       },
       preflight,
+      proofDiagnostics: {
+        lastEndpoint: "/individual_appointments",
+        dataSource: "individual_appointments",
+        availableTimeEndpoint,
+        availableTimeResult,
+        availableTimeHttpStatus,
+        availableTimeSeverity: "soft",
+        proposedStartsAt: preflight.proposedStartsAt,
+        proposedEndsAt: preflight.proposedEndsAt,
+        usingManualTime: preflight.usingManualTime,
+        selectedPatientId,
+        selectedBusinessId: businessId,
+        selectedPractitionerId: practitionerId,
+        selectedAppointmentTypeId: appointmentTypeId,
+      },
     };
   } catch (err) {
     return {
@@ -594,7 +668,7 @@ export async function createDemoAppointment(input?: {
   });
 
   if (!preflight.ready) {
-    const failed = preflight.checks.find((c) => !c.passed);
+    const failed = preflight.checks.find((c) => c.severity === "hard" && !c.passed);
     return actionFailure(
       "create_demo_appointment",
       failed?.detail ?? failed?.label ?? "Appointment preflight failed.",
@@ -634,54 +708,83 @@ export async function createDemoAppointment(input?: {
       input?.appointmentTypeId ??
       types.data?.find((t) => !t.archived)?.id ??
       types.data?.[0]?.id;
+    const appointmentType = types.data?.find((t) => t.id === appointmentTypeId);
+    const durationMinutes = appointmentType?.durationMinutes ?? 45;
 
-    let startsAt = input?.startsAt;
-    if (!startsAt && businessId && practitionerId && appointmentTypeId) {
-      const next = await fetchNextAvailableTime({
-        businessId,
-        practitionerId,
-        appointmentTypeId,
-      });
-      startsAt = next.startsAt;
+    const startsAt = preflight.proposedStartsAt ?? input?.startsAt;
+    const endsAt =
+      preflight.proposedEndsAt ??
+      (startsAt
+        ? new Date(
+            new Date(startsAt).getTime() + durationMinutes * 60 * 1000
+          ).toISOString()
+        : undefined);
+
+    if (!startsAt || !endsAt || !businessId || !practitionerId || !appointmentTypeId) {
+      return actionFailure(
+        "create_demo_appointment",
+        "Missing required fields for direct individual appointment creation.",
+        "needs-setup"
+      );
     }
 
-    if (!startsAt) {
-      const fallback = new Date();
-      fallback.setDate(fallback.getDate() + 3);
-      fallback.setHours(10, 0, 0, 0);
-      startsAt = fallback.toISOString();
+    const created = await createTestIndividualAppointment({
+      patientId,
+      businessId,
+      practitionerId,
+      appointmentTypeId,
+      startsAt,
+      endsAt,
+    });
+
+    if (!created.ok || !created.data) {
+      const errMsg = created.error ?? "Failed to create demo appointment.";
+      const diagnostics: DemoTestLabDiagnostics = {
+        endpoint,
+        clinikoMessage: errMsg,
+        likelyCause: errMsg.includes("404") ? "route_or_id_mismatch" : "payload_rejected",
+        suggestedFix:
+          errMsg.includes("404")
+            ? "Verify practitioner, business and appointment type IDs against Cliniko."
+            : "Review Cliniko validation message and adjust time or IDs.",
+      };
+      return actionFailure("create_demo_appointment", errMsg, "failed", diagnostics);
     }
 
-    const created = await clinikoFetch<{ individual_appointment?: Record<string, unknown> }>(
-      endpoint,
-      {
-        method: "POST",
-        body: JSON.stringify({
-          patient_id: patientId,
-          business_id: businessId,
-          practitioner_id: practitionerId,
-          appointment_type_id: appointmentTypeId,
-          starts_at: startsAt,
-          notes: "DEMO appointment created by Tigers Eye Command Hub test lab.",
-        }),
-      }
-    );
-
-    const appointment = mapAppointment(
-      created.individual_appointment ?? (created as Record<string, unknown>)
-    );
+    const appointment = mapAppointmentFromIndividual(created.data);
 
     return actionSuccess(
       "create_demo_appointment",
-      `Created fake demo appointment on ${appointment.startsAt}.`,
-      { appointment, mappingProof: "Use Command Hub bookings/calendar to verify mapping." }
+      preflight.usingManualTime
+        ? `${preflight.manualTimeMessage} Created fake demo appointment on ${appointment.startsAt}.`
+        : `Created fake demo appointment on ${appointment.startsAt}.`,
+      {
+        appointment,
+        mappingProof: "Use Command Hub bookings/calendar to verify mapping.",
+        proofDiagnostics: {
+          endpoint,
+          ids: {
+            patientId,
+            businessId,
+            practitionerId,
+            appointmentTypeId,
+          },
+          startsAt,
+          endsAt,
+        },
+      }
     );
   } catch (err) {
+    const diagnostics = diagnosticsFromError("create_demo_appointment", err, endpoint);
+    if (err instanceof ClinikoApiError && err.status === 404) {
+      diagnostics.suggestedFix =
+        "Verify endpoint path and Cliniko IDs. Individual appointments use /individual_appointments.";
+    }
     return actionFailure(
       "create_demo_appointment",
       err instanceof Error ? err.message : "Failed to create demo appointment.",
       "failed",
-      diagnosticsFromError("create_demo_appointment", err, endpoint)
+      diagnostics
     );
   }
 }
@@ -699,12 +802,16 @@ export async function cancelDemoAppointment(
     const raw = await clinikoFetch<{ individual_appointment?: Record<string, unknown> }>(
       `/individual_appointments/${appointmentId}`
     );
-    const appointment = mapAppointment(
-      raw.individual_appointment ?? (raw as Record<string, unknown>)
+    const appointment = mapAppointmentFromIndividual(
+      parseIndividualAppointment(
+        raw.individual_appointment ?? (raw as Record<string, unknown>)
+      )
     );
 
     if (appointment.patientId) {
       await assertDemoPatient(appointment.patientId);
+    } else if (!/^DEMO/i.test(appointment.patientLabel ?? "")) {
+      throw new Error("Only DEMO-linked appointments can be cancelled.");
     }
 
     await clinikoFetch(cancelEndpoint, {
@@ -736,14 +843,27 @@ export async function checkDemoAppointments(): Promise<DemoTestLabActionResult> 
   try {
     const patients = await fetchDemoPatientsLive();
     const patientIds = new Set(patients.map((p) => p.id));
-    const appointments = await fetchDemoAppointmentsLive(patientIds);
+    const result = await getDemoIndividualAppointments({ demoPatientIds: patientIds });
+    const appointments = (result.data?.appointments ?? []).map(mapAppointmentFromIndividual);
 
     return actionSuccess(
       "check_demo_appointments",
       appointments.length > 0
-        ? `Found ${appointments.length} upcoming DEMO appointment(s) in Cliniko.`
-        : "No upcoming DEMO appointments found in Cliniko.",
-      { appointments, count: appointments.length },
+        ? `Found ${appointments.length} upcoming DEMO individual appointment(s) in Cliniko.`
+        : "No upcoming DEMO individual appointments found in Cliniko.",
+      {
+        appointments: appointments.map((a) => ({
+          id: a.id,
+          patientLabel: a.patientLabel,
+          appointmentTypeName: a.appointmentTypeName,
+          businessName: a.businessName,
+          startsAt: a.startsAt,
+          source: "Cliniko test account",
+        })),
+        count: appointments.length,
+        endpoint,
+        dataSource: "individual_appointments",
+      },
       appointments.length > 0 ? "proven" : "not-tested"
     );
   } catch (err) {

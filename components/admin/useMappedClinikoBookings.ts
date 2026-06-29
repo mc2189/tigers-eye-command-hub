@@ -2,10 +2,10 @@
 
 import { useCallback, useState } from "react";
 import {
-  mapClinikoBookings,
-  mapClinikoBookingToCalendarItem,
+  mapClinikoIndividualAppointments,
+  mapClinikoIndividualAppointmentToCalendarItem,
   type ClinikoAppointmentTypeInput,
-  type ClinikoBookingInput,
+  type ClinikoIndividualAppointmentInput,
   type MappedBooking,
   type MappedCalendarItem,
   type DataSource,
@@ -16,6 +16,7 @@ interface LoadResult {
   calendarItems: MappedCalendarItem[];
   source: DataSource;
   lastChecked: string;
+  individualAppointmentCount: number;
 }
 
 export function useMappedClinikoBookings() {
@@ -25,6 +26,7 @@ export function useMappedClinikoBookings() {
   const [loading, setLoading] = useState(false);
   const [lastChecked, setLastChecked] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [individualAppointmentCount, setIndividualAppointmentCount] = useState(0);
 
   const load = useCallback(async (params?: { from?: string; to?: string }) => {
     setLoading(true);
@@ -34,39 +36,50 @@ export function useMappedClinikoBookings() {
       if (params?.from) query.set("from", params.from);
       if (params?.to) query.set("to", params.to);
 
-      const [bookingsRes, typesRes] = await Promise.all([
-        fetch(`/api/cliniko/bookings?${query}`, { cache: "no-store" }),
+      const [appointmentsRes, typesRes] = await Promise.all([
+        fetch(`/api/cliniko/individual-appointments?${query}`, { cache: "no-store" }),
         fetch("/api/cliniko/appointment-types", { cache: "no-store" }),
       ]);
 
-      const bookingsJson = (await bookingsRes.json()) as {
-        bookings: ClinikoBookingInput[];
+      const appointmentsJson = (await appointmentsRes.json()) as {
+        appointments: ClinikoIndividualAppointmentInput[];
         source: DataSource;
       };
       const typesJson = (await typesRes.json()) as {
         appointmentTypes: ClinikoAppointmentTypeInput[];
       };
 
-      const mappedBookings = mapClinikoBookings(bookingsJson.bookings ?? [], {
+      const appointments = appointmentsJson.appointments ?? [];
+      const mappedBookings = mapClinikoIndividualAppointments(appointments, {
         appointmentTypes: typesJson.appointmentTypes ?? [],
       });
-      const calItems = mappedBookings.map(mapClinikoBookingToCalendarItem);
+      const calItems = appointments.map((appointment) =>
+        mapClinikoIndividualAppointmentToCalendarItem(appointment, {
+          appointmentTypes: typesJson.appointmentTypes ?? [],
+        })
+      );
+
+      const resolvedSource =
+        appointmentsJson.source === "cliniko" ? "cliniko-test" : appointmentsJson.source ?? "demo";
 
       setMapped(mappedBookings);
       setCalendarItems(calItems);
-      setSource(bookingsJson.source ?? "demo");
+      setSource(resolvedSource);
+      setIndividualAppointmentCount(appointments.length);
       setLastChecked(new Date().toLocaleString("en-GB"));
 
       return {
         mapped: mappedBookings,
         calendarItems: calItems,
-        source: bookingsJson.source ?? "demo",
+        source: resolvedSource,
         lastChecked: new Date().toLocaleString("en-GB"),
+        individualAppointmentCount: appointments.length,
       } satisfies LoadResult;
     } catch {
       setError("Cliniko could not be reached. Demo data is still available.");
       setMapped([]);
       setCalendarItems([]);
+      setIndividualAppointmentCount(0);
       return null;
     } finally {
       setLoading(false);
@@ -85,6 +98,7 @@ export function useMappedClinikoBookings() {
     loading,
     lastChecked,
     error,
+    individualAppointmentCount,
     load,
     loadToday,
   };

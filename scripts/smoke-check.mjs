@@ -116,8 +116,8 @@ const contentChecks = {
     if (!/location|migration|Aviemore|test lab/i.test(body)) {
       return "missing migration/location/test lab wording";
     }
-    if (!/Manual Cliniko appointment test|Check for DEMO appointments/i.test(body)) {
-      return "missing manual appointment read-back panel";
+    if (!/Individual appointments|Manual Cliniko appointment test|Appointment proof diagnostics/i.test(body)) {
+      return "missing individual appointment proof sections";
     }
     return null;
   },

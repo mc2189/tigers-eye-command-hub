@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getBookings } from "@/lib/cliniko";
+import { getOnlineBookings } from "@/lib/cliniko";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     ? parseInt(searchParams.get("perPage")!, 10)
     : undefined;
 
-  const result = await getBookings({ from, to, page, perPage });
+  const result = await getOnlineBookings({ from, to, page, perPage });
 
   return NextResponse.json({
     ok: result.ok,

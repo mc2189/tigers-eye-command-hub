@@ -140,14 +140,45 @@ export function ClinikoLiveDataPanels() {
           <LiveDataPanel<{
             id: string;
             startsAt: string;
+            endsAt?: string;
+            patientLabel?: string;
+            patientName?: string;
+            appointmentTypeName?: string;
+            practitionerName?: string;
+            businessName?: string;
+          }>
+            title="Individual appointments"
+            endpoint="/api/cliniko/individual-appointments?perPage=8"
+            dataKey="appointments"
+            connectedEmptyMessage="Connected to Cliniko, but no individual appointments were found in the next 30 days."
+            renderItem={(a) => (
+              <>
+                <p className="font-medium text-navy">
+                  {a.patientLabel ?? a.patientName ?? "Cliniko patient"}
+                </p>
+                <p className="text-slate">
+                  {formatDateTime(a.startsAt)}
+                  {a.appointmentTypeName ? ` · ${a.appointmentTypeName}` : ""}
+                </p>
+                <p className="text-xs text-slate">
+                  {a.practitionerName ? `${a.practitionerName} · ` : ""}
+                  {a.businessName ?? "Cliniko test account"}
+                </p>
+              </>
+            )}
+          />
+          <ClinikoBookingsVsAppointmentsNote />
+          <LiveDataPanel<{
+            id: string;
+            startsAt: string;
             patientLabel?: string;
             appointmentTypeName?: string;
             noteStatus?: string;
           }>
-            title="Upcoming bookings"
+            title="Bookings"
             endpoint="/api/cliniko/bookings?perPage=8"
             dataKey="bookings"
-            connectedEmptyMessage="Connected to Cliniko, but no upcoming bookings were found. Create a DEMO appointment or manually create one in Cliniko to prove booking read-back."
+            connectedEmptyMessage="Connected to Cliniko, but no online bookings were found. Manual appointments are listed under Individual appointments."
             renderItem={(b) => (
               <>
                 <p className="font-medium text-navy">{b.patientLabel ?? "Cliniko patient"}</p>
@@ -215,6 +246,43 @@ export function ClinikoLiveDataPanels() {
         </div>
       </section>
     </>
+  );
+}
+
+function ClinikoBookingsVsAppointmentsNote() {
+  const [message, setMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    Promise.all([
+      fetch("/api/cliniko/bookings?perPage=8", { cache: "no-store" }).then((r) => r.json()),
+      fetch("/api/cliniko/individual-appointments?perPage=8", { cache: "no-store" }).then((r) =>
+        r.json()
+      ),
+    ])
+      .then(([bookingsJson, appointmentsJson]) => {
+        const bookings = (bookingsJson.bookings as unknown[]) ?? [];
+        const appointments = (appointmentsJson.appointments as unknown[]) ?? [];
+        if (
+          bookingsJson.source === "cliniko" &&
+          bookings.length === 0 &&
+          appointments.length > 0
+        ) {
+          setMessage(
+            "No bookings found, but individual appointments were found. Manual Cliniko appointments are being read correctly."
+          );
+        } else {
+          setMessage(null);
+        }
+      })
+      .catch(() => setMessage(null));
+  }, []);
+
+  if (!message) return null;
+
+  return (
+    <div className="lg:col-span-2 rounded-lg border border-green/30 bg-green-muted/20 p-4 text-sm text-navy">
+      {message}
+    </div>
   );
 }
 

@@ -147,6 +147,14 @@ Use this before showing George. Tick each item after verifying in the browser.
 - [ ] “Check for DEMO appointments” finds manually created Cliniko bookings for DEMO patients
 - [ ] Appointment preflight and diagnostics visible when create fails
 
+### Cliniko appointment proof update
+
+- [ ] Manual Cliniko appointments read from `/individual_appointments`
+- [ ] `/bookings` may be empty while individual appointments exist
+- [ ] Online available-time 404 treated as soft warning, not hard block
+- [ ] Direct DEMO appointment create uses safe future time + `ends_at`
+- [ ] Individual appointments visible on `/admin/cliniko`, bookings, calendar after load
+
 ### Appointment proof troubleshooting
 
 - [ ] DEMO patient create/update/archive proven in test lab

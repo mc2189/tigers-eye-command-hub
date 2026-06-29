@@ -37,8 +37,8 @@ export default function ClinikoPage() {
       />
 
       <p className="sr-only">
-        Cliniko test lab — Manual Cliniko appointment test. Check for DEMO appointments.
-        Cliniko is the system of record.
+        Cliniko test lab — Individual appointments. Manual Cliniko appointment test. Check for DEMO
+        appointments. Appointment proof diagnostics. Cliniko is the system of record.
       </p>
 
       <div className="mb-6 space-y-6">

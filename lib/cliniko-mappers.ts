@@ -57,7 +57,24 @@ export interface ClinikoBookingInput {
 }
 
 export type Workstream = "private" | "insurance" | "telehealth" | "external";
-export type DataSource = "cliniko" | "demo";
+export type DataSource = "cliniko" | "cliniko-test" | "demo";
+
+export interface ClinikoIndividualAppointmentInput {
+  id: string;
+  startsAt: string;
+  endsAt: string;
+  patientName?: string;
+  patientLabel?: string;
+  appointmentTypeName?: string;
+  practitionerName?: string;
+  businessName?: string;
+  noteStatus?: string;
+  invoiceStatus?: string;
+  telehealthUrl?: string;
+  cancelledAt?: string;
+  archivedAt?: string;
+  source?: "cliniko-test";
+}
 
 export interface InsuranceContext {
   likelyInsurance: true;
@@ -107,7 +124,7 @@ export interface MappedAppointmentType {
 export interface MappedBooking {
   id: string;
   clinikoId: string;
-  dataSource: "cliniko" | "demo";
+  dataSource: "cliniko" | "cliniko-test" | "demo";
   date: string;
   time: string;
   endsAt: string;
@@ -189,7 +206,7 @@ export interface MappedNoteTask {
   businessName: string;
   locationLabel: string;
   noteStatus: NoteStatus;
-  dataSource: "cliniko" | "demo";
+  dataSource: "cliniko" | "cliniko-test" | "demo";
   bookingId: string;
 }
 
@@ -547,6 +564,87 @@ export function mapClinikoBookingToNoteTask(
 }
 
 // ─── Batch mapping ───────────────────────────────────────────────────────────
+
+export function mapClinikoIndividualAppointmentToBookingInput(
+  appointment: ClinikoIndividualAppointmentInput
+): ClinikoBookingInput {
+  return {
+    id: appointment.id,
+    startsAt: appointment.startsAt,
+    endsAt: appointment.endsAt,
+    appointmentTypeName: appointment.appointmentTypeName,
+    practitionerName: appointment.practitionerName,
+    businessName: appointment.businessName,
+    patientLabel: appointment.patientLabel ?? appointment.patientName,
+    noteStatus: appointment.noteStatus,
+    invoiceStatus: appointment.invoiceStatus,
+  };
+}
+
+export function mapClinikoIndividualAppointmentToBooking(
+  appointment: ClinikoIndividualAppointmentInput,
+  context?: {
+    appointmentTypes?: ClinikoAppointmentTypeInput[];
+    practitioners?: ClinikoPractitionerInput[];
+  }
+): MappedBooking {
+  const mapped = mapClinikoBookingToBooking(
+    mapClinikoIndividualAppointmentToBookingInput(appointment),
+    context
+  );
+  return {
+    ...mapped,
+    dataSource: appointment.source === "cliniko-test" ? "cliniko-test" : "cliniko",
+  };
+}
+
+export function mapClinikoIndividualAppointmentToCalendarItem(
+  appointment: ClinikoIndividualAppointmentInput,
+  context?: {
+    appointmentTypes?: ClinikoAppointmentTypeInput[];
+    practitioners?: ClinikoPractitionerInput[];
+  }
+): MappedCalendarItem {
+  return mapClinikoBookingToCalendarItem(
+    mapClinikoIndividualAppointmentToBooking(appointment, context)
+  );
+}
+
+export function mapClinikoIndividualAppointmentToFinanceItem(
+  appointment: ClinikoIndividualAppointmentInput,
+  context?: {
+    appointmentTypes?: ClinikoAppointmentTypeInput[];
+    practitioners?: ClinikoPractitionerInput[];
+  }
+): MappedFinanceItem {
+  return mapClinikoBookingToFinanceItem(
+    mapClinikoIndividualAppointmentToBooking(appointment, context)
+  );
+}
+
+export function mapClinikoIndividualAppointmentToNoteTask(
+  appointment: ClinikoIndividualAppointmentInput,
+  context?: {
+    appointmentTypes?: ClinikoAppointmentTypeInput[];
+    practitioners?: ClinikoPractitionerInput[];
+  }
+): MappedNoteTask {
+  return mapClinikoBookingToNoteTask(
+    mapClinikoIndividualAppointmentToBooking(appointment, context)
+  );
+}
+
+export function mapClinikoIndividualAppointments(
+  appointments: ClinikoIndividualAppointmentInput[],
+  context?: {
+    appointmentTypes?: ClinikoAppointmentTypeInput[];
+    practitioners?: ClinikoPractitionerInput[];
+  }
+): MappedBooking[] {
+  return appointments.map((appointment) =>
+    mapClinikoIndividualAppointmentToBooking(appointment, context)
+  );
+}
 
 export function mapClinikoBookings(
   bookings: ClinikoBookingInput[],
