@@ -2,9 +2,9 @@
 
 | Field | Value |
 |-------|-------|
-| **Last updated** | 2026-06-29 (final QA pass — commit pending deploy) |
+| **Last updated** | 2026-06-29 (commit `14ddbbd`, production verified) |
 | **Local smoke** | **23/23 PASS** (production build on `localhost:3000`) |
-| **Production smoke** | **22/23** — `/admin/cliniko` missing Aviemore until latest deploy lands |
+| **Production smoke** | **23/23 PASS** (https://tigers-eye-command-hub.vercel.app) |
 | **Base URL (prod)** | https://tigers-eye-command-hub.vercel.app |
 
 ## Latest run summary
@@ -12,7 +12,7 @@
 | Environment | Result | Passed | Failed | Notes |
 |-------------|--------|--------|--------|-------|
 | Local (`localhost:3000`) | **PASS** | 23 | 0 | `npm run start` + `npm run smoke:local` |
-| Production (Vercel) | **PARTIAL** | 22 | 1 | `/admin/cliniko` — Aviemore panel not yet deployed; re-run after push |
+| Production (Vercel) | **PASS** | 23 | 0 | Verified after deploy of `14ddbbd` |
 
 ## Cliniko-first Aviemore checks
 
@@ -29,11 +29,7 @@
 
 ## Failed routes (if any)
 
-| Route | Environment | Reason |
-|-------|-------------|--------|
-| `/admin/cliniko` | Production (pre-deploy) | Aviemore migration panel not on live site yet |
-
-_Re-run `npm run smoke:prod` after Vercel deploy completes._
+_None — all routes passed locally and on production (2026-06-29)._
 
 ## How to run
 
