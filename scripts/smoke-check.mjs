@@ -4,11 +4,15 @@
  * Usage:
  *   BASE_URL=http://localhost:3000 node scripts/smoke-check.mjs
  *   BASE_URL=https://tigers-eye-command-hub.vercel.app node scripts/smoke-check.mjs
+ *
+ * Admin and Cliniko API routes require demo staff auth when configured.
+ * Set DEMO_STAFF_PASSWORD (and ensure the server has matching auth env).
  */
 
 const BASE_URL = (process.env.BASE_URL || "http://localhost:3000").replace(/\/$/, "");
+const STAFF_PASSWORD = process.env.DEMO_STAFF_PASSWORD?.trim() || "";
 
-const routes = [
+const publicRoutes = [
   "/",
   "/book",
   "/services",
@@ -17,6 +21,10 @@ const routes = [
   "/insurance",
   "/telehealth",
   "/contact",
+];
+
+const protectedRoutes = [
+  "/admin/login",
   "/admin",
   "/admin/demo-walkthrough",
   "/admin/cliniko",
@@ -32,9 +40,10 @@ const routes = [
   "/admin/stock",
   "/admin/settings",
   "/api/cliniko/status",
+  "/api/cliniko/test-data",
 ];
 
-/** @type {Record<string, (body: string, route: string) => string | null>} */
+/** @type {Record<string, (body: string) => string | null>} */
 const contentChecks = {
   "/book": (body) => {
     const required = ["Dundee", "Aviemore", "Cliniko"];
@@ -63,15 +72,22 @@ const contentChecks = {
     }
     return null;
   },
+  "/admin/login": (body) => {
+    if (!/staff login|Sign in to Command Hub|Command Hub/i.test(body)) {
+      return "missing staff login wording";
+    }
+    return null;
+  },
   "/admin/cliniko": (body) => {
     if (!body.includes("Cliniko")) return 'missing "Cliniko"';
     if (!body.includes("Aviemore")) return 'missing "Aviemore"';
     if (!/system of record|source of truth/i.test(body)) {
       return "missing system-of-record wording";
     }
-    if (!/location|migration|Aviemore/i.test(body)) {
-      return "missing migration/location wording";
+    if (!/location|migration|Aviemore|test lab/i.test(body)) {
+      return "missing migration/location/test lab wording";
     }
+    if (!/DEMO/i.test(body)) return "missing DEMO test lab wording";
     return null;
   },
   "/admin/settings": (body) => {
@@ -103,58 +119,125 @@ const contentChecks = {
     if (typeof json.source !== "string") return "missing source field";
     return null;
   },
+  "/api/cliniko/test-data": (body) => {
+    let json;
+    try {
+      json = JSON.parse(body);
+    } catch {
+      return "response is not valid JSON";
+    }
+    if (typeof json.writesEnabled !== "boolean") return "missing writesEnabled";
+    if (!Array.isArray(json.patients)) return "missing patients array";
+    return null;
+  },
 };
 
-const results = [];
 let passCount = 0;
 let failCount = 0;
+let skipCount = 0;
+/** @type {string | null} */
+let authCookie = null;
 
-async function checkRoute(route) {
+function parseSetCookie(setCookie) {
+  if (!setCookie) return null;
+  const parts = Array.isArray(setCookie) ? setCookie : [setCookie];
+  for (const part of parts) {
+    const match = part.match(/demo_staff_session=([^;]+)/);
+    if (match) return `demo_staff_session=${match[1]}`;
+  }
+  return null;
+}
+
+async function staffLogin() {
+  if (!STAFF_PASSWORD) return false;
+
+  const res = await fetch(`${BASE_URL}/api/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password: STAFF_PASSWORD }),
+  });
+
+  if (!res.ok) return false;
+
+  const cookie = parseSetCookie(res.headers.getSetCookie?.() ?? res.headers.get("set-cookie"));
+  authCookie = cookie;
+  return Boolean(cookie);
+}
+
+async function checkRoute(route, requiresAuth) {
   const url = `${BASE_URL}${route}`;
   const label = route.padEnd(36);
+
+  if (requiresAuth && !authCookie) {
+    skipCount++;
+    console.log(`SKIP  ${label} (no DEMO_STAFF_PASSWORD for auth)`);
+    return;
+  }
+
   try {
-    const res = await fetch(url, {
-      headers: { Accept: "text/html,application/json" },
-      redirect: "follow",
-    });
-    const body = await res.text();
+    const headers = { Accept: "text/html,application/json" };
+    if (authCookie) headers.Cookie = authCookie;
+
+    const res = await fetch(url, { headers, redirect: "manual" });
+    let body = "";
+    if (res.status !== 307 && res.status !== 308) {
+      body = await res.text();
+    }
+
+    if (res.status === 307 || res.status === 308) {
+      failCount++;
+      console.log(`FAIL  ${label} redirect ${res.status} (auth required?)`);
+      return;
+    }
 
     if (res.status !== 200) {
       failCount++;
-      results.push({ route, ok: false, detail: `HTTP ${res.status}` });
       console.log(`FAIL  ${label} HTTP ${res.status}`);
       return;
     }
 
     const checker = contentChecks[route];
     if (checker) {
-      const contentError = checker(body, route);
+      const contentError = checker(body);
       if (contentError) {
         failCount++;
-        results.push({ route, ok: false, detail: contentError });
         console.log(`FAIL  ${label} ${contentError}`);
         return;
       }
     }
 
     passCount++;
-    results.push({ route, ok: true, detail: "OK" });
     console.log(`PASS  ${label}`);
   } catch (err) {
     failCount++;
     const message = err instanceof Error ? err.message : String(err);
-    results.push({ route, ok: false, detail: message });
     console.log(`FAIL  ${label} ${message}`);
   }
 }
 
 console.log(`\nTigers Eye smoke check — ${BASE_URL}\n`);
 
-for (const route of routes) {
-  await checkRoute(route);
+for (const route of publicRoutes) {
+  await checkRoute(route, false);
 }
 
-console.log(`\nSummary: ${passCount} passed, ${failCount} failed, ${routes.length} total\n`);
+await checkRoute("/admin/login", false);
+
+if (STAFF_PASSWORD) {
+  const loggedIn = await staffLogin();
+  console.log(loggedIn ? "Auth: demo staff login OK\n" : "Auth: login failed — protected routes may fail\n");
+} else {
+  console.log("Auth: DEMO_STAFF_PASSWORD not set — protected routes will be skipped\n");
+}
+
+for (const route of protectedRoutes.filter((r) => r !== "/admin/login")) {
+  await checkRoute(route, true);
+}
+
+const total = publicRoutes.length + protectedRoutes.length;
+console.log(
+  `\nSummary: ${passCount} passed, ${failCount} failed, ${skipCount} skipped, ${total} total\n`
+);
 
 if (failCount > 0) {
   process.exit(1);

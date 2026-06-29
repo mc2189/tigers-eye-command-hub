@@ -44,6 +44,20 @@ export function SettingsContent() {
 
   const cards = [
     {
+      title: "Demo staff login",
+      description:
+        "Admin Command Hub and Cliniko API routes require demo staff password. Protects the sterile test account tools.",
+      value: "Required",
+      variant: "warning" as const,
+    },
+    {
+      title: "Cliniko test writes",
+      description:
+        "Controlled writes to the sterile Cliniko test account for DEMO patients and appointments only.",
+      value: cliniko?.writesEnabled ? "Enabled" : "Disabled",
+      variant: cliniko?.writesEnabled ? ("success" as const) : ("warning" as const),
+    },
+    {
       title: "Cliniko connection",
       description: connected
         ? "Sandbox API connected. Cliniko remains the system of record."

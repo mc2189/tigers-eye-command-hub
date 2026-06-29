@@ -2,17 +2,17 @@
 
 | Field | Value |
 |-------|-------|
-| **Last updated** | 2026-06-29 (commit `14ddbbd`, production verified) |
-| **Local smoke** | **23/23 PASS** (production build on `localhost:3000`) |
-| **Production smoke** | **23/23 PASS** (https://tigers-eye-command-hub.vercel.app) |
+| **Last updated** | 2026-06-29 (staff auth + Cliniko test lab) |
+| **Local smoke** | **25/25 PASS** (with `DEMO_STAFF_PASSWORD` matching server env) |
+| **Production smoke** | Requires `DEMO_STAFF_PASSWORD` in Vercel env + local smoke runner |
 | **Base URL (prod)** | https://tigers-eye-command-hub.vercel.app |
 
 ## Latest run summary
 
 | Environment | Result | Passed | Failed | Notes |
 |-------------|--------|--------|--------|-------|
-| Local (`localhost:3000`) | **PASS** | 23 | 0 | `npm run start` + `npm run smoke:local` |
-| Production (Vercel) | **PASS** | 23 | 0 | Verified after deploy of `14ddbbd` |
+| Local (`localhost:3000`) | **PASS** | 25 | 0 | Auth env required — see `.env.local.example` |
+| Production (Vercel) | _Pending_ | — | — | Set `DEMO_STAFF_PASSWORD` + `DEMO_SESSION_SECRET` on Vercel first |
 
 ## Cliniko-first Aviemore checks
 

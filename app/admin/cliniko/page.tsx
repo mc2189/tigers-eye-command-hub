@@ -1,5 +1,6 @@
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AviemoreClinikoPanel } from "@/components/admin/AviemoreClinikoPanel";
+import { ClinikoTestLabPanel } from "@/components/admin/ClinikoTestLabPanel";
 import { ConfigureDemoButton } from "@/components/admin/ConfigureDemoButton";
 import { ClinikoConnectionPanel } from "@/components/admin/ClinikoConnectionPanel";
 import { ClinikoLiveDataPanels } from "@/components/admin/ClinikoLiveDataPanels";
@@ -38,6 +39,7 @@ export default function ClinikoPage() {
       <div className="mb-6 space-y-6">
         <ClinikoConnectionPanel />
         <AviemoreClinikoPanel />
+        <ClinikoTestLabPanel />
         <ClinikoHealthSummary />
         <ClinikoLiveDataPanels />
         <ClinikoMappingHealthPanel />

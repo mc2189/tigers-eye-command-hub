@@ -61,6 +61,19 @@ Setmore (`https://tigerseye.setmore.com/`) is documented only as the **previous*
 
 It must **not** appear as the active Aviemore booking provider on `/book`.
 
+## Demo staff authentication
+
+- `/admin/*` (except `/admin/login`) and `/api/cliniko/*` require demo staff login
+- Set `DEMO_STAFF_PASSWORD` and `DEMO_SESSION_SECRET` in environment (never commit real values)
+- Public website remains open
+
+## Cliniko test lab
+
+- Sterile Cliniko test account only — fake `DEMO` patients and appointments
+- Controlled writes when `CLINIKO_ENABLE_WRITES=true`
+- Create, update, cancel/archive and cleanup via `/admin/cliniko` test lab panel
+- API: `GET/POST /api/cliniko/test-data` (staff auth required)
+
 ## Environment variables
 
 Copy `.env.local.example` to `.env.local` (never commit `.env.local`):
@@ -69,8 +82,10 @@ Copy `.env.local.example` to `.env.local` (never commit `.env.local`):
 CLINIKO_API_KEY=your-sandbox-key-here
 CLINIKO_SHARD=uk1
 CLINIKO_USER_AGENT=Tigers Eye Command Hub Demo / built by Mike Currie
-CLINIKO_ENABLE_WRITES=false
+CLINIKO_ENABLE_WRITES=true
 NEXT_PUBLIC_DEMO_MODE=true
+DEMO_STAFF_PASSWORD=change-me-before-deploy
+DEMO_SESSION_SECRET=change-me-use-long-random-string
 ```
 
 ## Quality commands
@@ -98,4 +113,4 @@ npm run smoke:prod    # production URL
 3. Enable Cliniko custom fields for insurance claim/session capture
 4. Connect Healthcode when George confirms workflow
 5. Xero integration for reconciliation
-6. Enable `CLINIKO_ENABLE_WRITES` only after clinical safety review
+6. Expand Cliniko test lab once Aviemore location is live in sandbox

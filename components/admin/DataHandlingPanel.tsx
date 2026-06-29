@@ -5,7 +5,8 @@ export function DataHandlingPanel({ compact }: { compact?: boolean }) {
     "No patient-note database in this app",
     "Demo data fallback when Cliniko is unavailable",
     "Transcripts are purged after save or discard",
-    "Writes to Cliniko are safety-gated and disabled by default",
+    "Writes to Cliniko are safety-gated and require staff login",
+    "DEMO-prefixed patients only in the Cliniko test lab",
   ];
 
   return (

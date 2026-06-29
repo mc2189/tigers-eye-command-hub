@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   noteTemplates,
   noteAppointments,
@@ -30,6 +30,14 @@ export function NotesAssistant() {
     dataSource: "demo" as const,
   }));
 
+  const [writesEnabled, setWritesEnabled] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/cliniko/status", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((json: { writesEnabled?: boolean }) => setWritesEnabled(Boolean(json.writesEnabled)))
+      .catch(() => setWritesEnabled(false));
+  }, []);
   const { mapped, loadToday, loading, source, error } = useMappedClinikoBookings();
   const [clinikoTasks, setClinikoTasks] = useState<MappedNoteTask[]>([]);
   const [selected, setSelected] = useState<TaskItem | null>(demoTasks[0] ?? null);
@@ -330,7 +338,7 @@ export function NotesAssistant() {
                     >
                       {saving ? "Saving…" : "Save draft to Cliniko sandbox"}
                     </button>
-                    <DataSourceBadge source="dry-run" />
+                    <DataSourceBadge source={writesEnabled ? "cliniko" : "dry-run"} />
                     <DataSourceBadge source="safety-gated" />
                     <button
                       type="button"

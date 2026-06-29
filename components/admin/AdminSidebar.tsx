@@ -1,13 +1,14 @@
 "use client";
 
-const ADMIN_FOOTER =
-  "Built by Mike Currie · Demo mode · Cliniko remains the system of record";
-
+import { AdminLogoutButton } from "./AdminLogoutButton";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { business } from "@/lib/tigers-eye-content";
+
+const ADMIN_FOOTER =
+  "Built by Mike Currie · Demo mode · Cliniko remains the system of record";
 
 interface NavItem {
   href: string;
@@ -154,6 +155,7 @@ export function AdminSidebar() {
             ← Public website
           </Link>
           <p className="mt-2 text-xs text-slate leading-relaxed">{ADMIN_FOOTER}</p>
+          <AdminLogoutButton />
         </div>
       </aside>
     </>

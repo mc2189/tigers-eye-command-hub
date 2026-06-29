@@ -138,6 +138,8 @@ Use this before showing George. Tick each item after verifying in the browser.
 ## Data safety
 
 - [ ] Demo banner visible on all admin pages
+- [ ] Demo staff login required for Command Hub
+- [ ] Cliniko test lab only creates DEMO-prefixed fake patients
 - [ ] No real patient names from production (sandbox/demo only)
 - [ ] No API key visible in browser or page source
 - [ ] Notes: no audio/transcript stored messaging clear
@@ -153,6 +155,6 @@ Use this before showing George. Tick each item after verifying in the browser.
 npm run lint
 npm run build
 npm run dev          # terminal 1
-npm run smoke:local  # terminal 2
-npm run smoke:prod   # after Vercel deploy
+npm run smoke:local  # terminal 2 — set DEMO_STAFF_PASSWORD to match server env
+npm run smoke:prod   # after Vercel deploy (same password as production env)
 ```
