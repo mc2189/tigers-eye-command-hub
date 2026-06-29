@@ -14,7 +14,12 @@ export default function GeorgeCalendarPage() {
         external work blocks, finance overlays, note status and stock warnings.
       </CalloutBox>
       <div className="mt-6">
-        <WeeklyCalendar practitionerFilter="george" />
+        <WeeklyCalendar
+          practitionerFilter="george"
+          practitionerNameMatcher="george|stewart"
+          enableClinikoLoad
+          loadButtonLabel="Load Cliniko sandbox bookings"
+        />
       </div>
     </>
   );

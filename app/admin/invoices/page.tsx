@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { InvoiceGenerator } from "@/components/admin/InvoiceGenerator";
+import { ClinikoInvoiceQueuePanel } from "@/components/admin/ClinikoInvoiceQueuePanel";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { invoices, invoiceStatusLabels, type InvoiceStatus } from "@/lib/demo-data";
 
@@ -33,6 +34,10 @@ export default function InvoicesPage() {
       >
         <InvoiceGenerator />
       </AdminPageHeader>
+
+      <ClinikoInvoiceQueuePanel />
+
+      <h2 className="mb-4 text-lg font-bold text-navy">Command Hub demo invoices</h2>
 
       <div className="mb-6 flex flex-wrap gap-2">
         {tabs.map((t) => (

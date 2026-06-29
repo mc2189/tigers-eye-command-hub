@@ -24,6 +24,7 @@ const navSections: NavSection[] = [
       { href: "/admin/calendar", label: "Calendar" },
       { href: "/admin/bookings", label: "Bookings" },
       { href: "/admin/notes", label: "Notes" },
+      { href: "/admin/demo-walkthrough", label: "Demo walkthrough" },
     ],
   },
   {

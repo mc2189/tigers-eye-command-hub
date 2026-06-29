@@ -1,5 +1,6 @@
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { CalloutBox } from "@/components/admin/AdminUI";
+import { ClinikoFinancePanel } from "@/components/admin/ClinikoFinancePanel";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { ProgressBar } from "@/components/admin/AdminUI";
 import { financeSummary } from "@/lib/demo-data";
@@ -13,6 +14,10 @@ export default function FinancePage() {
         title="Finance"
         subtitle="ClubOps-style finance dashboard — revenue, outstanding money and estimated net."
       />
+
+      <ClinikoFinancePanel />
+
+      <h2 className="mb-4 text-lg font-bold text-navy">Command Hub demo finance</h2>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard label="Revenue this week" value={`£${f.revenueThisWeek.toLocaleString()}`} />

@@ -1,4 +1,9 @@
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { ClinikoConnectionPanel } from "@/components/admin/ClinikoConnectionPanel";
+import { ClinikoLiveDataPanels } from "@/components/admin/ClinikoLiveDataPanels";
+import { ClinikoHealthSummary } from "@/components/admin/ClinikoHealthSummary";
+import { ClinikoMappingHealthPanel } from "@/components/admin/ClinikoMappingHealthPanel";
+import { DataHandlingPanel } from "@/components/admin/DataHandlingPanel";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { clinikoHealthCheck } from "@/lib/demo-data";
 
@@ -25,8 +30,16 @@ export default function ClinikoPage() {
     <>
       <AdminPageHeader
         title="Cliniko health check"
-        subtitle="See what Cliniko can already do — booking, payments, insurance, notes and operations."
+        subtitle="See what Cliniko already supports and how Command Hub helps you use those features more fully."
       />
+
+      <div className="mb-6 space-y-6">
+        <ClinikoConnectionPanel />
+        <ClinikoHealthSummary />
+        <ClinikoLiveDataPanels />
+        <ClinikoMappingHealthPanel />
+        <DataHandlingPanel />
+      </div>
 
       <div className="mb-8 flex flex-wrap gap-3">
         <StatusBadge label={`${demoCount} Demo ready`} variant="success" />

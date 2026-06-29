@@ -1,4 +1,5 @@
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { ClinikoStockPanel } from "@/components/admin/ClinikoStockPanel";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { stockItems, stockUsageRules } from "@/lib/demo-data";
 
@@ -21,6 +22,10 @@ export default function StockPage() {
         title="Stock & consumables"
         subtitle="Lightweight inventory linked to appointment types and external work."
       />
+
+      <ClinikoStockPanel />
+
+      <h2 className="mb-4 text-lg font-bold text-navy">Demo stock levels</h2>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stockItems.map((item) => (

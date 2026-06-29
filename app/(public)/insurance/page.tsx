@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PublicHubNote } from "@/components/PublicHubNote";
 import { Accordion, AccordionItem } from "@/components/Accordion";
 import { Button } from "@/components/Button";
 import { Callout } from "@/components/Callout";
@@ -97,6 +98,10 @@ export default function InsurancePage() {
           <Button href="/book" variant="primary">
             Start insurance booking
           </Button>
+          <PublicHubNote>
+            Insurance details captured here can reduce later invoice chasing and manual
+            session counting.
+          </PublicHubNote>
         </div>
       </Section>
     </>

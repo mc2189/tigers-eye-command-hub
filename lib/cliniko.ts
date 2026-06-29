@@ -1,0 +1,797 @@
+import "server-only";
+
+import {
+  appointmentTypes as demoAppointmentTypes,
+  bookings as demoBookings,
+  practitioners as demoPractitioners,
+} from "@/lib/demo-data";
+import { clinics } from "@/lib/tigers-eye-content";
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+export type ClinikoConnectionState =
+  | "not_configured"
+  | "connected"
+  | "error";
+
+export type ClinikoResult<T> = {
+  ok: boolean;
+  source: "cliniko" | "demo";
+  status: ClinikoConnectionState;
+  data?: T;
+  error?: string;
+  warning?: string;
+};
+
+export interface ClinikoConfig {
+  apiKey: string | null;
+  shard: string;
+  userAgent: string;
+  writesEnabled: boolean;
+  baseUrl: string | null;
+  warning?: string;
+}
+
+export interface ClinikoAuthenticatedUser {
+  id: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  role?: string;
+}
+
+export interface ClinikoBusiness {
+  id: string;
+  name: string;
+  address?: string;
+  timezone?: string;
+  archived?: boolean;
+}
+
+export interface ClinikoPractitioner {
+  id: string;
+  name: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  role?: string;
+  active?: boolean;
+}
+
+export interface ClinikoAppointmentType {
+  id: string;
+  name: string;
+  category?: string;
+  durationMinutes?: number;
+  price?: number;
+  onlineBookingsEnabled?: boolean;
+  telehealthEnabled?: boolean;
+  archived?: boolean;
+}
+
+export interface ClinikoBooking {
+  id: string;
+  startsAt: string;
+  endsAt: string;
+  appointmentTypeName?: string;
+  practitionerName?: string;
+  businessName?: string;
+  patientLabel?: string;
+  source: "cliniko";
+  paymentStatus?: string;
+  noteStatus?: string;
+  invoiceStatus?: string;
+  rawLinks?: unknown;
+}
+
+export interface ClinikoBookingsResponse {
+  bookings: ClinikoBooking[];
+  totalEntries?: number;
+  source: "cliniko" | "demo";
+}
+
+export interface ClinikoStatusResponse {
+  ok: boolean;
+  source: "cliniko" | "demo";
+  status: ClinikoConnectionState;
+  shard: string | null;
+  baseUrl: string | null;
+  userAgentConfigured: boolean;
+  writesEnabled: boolean;
+  authenticatedUser?: ClinikoAuthenticatedUser;
+  counts?: {
+    businesses: number;
+    practitioners: number;
+    appointmentTypes: number;
+    bookings: number;
+  };
+  error?: string;
+  warning?: string;
+}
+
+export interface DraftTreatmentNoteInput {
+  bookingId?: string;
+  patientId?: string;
+  title?: string;
+  sections: Record<string, string>;
+  templateName?: string;
+}
+
+export interface DraftTreatmentNoteResult {
+  ok: boolean;
+  mode: "dry_run" | "created";
+  message: string;
+  noteId?: string;
+  createdAt?: string;
+  localContentStored: false;
+}
+
+// ─── Config ──────────────────────────────────────────────────────────────────
+
+export function inferClinikoShard(apiKey: string): string | null {
+  const match = apiKey.match(/-([a-z]{2}\d+)$/i);
+  return match ? match[1].toLowerCase() : null;
+}
+
+export function getClinikoConfig(): ClinikoConfig {
+  const apiKey = process.env.CLINIKO_API_KEY?.trim() || null;
+  const envShard = process.env.CLINIKO_SHARD?.trim();
+  const userAgent =
+    process.env.CLINIKO_USER_AGENT?.trim() ||
+    "Tigers Eye Command Hub Demo / built by Mike Currie";
+  const writesEnabled = process.env.CLINIKO_ENABLE_WRITES === "true";
+
+  let shard = envShard || "uk1";
+  let warning: string | undefined;
+
+  if (apiKey && !envShard) {
+    const inferred = inferClinikoShard(apiKey);
+    if (inferred) {
+      shard = inferred;
+    } else {
+      warning =
+        "CLINIKO_SHARD not set and could not be inferred from API key suffix. Defaulting to uk1.";
+    }
+  }
+
+  if (apiKey && envShard) {
+    const inferred = inferClinikoShard(apiKey);
+    if (inferred && inferred !== envShard.toLowerCase()) {
+      warning = `Shard mismatch likely — key suffix suggests ${inferred} but CLINIKO_SHARD is ${envShard}.`;
+    }
+  }
+
+  return {
+    apiKey,
+    shard,
+    userAgent,
+    writesEnabled,
+    baseUrl: apiKey ? `https://api.${shard}.cliniko.com/v1` : null,
+    warning,
+  };
+}
+
+export function getClinikoBaseUrl(): string | null {
+  return getClinikoConfig().baseUrl;
+}
+
+function isConfigured(): boolean {
+  return Boolean(getClinikoConfig().apiKey);
+}
+
+function buildAuthHeader(apiKey: string): string {
+  return `Basic ${Buffer.from(`${apiKey}:`).toString("base64")}`;
+}
+
+function redactError(status: number, statusText: string): string {
+  return `Cliniko request failed (${status} ${statusText})`;
+}
+
+// ─── Fetch ───────────────────────────────────────────────────────────────────
+
+export async function clinikoFetch<T>(
+  path: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const config = getClinikoConfig();
+  if (!config.apiKey || !config.baseUrl) {
+    throw new Error("NOT_CONFIGURED");
+  }
+
+  const url = `${config.baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
+  const method = options.method ?? "GET";
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    "User-Agent": config.userAgent,
+    Authorization: buildAuthHeader(config.apiKey),
+  };
+
+  if (options.body) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  const response = await fetch(url, {
+    ...options,
+    method,
+    headers: { ...headers, ...(options.headers as Record<string, string>) },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(redactError(response.status, response.statusText));
+  }
+
+  if (response.status === 204) {
+    return {} as T;
+  }
+
+  return (await response.json()) as T;
+}
+
+// ─── Demo fallbacks ──────────────────────────────────────────────────────────
+
+function demoBusinesses(): ClinikoBusiness[] {
+  return clinics.map((c, i) => ({
+    id: `demo-business-${i + 1}`,
+    name: c.name,
+    address: c.address,
+    timezone: "Europe/London",
+    archived: false,
+  }));
+}
+
+function demoPractitionersList(): ClinikoPractitioner[] {
+  return demoPractitioners
+    .filter((p) => !p.isPlaceholder)
+    .map((p, i) => ({
+      id: `demo-practitioner-${i + 1}`,
+      name: p.name,
+      firstName: p.name.split(" ")[0],
+      lastName: p.name.split(" ").slice(1).join(" ") || undefined,
+      role: p.role,
+      active: true,
+    }));
+}
+
+function demoAppointmentTypesList(): ClinikoAppointmentType[] {
+  return demoAppointmentTypes.map((a) => ({
+    id: a.id,
+    name: a.name,
+    durationMinutes: a.durationMinutes,
+    price: a.defaultFee,
+    onlineBookingsEnabled: true,
+    telehealthEnabled: a.id === "telehealth",
+    archived: false,
+  }));
+}
+
+function demoBookingsList(): ClinikoBooking[] {
+  return demoBookings.map((b) => ({
+    id: b.id,
+    startsAt: `${b.date}T${b.time}:00`,
+    endsAt: `${b.date}T${b.time}:00`,
+    appointmentTypeName: demoAppointmentTypes.find((a) => a.id === b.appointmentTypeId)?.name,
+    practitionerName: demoPractitioners.find((p) => p.id === b.practitionerId)?.name,
+    businessName: b.locationId === "dundee" ? "Dundee" : b.locationId === "aviemore" ? "Aviemore" : b.locationId,
+    patientLabel: b.clientName,
+    source: "cliniko" as const,
+    paymentStatus: b.paymentStatus,
+    noteStatus: b.noteStatus,
+    invoiceStatus: b.invoiceStatus,
+  }));
+}
+
+function toPatientLabel(name?: string | null): string {
+  if (!name?.trim()) return "Cliniko patient";
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return `${parts[0]} ${parts[parts.length - 1].charAt(0)}.`;
+  }
+  return name.trim();
+}
+
+function mapNoteStatus(status?: number | null): string | undefined {
+  if (status === null || status === undefined) return undefined;
+  const map: Record<number, string> = {
+    0: "not started",
+    1: "draft",
+    2: "final",
+  };
+  return map[status] ?? `status ${status}`;
+}
+
+function mapInvoiceStatus(status?: number | null): string | undefined {
+  if (status === null || status === undefined) return undefined;
+  return `invoice status ${status}`;
+}
+
+// ─── API accessors ───────────────────────────────────────────────────────────
+
+export async function getAuthenticatedUser(): Promise<
+  ClinikoResult<ClinikoAuthenticatedUser>
+> {
+  if (!isConfigured()) {
+    return {
+      ok: true,
+      source: "demo",
+      status: "not_configured",
+      data: {
+        id: "demo-user",
+        firstName: "George",
+        lastName: "Stewart",
+        email: "george@tigerseye.org.uk",
+        role: "practitioner",
+      },
+      warning: "No Cliniko API key configured — using demo data.",
+    };
+  }
+
+  try {
+    const raw = await clinikoFetch<Record<string, unknown>>("/user");
+    const user = (raw.user ?? raw) as Record<string, unknown>;
+    return {
+      ok: true,
+      source: "cliniko",
+      status: "connected",
+      data: {
+        id: String(user.id ?? ""),
+        firstName: user.first_name as string | undefined,
+        lastName: user.last_name as string | undefined,
+        email: user.email as string | undefined,
+        role: user.role as string | undefined,
+      },
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      source: "demo",
+      status: "error",
+      error:
+        err instanceof Error && err.message === "NOT_CONFIGURED"
+          ? "Cliniko not configured"
+          : err instanceof Error
+            ? err.message
+            : "Cliniko authentication failed",
+    };
+  }
+}
+
+export async function getBusinesses(): Promise<ClinikoResult<ClinikoBusiness[]>> {
+  const config = getClinikoConfig();
+  if (!isConfigured()) {
+    return {
+      ok: true,
+      source: "demo",
+      status: "not_configured",
+      data: demoBusinesses(),
+      warning: config.warning ?? "No Cliniko API key configured — using demo data.",
+    };
+  }
+
+  try {
+    const raw = await clinikoFetch<{
+      businesses?: Record<string, unknown>[];
+      total_entries?: number;
+    }>("/businesses?per_page=50");
+
+    const businesses = (raw.businesses ?? []).map((b) => ({
+      id: String(b.id ?? ""),
+      name: String(b.business_name ?? b.name ?? "Unnamed business"),
+      address: formatAddress(b),
+      timezone: b.time_zone as string | undefined,
+      archived: Boolean(b.archived_at),
+    }));
+
+    return {
+      ok: true,
+      source: "cliniko",
+      status: "connected",
+      data: businesses,
+      warning: config.warning,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      source: "demo",
+      status: "error",
+      data: demoBusinesses(),
+      error: err instanceof Error ? err.message : "Failed to fetch businesses",
+      warning: "Falling back to demo businesses.",
+    };
+  }
+}
+
+export async function getPractitioners(): Promise<
+  ClinikoResult<ClinikoPractitioner[]>
+> {
+  const config = getClinikoConfig();
+  if (!isConfigured()) {
+    return {
+      ok: true,
+      source: "demo",
+      status: "not_configured",
+      data: demoPractitionersList(),
+      warning: config.warning ?? "No Cliniko API key configured — using demo data.",
+    };
+  }
+
+  try {
+    const raw = await clinikoFetch<{
+      practitioners?: Record<string, unknown>[];
+      users?: Record<string, unknown>[];
+    }>("/practitioners?per_page=50");
+
+    let list = raw.practitioners ?? [];
+
+    if (list.length === 0) {
+      const usersRaw = await clinikoFetch<{ users?: Record<string, unknown>[] }>(
+        "/users?per_page=50"
+      );
+      list = usersRaw.users ?? [];
+    }
+
+    const practitioners = list.map((p) => mapPractitioner(p));
+
+    return {
+      ok: true,
+      source: "cliniko",
+      status: "connected",
+      data: practitioners,
+      warning: config.warning,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      source: "demo",
+      status: "error",
+      data: demoPractitionersList(),
+      error: err instanceof Error ? err.message : "Failed to fetch practitioners",
+      warning: "Falling back to demo practitioners.",
+    };
+  }
+}
+
+export async function getAppointmentTypes(): Promise<
+  ClinikoResult<ClinikoAppointmentType[]>
+> {
+  const config = getClinikoConfig();
+  if (!isConfigured()) {
+    return {
+      ok: true,
+      source: "demo",
+      status: "not_configured",
+      data: demoAppointmentTypesList(),
+      warning: config.warning ?? "No Cliniko API key configured — using demo data.",
+    };
+  }
+
+  try {
+    const raw = await clinikoFetch<{
+      appointment_types?: Record<string, unknown>[];
+    }>("/appointment_types?per_page=100");
+
+    const types = (raw.appointment_types ?? []).map((t) => ({
+      id: String(t.id ?? ""),
+      name: String(t.name ?? "Unnamed type"),
+      category: t.category as string | undefined,
+      durationMinutes: parseDurationMinutes(t.duration_in_minutes ?? t.duration),
+      price: parsePrice(t),
+      onlineBookingsEnabled: t.show_in_online_bookings as boolean | undefined,
+      telehealthEnabled: t.telehealth_enabled as boolean | undefined,
+      archived: Boolean(t.archived_at),
+    }));
+
+    return {
+      ok: true,
+      source: "cliniko",
+      status: "connected",
+      data: types,
+      warning: config.warning,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      source: "demo",
+      status: "error",
+      data: demoAppointmentTypesList(),
+      error: err instanceof Error ? err.message : "Failed to fetch appointment types",
+      warning: "Falling back to demo appointment types.",
+    };
+  }
+}
+
+export async function getBookings(params?: {
+  from?: string;
+  to?: string;
+  page?: number;
+  perPage?: number;
+}): Promise<ClinikoResult<ClinikoBookingsResponse>> {
+  const config = getClinikoConfig();
+  const demoResponse: ClinikoBookingsResponse = {
+    bookings: demoBookingsList(),
+    totalEntries: demoBookingsList().length,
+    source: "demo",
+  };
+
+  if (!isConfigured()) {
+    return {
+      ok: true,
+      source: "demo",
+      status: "not_configured",
+      data: demoResponse,
+      warning: config.warning ?? "No Cliniko API key configured — using demo data.",
+    };
+  }
+
+  try {
+    const page = params?.page ?? 1;
+    const perPage = params?.perPage ?? 50;
+    const query = new URLSearchParams({
+      page: String(page),
+      per_page: String(perPage),
+    });
+
+    if (params?.from) {
+      query.append("q[]", `starts_at:>=${params.from}T00:00:00Z`);
+    }
+    if (params?.to) {
+      query.append("q[]", `starts_at:<=${params.to}T23:59:59Z`);
+    }
+
+    const raw = await clinikoFetch<{
+      individual_appointments?: Record<string, unknown>[];
+      total_entries?: number;
+    }>(`/individual_appointments?${query.toString()}`);
+
+    const bookings = (raw.individual_appointments ?? []).map((appt) =>
+      mapBooking(appt)
+    );
+
+    return {
+      ok: true,
+      source: "cliniko",
+      status: "connected",
+      data: {
+        bookings,
+        totalEntries: raw.total_entries ?? bookings.length,
+        source: "cliniko",
+      },
+      warning: config.warning,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      source: "demo",
+      status: "error",
+      data: demoResponse,
+      error: err instanceof Error ? err.message : "Failed to fetch bookings",
+      warning: "Falling back to demo bookings.",
+    };
+  }
+}
+
+export async function getClinikoStatus(): Promise<ClinikoStatusResponse> {
+  const config = getClinikoConfig();
+
+  if (!config.apiKey) {
+    const demoBookings = demoBookingsList();
+    return {
+      ok: true,
+      source: "demo",
+      status: "not_configured",
+      shard: null,
+      baseUrl: null,
+      userAgentConfigured: Boolean(process.env.CLINIKO_USER_AGENT?.trim()),
+      writesEnabled: config.writesEnabled,
+      authenticatedUser: {
+        id: "demo-user",
+        firstName: "Demo",
+        lastName: "User",
+        role: "practitioner",
+      },
+      counts: {
+        businesses: demoBusinesses().length,
+        practitioners: demoPractitionersList().length,
+        appointmentTypes: demoAppointmentTypesList().length,
+        bookings: demoBookings.length,
+      },
+      warning: "Demo mode: no Cliniko key configured.",
+    };
+  }
+
+  try {
+    const [userResult, businessesResult, practitionersResult, typesResult, bookingsResult] =
+      await Promise.all([
+        getAuthenticatedUser(),
+        getBusinesses(),
+        getPractitioners(),
+        getAppointmentTypes(),
+        getBookings({ perPage: 10 }),
+      ]);
+
+    const connected = userResult.status === "connected";
+
+    return {
+      ok: connected,
+      source: connected ? "cliniko" : "demo",
+      status: connected ? "connected" : "error",
+      shard: config.shard,
+      baseUrl: config.baseUrl,
+      userAgentConfigured: Boolean(config.userAgent),
+      writesEnabled: config.writesEnabled,
+      authenticatedUser: userResult.data,
+      counts: {
+        businesses: businessesResult.data?.length ?? 0,
+        practitioners: practitionersResult.data?.length ?? 0,
+        appointmentTypes: typesResult.data?.length ?? 0,
+        bookings: bookingsResult.data?.totalEntries ?? bookingsResult.data?.bookings.length ?? 0,
+      },
+      error: connected ? undefined : userResult.error ?? "Cliniko authentication failed",
+      warning: config.warning ?? userResult.warning ?? businessesResult.warning,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      source: "demo",
+      status: "error",
+      shard: config.shard,
+      baseUrl: config.baseUrl,
+      userAgentConfigured: Boolean(config.userAgent),
+      writesEnabled: config.writesEnabled,
+      error: err instanceof Error ? err.message : "Cliniko authentication failed",
+      warning: config.warning,
+    };
+  }
+}
+
+export async function createDraftTreatmentNote(
+  input: DraftTreatmentNoteInput
+): Promise<DraftTreatmentNoteResult> {
+  const config = getClinikoConfig();
+
+  if (!input.sections || Object.keys(input.sections).length === 0) {
+    return {
+      ok: false,
+      mode: "dry_run",
+      message: "Structured sections are required.",
+      localContentStored: false,
+    };
+  }
+
+  if (!config.writesEnabled) {
+    return {
+      ok: true,
+      mode: "dry_run",
+      message:
+        "Draft treatment note write is disabled. Payload validated only.",
+      localContentStored: false,
+    };
+  }
+
+  if (!config.apiKey) {
+    return {
+      ok: true,
+      mode: "dry_run",
+      message:
+        "No Cliniko API key configured. Payload validated only.",
+      localContentStored: false,
+    };
+  }
+
+  const content = {
+    sections: Object.entries(input.sections)
+      .filter(([, value]) => value && value !== "—")
+      .map(([name, answer]) => ({
+        name,
+        description: name,
+        questions: [{ name, type: "text", answer }],
+      })),
+  };
+
+  const payload: Record<string, unknown> = {
+    draft: true,
+    title: input.title ?? input.templateName ?? "Command Hub draft note",
+    content,
+  };
+
+  if (input.bookingId) payload.booking_id = input.bookingId;
+  if (input.patientId) payload.patient_id = input.patientId;
+
+  try {
+    const result = await clinikoFetch<{
+      id?: string;
+      created_at?: string;
+    }>("/treatment_notes", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+
+    return {
+      ok: true,
+      mode: "created",
+      message: "Draft note saved to Cliniko.",
+      noteId: result.id ? String(result.id) : undefined,
+      createdAt: result.created_at,
+      localContentStored: false,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      mode: "dry_run",
+      message:
+        err instanceof Error ? err.message : "Failed to create draft treatment note",
+      localContentStored: false,
+    };
+  }
+}
+
+// ─── Mappers ─────────────────────────────────────────────────────────────────
+
+function mapPractitioner(p: Record<string, unknown>): ClinikoPractitioner {
+  const firstName = (p.first_name as string) ?? "";
+  const lastName = (p.last_name as string) ?? "";
+  const displayName =
+    (p.label as string) ||
+    (p.name as string) ||
+    [firstName, lastName].filter(Boolean).join(" ") ||
+    "Practitioner";
+
+  return {
+    id: String(p.id ?? ""),
+    name: displayName,
+    firstName: firstName || undefined,
+    lastName: lastName || undefined,
+    email: p.email as string | undefined,
+    role: (p.role as string) ?? (p.user_type as string) ?? undefined,
+    active: !p.archived_at && !p.deactivated_at,
+  };
+}
+
+function mapBooking(appt: Record<string, unknown>): ClinikoBooking {
+  return {
+    id: String(appt.id ?? ""),
+    startsAt: String(appt.starts_at ?? ""),
+    endsAt: String(appt.ends_at ?? ""),
+    appointmentTypeName: appt.appointment_type_name as string | undefined,
+    practitionerName: undefined,
+    businessName: undefined,
+    patientLabel: toPatientLabel(appt.patient_name as string | undefined),
+    source: "cliniko",
+    paymentStatus: undefined,
+    noteStatus: mapNoteStatus(appt.treatment_note_status as number | undefined),
+    invoiceStatus: mapInvoiceStatus(appt.invoice_status as number | undefined),
+    rawLinks: appt.links,
+  };
+}
+
+function formatAddress(b: Record<string, unknown>): string | undefined {
+  const parts = [
+    b.address_1,
+    b.address_2,
+    b.city,
+    b.state,
+    b.post_code,
+  ].filter(Boolean);
+  return parts.length > 0 ? parts.map(String).join(", ") : undefined;
+}
+
+function parseDurationMinutes(value: unknown): number | undefined {
+  if (typeof value === "number") return value;
+  if (typeof value === "string") {
+    const parsed = parseInt(value, 10);
+    return Number.isNaN(parsed) ? undefined : parsed;
+  }
+  return undefined;
+}
+
+function parsePrice(t: Record<string, unknown>): number | undefined {
+  const candidates = [t.price, t.default_price, t.fee];
+  for (const c of candidates) {
+    if (typeof c === "number") return c;
+    if (typeof c === "string") {
+      const parsed = parseFloat(c);
+      if (!Number.isNaN(parsed)) return parsed;
+    }
+  }
+  return undefined;
+}

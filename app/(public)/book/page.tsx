@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PublicHubNote } from "@/components/PublicHubNote";
 import { BookingGateway } from "@/components/BookingGateway";
 import { PageHero } from "@/components/PageHero";
 import { Section } from "@/components/Section";
@@ -18,6 +19,10 @@ export default function BookPage() {
       />
       <Section>
         <BookingGateway />
+        <PublicHubNote>
+          In the live setup, these choices can feed Cliniko booking links, payment rules,
+          insurance checks and admin follow-up tasks.
+        </PublicHubNote>
       </Section>
     </>
   );

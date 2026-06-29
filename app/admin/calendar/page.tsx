@@ -21,12 +21,12 @@ export default function CalendarPage() {
       </AdminPageHeader>
 
       <CalloutBox title="Cliniko remains the booking record">
-        Appointments booked through Cliniko or Setmore appear here alongside external
-        work, admin blocks and stock tasks added in the Command Hub.
+        Appointments booked through Cliniko appear alongside external work, admin
+        blocks and stock tasks added in the Command Hub.
       </CalloutBox>
 
       <div className="mt-6">
-        <WeeklyCalendar />
+        <WeeklyCalendar enableClinikoLoad />
       </div>
     </>
   );

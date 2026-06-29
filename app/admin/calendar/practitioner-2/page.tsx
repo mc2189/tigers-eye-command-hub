@@ -14,7 +14,12 @@ export default function Practitioner2CalendarPage() {
         practitioners such as Dicker. Cliniko remains the patient booking record.
       </CalloutBox>
       <div className="mt-6">
-        <WeeklyCalendar practitionerFilter="jamie-lee" />
+        <WeeklyCalendar
+          practitionerFilter="jamie-lee"
+          practitionerNameMatcher="jamie|thomson"
+          enableClinikoLoad
+          loadButtonLabel="Load Cliniko sandbox bookings"
+        />
       </div>
     </>
   );

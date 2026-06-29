@@ -1,5 +1,12 @@
+"use client";
+
 import Link from "next/link";
 import { PriorityBadge } from "./StatusBadge";
+import {
+  DemoFeedbackToast,
+  demoMessages,
+  useDemoFeedback,
+} from "./DemoActionFeedback";
 
 interface ActionCardProps {
   title: string;
@@ -16,6 +23,8 @@ export function ActionCard({
   modulePath,
   actionLabel,
 }: ActionCardProps) {
+  const { message, show } = useDemoFeedback();
+
   return (
     <article className="flex flex-col rounded-xl border border-cream-dark bg-white p-4 shadow-sm sm:p-5">
       <div className="flex flex-wrap items-center gap-2">
@@ -33,11 +42,13 @@ export function ActionCard({
         </Link>
         <button
           type="button"
+          onClick={() => show(demoMessages.markDone)}
           className="inline-flex min-h-10 items-center justify-center rounded-lg border border-cream-dark px-4 py-2 text-sm font-medium text-slate transition-colors hover:border-green hover:text-green"
         >
           Mark done
         </button>
       </div>
+      <DemoFeedbackToast message={message} />
     </article>
   );
 }

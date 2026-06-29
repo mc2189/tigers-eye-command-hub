@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PublicHubNote } from "@/components/PublicHubNote";
 import { Button } from "@/components/Button";
 import { Callout } from "@/components/Callout";
 import { PageHero } from "@/components/PageHero";
@@ -62,6 +63,10 @@ export default function TelehealthPage() {
           <Button href="/book" variant="primary">
             {telehealthContent.bookingCta}
           </Button>
+          <PublicHubNote>
+            Telehealth appointments can be shown separately in the calendar and flagged for
+            online payment before the video appointment.
+          </PublicHubNote>
         </div>
       </Section>
     </>

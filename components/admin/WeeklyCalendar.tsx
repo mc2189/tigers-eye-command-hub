@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import Link from "next/link";
 import {
   calendarItems,
@@ -17,18 +17,39 @@ import {
   type BookingSource,
   type CalendarItem,
 } from "@/lib/demo-data";
+import {
+  filterCalendarByPractitionerName,
+  useMappedClinikoBookings,
+} from "./useMappedClinikoBookings";
+import { DataSourceBadge } from "./DataSourceBadge";
 import { SourceBadge, StatusBadge } from "./StatusBadge";
+
+type DisplayItem = CalendarItem & {
+  isCliniko?: boolean;
+  workstream?: string;
+  paymentRule?: string;
+  stockImpact?: string[];
+  warnings?: string[];
+  practitionerMatched?: boolean;
+  practitionerName?: string;
+};
 
 interface WeeklyCalendarProps {
   practitionerFilter?: PractitionerId;
+  practitionerNameMatcher?: string;
   title?: string;
   subtitle?: string;
+  enableClinikoLoad?: boolean;
+  loadButtonLabel?: string;
 }
 
 export function WeeklyCalendar({
   practitionerFilter,
+  practitionerNameMatcher,
   title,
   subtitle,
+  enableClinikoLoad = false,
+  loadButtonLabel = "Load Cliniko sandbox calendar",
 }: WeeklyCalendarProps) {
   const [practitioner, setPractitioner] = useState<PractitionerId | "all">(
     practitionerFilter ?? "all"
@@ -38,8 +59,68 @@ export function WeeklyCalendar({
   const [showFinance, setShowFinance] = useState(true);
   const [showStock, setShowStock] = useState(true);
 
+  const {
+    calendarItems: clinikoItems,
+    source: clinikoSource,
+    loading,
+    lastChecked,
+    load,
+    mapped,
+  } = useMappedClinikoBookings();
+
+  const [clinikoLoaded, setClinikoLoaded] = useState(false);
+
+  const handleLoadCliniko = useCallback(async () => {
+    const from = weekDays[0];
+    const to = weekDays[weekDays.length - 1];
+    await load({ from, to });
+    setClinikoLoaded(true);
+  }, [load]);
+
+  const activeClinikoItems = useMemo(() => {
+    let items = clinikoItems;
+    if (practitionerNameMatcher) {
+      const re = new RegExp(practitionerNameMatcher, "i");
+      items = filterCalendarByPractitionerName(items, re);
+    } else if (practitionerFilter) {
+      items = items.filter((i) => i.practitionerId === practitionerFilter);
+    }
+    return items;
+  }, [clinikoItems, practitionerNameMatcher, practitionerFilter]);
+
+  const mergedItems = useMemo((): DisplayItem[] => {
+    const demo: DisplayItem[] = calendarItems.map((i) => ({ ...i, isCliniko: false }));
+    const cliniko: DisplayItem[] = clinikoLoaded
+      ? activeClinikoItems.map((i) => ({
+          id: i.id,
+          date: i.date,
+          startTime: i.startTime,
+          endTime: i.endTime,
+          title: i.title,
+          clientName: i.clientName,
+          practitionerId: i.practitionerId,
+          locationId: i.locationId,
+          source: i.source,
+          paymentStatus: i.paymentStatus,
+          noteStatus: i.noteStatus,
+          invoiceStatus: i.invoiceStatus,
+          estimatedFee: i.estimatedFee,
+          stockWarning: i.stockWarning,
+          isGap: i.isGap,
+          isCliniko: true,
+          workstream: i.workstream,
+          paymentRule: i.paymentRule,
+          stockImpact: i.stockImpact,
+          warnings: i.warnings,
+          practitionerMatched: i.practitionerMatched,
+          practitionerName: i.practitionerName,
+        }))
+      : [];
+    return [...demo, ...cliniko];
+  }, [clinikoLoaded, activeClinikoItems]);
+
   const filtered = useMemo(() => {
-    return calendarItems.filter((item) => {
+    return mergedItems.filter((item) => {
       if (practitionerFilter && item.practitionerId !== practitionerFilter) return false;
       if (!practitionerFilter && practitioner !== "all" && item.practitionerId !== practitioner)
         return false;
@@ -47,7 +128,7 @@ export function WeeklyCalendar({
       if (source !== "all" && item.source !== source) return false;
       return weekDays.includes(item.date);
     });
-  }, [practitioner, location, source, practitionerFilter]);
+  }, [mergedItems, practitioner, location, source, practitionerFilter]);
 
   const byDay = weekDays.map((day) => ({
     date: day,
@@ -67,6 +148,47 @@ export function WeeklyCalendar({
         <div className="mb-6">
           {title && <h2 className="text-lg font-bold text-navy">{title}</h2>}
           {subtitle && <p className="mt-1 text-sm text-slate">{subtitle}</p>}
+        </div>
+      )}
+
+      {enableClinikoLoad && (
+        <div className="mb-6 rounded-xl border border-cream-dark bg-white p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="font-semibold text-navy">Cliniko sandbox sync</h3>
+              <p className="text-sm text-slate">
+                External/admin/stock overlays remain demo data.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => void handleLoadCliniko()}
+              disabled={loading}
+              className="min-h-10 rounded-lg bg-green px-4 py-2 text-sm font-semibold text-white hover:bg-green-light disabled:opacity-50"
+            >
+              {loading ? "Loading…" : loadButtonLabel}
+            </button>
+          </div>
+          {clinikoLoaded && (
+            <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-4">
+              <div>
+                <dt className="text-slate">Source</dt>
+                <dd><DataSourceBadge source={clinikoSource} /></dd>
+              </div>
+              <div>
+                <dt className="text-slate">Bookings loaded</dt>
+                <dd className="font-medium">{mapped.length}</dd>
+              </div>
+              <div>
+                <dt className="text-slate">Mapped to calendar</dt>
+                <dd className="font-medium">{activeClinikoItems.length}</dd>
+              </div>
+              <div>
+                <dt className="text-slate">Last checked</dt>
+                <dd className="font-medium">{lastChecked ?? "—"}</dd>
+              </div>
+            </dl>
+          )}
         </div>
       )}
 
@@ -160,7 +282,7 @@ function DayColumn({
   showStock,
 }: {
   label: string;
-  items: CalendarItem[];
+  items: DisplayItem[];
   showFinance: boolean;
   showStock: boolean;
 }) {
@@ -194,7 +316,7 @@ function CalendarCard({
   showStock,
   compact,
 }: {
-  item: CalendarItem;
+  item: DisplayItem;
   showFinance: boolean;
   showStock: boolean;
   compact?: boolean;
@@ -206,16 +328,25 @@ function CalendarCard({
       className={`rounded-lg border p-2.5 text-xs ${
         isGap
           ? "border-dashed border-green/40 bg-green-muted/20"
-          : "border-cream-dark bg-cream/50"
+          : item.isCliniko
+            ? "border-blue-200 bg-blue-50/50"
+            : "border-cream-dark bg-cream/50"
       }`}
     >
-      <div className="flex items-center justify-between gap-1">
+      <div className="flex items-center justify-between gap-1 flex-wrap">
         <span className="font-semibold text-navy">
           {item.startTime}–{item.endTime}
         </span>
-        <SourceBadge className={sourceBadgeColors[item.source]}>
-          {sourceLabels[item.source]}
-        </SourceBadge>
+        <div className="flex flex-wrap gap-1">
+          {item.isCliniko && (
+            <span className="rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-800">
+              Cliniko
+            </span>
+          )}
+          <SourceBadge className={sourceBadgeColors[item.source]}>
+            {sourceLabels[item.source]}
+          </SourceBadge>
+        </div>
       </div>
       <p className={`mt-1 font-medium text-navy ${compact ? "truncate" : ""}`}>
         {isGap ? "Available gap" : item.title}
@@ -224,21 +355,37 @@ function CalendarCard({
         <p className="text-slate">{item.clientName}</p>
       )}
       <p className="mt-1 text-slate">
-        {getPractitioner(item.practitionerId).shortName} · {getLocation(item.locationId).shortName}
+        {item.practitionerName && !item.practitionerMatched
+          ? `${item.practitionerName} (unmatched)`
+          : getPractitioner(item.practitionerId).shortName}{" "}
+        · {getLocation(item.locationId).shortName}
       </p>
+      {item.workstream && (
+        <p className="mt-1">
+          <StatusBadge label={item.workstream} variant="neutral" />
+        </p>
+      )}
       {showFinance && !isGap && (
         <div className="mt-1.5 flex flex-wrap gap-1">
           {item.estimatedFee > 0 && (
             <StatusBadge label={`£${item.estimatedFee}`} variant="info" />
           )}
+          {item.paymentRule && (
+            <StatusBadge label={item.paymentRule.slice(0, 24)} variant="warning" />
+          )}
           <StatusBadge
             label={paymentStatusLabels[item.paymentStatus]}
             variant={item.paymentStatus === "unpaid" ? "warning" : "neutral"}
           />
+          {(item.noteStatus === "not-started" || item.noteStatus === "draft-needed") && (
+            <StatusBadge label="Note needed" variant="warning" />
+          )}
         </div>
       )}
-      {showStock && item.stockWarning && (
-        <p className="mt-1 text-amber-700">{item.stockWarning}</p>
+      {showStock && (item.stockWarning || (item.stockImpact && item.stockImpact.length > 0)) && (
+        <p className="mt-1 text-amber-700">
+          {item.stockWarning ?? `Stock: ${item.stockImpact?.join(", ")}`}
+        </p>
       )}
       {!isGap && (
         <div className="mt-2 flex flex-wrap gap-1">

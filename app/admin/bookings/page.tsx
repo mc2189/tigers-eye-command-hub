@@ -1,8 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { CalloutBox } from "@/components/admin/AdminUI";
+import { ClinikoLoadState } from "@/components/admin/ClinikoLoadState";
+import { DataSourceBadge } from "@/components/admin/DataSourceBadge";
+import {
+  DemoFeedbackToast,
+  runDemoAction,
+  useDemoFeedback,
+} from "@/components/admin/DemoActionFeedback";
 import { StatusBadge } from "@/components/admin/StatusBadge";
+import { useMappedClinikoBookings } from "@/components/admin/useMappedClinikoBookings";
 import {
   bookings,
   practitioners,
@@ -18,12 +27,37 @@ import {
   type LocationId,
   type PaymentStatus,
 } from "@/lib/demo-data";
+import type { MappedBooking } from "@/lib/cliniko-mappers";
+import type { ClinikoStatusData } from "@/components/admin/ClinikoConnectionPanel";
 
 export default function BookingsPage() {
   const [practitioner, setPractitioner] = useState<PractitionerId | "all">("all");
   const [location, setLocation] = useState<LocationId | "all">("all");
   const [payment, setPayment] = useState<PaymentStatus | "all">("all");
   const [typeFilter, setTypeFilter] = useState<"all" | "insurance" | "private" | "telehealth">("all");
+  const [clinikoStatus, setClinikoStatus] = useState<ClinikoStatusData | null>(null);
+  const { mapped, source, loading, load, lastChecked, error } = useMappedClinikoBookings();
+  const [sandboxLoaded, setSandboxLoaded] = useState(false);
+  const { message, show } = useDemoFeedback();
+
+  useEffect(() => {
+    fetch("/api/cliniko/status", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((json: ClinikoStatusData) => setClinikoStatus(json))
+      .catch(() => setClinikoStatus(null));
+  }, []);
+
+  const dataSourceLabel =
+    sandboxLoaded && source === "cliniko"
+      ? "Cliniko sandbox"
+      : clinikoStatus?.status === "connected" && clinikoStatus.source === "cliniko"
+        ? "Cliniko sandbox (demo table below)"
+        : "Demo";
+
+  async function loadSandboxBookings() {
+    await load();
+    setSandboxLoaded(true);
+  }
 
   const filtered = bookings.filter((b) => {
     if (practitioner !== "all" && b.practitionerId !== practitioner) return false;
@@ -40,7 +74,61 @@ export default function BookingsPage() {
       <AdminPageHeader
         title="Bookings"
         subtitle="All appointments from Cliniko sandbox with payment, note and invoice context."
-      />
+      >
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="text-sm text-slate">
+            Data source: <strong>{dataSourceLabel}</strong>
+          </p>
+          <button
+            type="button"
+            onClick={() => void loadSandboxBookings()}
+            disabled={loading}
+            className="min-h-10 rounded-lg bg-green px-4 py-2 text-sm font-semibold text-white hover:bg-green-light disabled:opacity-50"
+          >
+            {loading ? "Loading…" : "Load sandbox bookings"}
+          </button>
+        </div>
+      </AdminPageHeader>
+
+      <CalloutBox title="How this works">
+        <p>
+          Cliniko supplies the booking record. Command Hub adds payment, note, invoice,
+          insurance and stock context around it.
+        </p>
+      </CalloutBox>
+
+      {(sandboxLoaded || loading) && (
+        <section className="mt-6 mb-8">
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <h2 className="font-semibold text-navy">Cliniko sandbox bookings</h2>
+            {sandboxLoaded && !loading && !error && mapped.length > 0 && (
+              <>
+                <DataSourceBadge source={source} />
+                {lastChecked && (
+                  <span className="text-xs text-slate">Loaded {lastChecked}</span>
+                )}
+              </>
+            )}
+          </div>
+
+          {loading && <ClinikoLoadState loading />}
+
+          {sandboxLoaded && !loading && (
+            <ClinikoLoadState error={error} empty={!error && mapped.length === 0}>
+              <div className="hidden overflow-x-auto rounded-xl border border-cream-dark bg-white lg:block">
+                <MappedBookingsTable bookings={mapped} />
+              </div>
+              <div className="space-y-4 lg:hidden">
+                {mapped.map((b) => (
+                  <MappedBookingCard key={b.id} booking={b} />
+                ))}
+              </div>
+            </ClinikoLoadState>
+          )}
+        </section>
+      )}
+
+      <h2 className="mb-4 font-semibold text-navy">Command Hub demo bookings</h2>
 
       <div className="mb-6 flex flex-wrap gap-3">
         <select value={practitioner} onChange={(e) => setPractitioner(e.target.value as PractitionerId | "all")} className="min-h-10 rounded-lg border border-cream-dark bg-white px-3 text-sm" aria-label="Practitioner filter">
@@ -103,10 +191,10 @@ export default function BookingsPage() {
                 <td className="px-4 py-3"><StatusBadge label={invoiceStatusLabels[b.invoiceStatus]} variant="neutral" /></td>
                 <td className="px-4 py-3">
                   <div className="flex flex-wrap gap-1">
-                    <ActionBtn label="Cliniko" />
-                    <ActionBtn label="Note" />
-                    <ActionBtn label="Invoice" />
-                    <ActionBtn label="Follow-up" />
+                    <ActionBtn label="Cliniko" onDemo={show} />
+                    <ActionBtn label="Note" onDemo={show} />
+                    <ActionBtn label="Invoice" onDemo={show} />
+                    <ActionBtn label="Follow-up" onDemo={show} />
                   </div>
                 </td>
               </tr>
@@ -134,20 +222,96 @@ export default function BookingsPage() {
               <div><dt className="text-slate">Note</dt><dd>{b.noteStatus}</dd></div>
             </dl>
             <div className="mt-3 flex flex-wrap gap-2">
-              <ActionBtn label="Open in Cliniko" />
-              <ActionBtn label="Create note" />
-              <ActionBtn label="Draft invoice" />
+              <ActionBtn label="Open in Cliniko" onDemo={show} />
+              <ActionBtn label="Create note" onDemo={show} />
+              <ActionBtn label="Draft invoice" onDemo={show} />
             </div>
           </article>
         ))}
       </div>
+      <DemoFeedbackToast message={message} />
     </>
   );
 }
 
-function ActionBtn({ label }: { label: string }) {
+function MappedBookingsTable({ bookings }: { bookings: MappedBooking[] }) {
   return (
-    <button type="button" className="min-h-9 rounded-lg border border-cream-dark px-3 py-1.5 text-xs font-medium text-green hover:bg-cream">
+    <table className="w-full text-left text-sm">
+      <thead className="border-b border-cream-dark bg-cream/50">
+        <tr>
+          <th className="px-4 py-3 font-semibold text-navy">Date / time</th>
+          <th className="px-4 py-3 font-semibold text-navy">Client</th>
+          <th className="px-4 py-3 font-semibold text-navy">Type</th>
+          <th className="px-4 py-3 font-semibold text-navy">Practitioner</th>
+          <th className="px-4 py-3 font-semibold text-navy">Workstream</th>
+          <th className="px-4 py-3 font-semibold text-navy">Payment rule</th>
+          <th className="px-4 py-3 font-semibold text-navy">Note</th>
+          <th className="px-4 py-3 font-semibold text-navy">Warnings</th>
+        </tr>
+      </thead>
+      <tbody>
+        {bookings.map((b) => (
+          <tr key={b.id} className="border-b border-cream-dark last:border-0">
+            <td className="px-4 py-3 whitespace-nowrap">{b.date}<br /><span className="text-slate">{b.time}</span></td>
+            <td className="px-4 py-3 font-medium">{b.clientName}</td>
+            <td className="px-4 py-3">{b.appointmentTypeName}</td>
+            <td className="px-4 py-3">
+              {b.practitionerMatched ? b.practitionerName : (
+                <span className="text-amber-700">Unmatched Cliniko practitioner</span>
+              )}
+            </td>
+            <td className="px-4 py-3">
+              <StatusBadge label={b.workstream} variant="neutral" />
+            </td>
+            <td className="px-4 py-3 text-slate">{b.paymentRule}</td>
+            <td className="px-4 py-3"><StatusBadge label={b.noteStatus} variant="warning" /></td>
+            <td className="px-4 py-3">
+              <div className="flex flex-wrap gap-1">
+                {b.warnings.slice(0, 2).map((w) => (
+                  <StatusBadge key={w} label={w} variant="warning" />
+                ))}
+              </div>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function MappedBookingCard({ booking: b }: { booking: MappedBooking }) {
+  return (
+    <article className="rounded-xl border border-blue-200 bg-blue-50/30 p-4">
+      <div className="flex justify-between gap-2">
+        <p className="font-semibold text-navy">{b.clientName}</p>
+        <DataSourceBadge source="cliniko" />
+      </div>
+      <p className="text-sm text-slate">{b.date} {b.time} · {b.appointmentTypeName}</p>
+      <p className="mt-2 text-sm">{b.paymentRule}</p>
+      {b.warnings.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1">
+          {b.warnings.map((w) => (
+            <StatusBadge key={w} label={w} variant="warning" />
+          ))}
+        </div>
+      )}
+    </article>
+  );
+}
+
+function ActionBtn({
+  label,
+  onDemo,
+}: {
+  label: string;
+  onDemo: (msg: string) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => void runDemoAction(label, onDemo)}
+      className="min-h-9 rounded-lg border border-cream-dark px-3 py-1.5 text-xs font-medium text-green hover:bg-cream"
+    >
       {label}
     </button>
   );

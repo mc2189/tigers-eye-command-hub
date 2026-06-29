@@ -7,26 +7,59 @@ import {
   getPractitioner,
   type NoteAppointment,
 } from "@/lib/demo-data";
+import { mapClinikoBookingToNoteTask, type MappedNoteTask } from "@/lib/cliniko-mappers";
 import { structureNote } from "@/lib/structure-note";
+import { useMappedClinikoBookings } from "./useMappedClinikoBookings";
+import { ClinikoLoadState } from "./ClinikoLoadState";
+import { DataSourceBadge } from "./DataSourceBadge";
 import { CalloutBox } from "./AdminUI";
 import { StatusBadge } from "./StatusBadge";
 
+interface SaveResult {
+  ok: boolean;
+  mode: "dry_run" | "created";
+  message: string;
+  noteId?: string;
+}
+
+type TaskItem = (NoteAppointment | MappedNoteTask) & { dataSource?: "cliniko" | "demo" };
+
 export function NotesAssistant() {
-  const [selected, setSelected] = useState<NoteAppointment | null>(
-    noteAppointments[0] ?? null
-  );
+  const demoTasks: TaskItem[] = noteAppointments.map((a) => ({
+    ...a,
+    dataSource: "demo" as const,
+  }));
+
+  const { mapped, loadToday, loading, source, error } = useMappedClinikoBookings();
+  const [clinikoTasks, setClinikoTasks] = useState<MappedNoteTask[]>([]);
+  const [selected, setSelected] = useState<TaskItem | null>(demoTasks[0] ?? null);
   const [templateId, setTemplateId] = useState(noteTemplates[0].id);
   const [transcript, setTranscript] = useState("");
   const [structured, setStructured] = useState<Record<string, string> | null>(null);
-  const [saved, setSaved] = useState(false);
+  const [saveResult, setSaveResult] = useState<SaveResult | null>(null);
+  const [saving, setSaving] = useState(false);
   const [dictating, setDictating] = useState(false);
 
+  const allTasks: TaskItem[] = [...clinikoTasks, ...demoTasks];
   const template = noteTemplates.find((t) => t.id === templateId)!;
+  const selectedCliniko =
+    selected && "clinikoId" in selected ? (selected as MappedNoteTask) : null;
+
+  async function handleLoadClinikoToday() {
+    const result = await loadToday();
+    if (result?.mapped) {
+      const tasks = result.mapped
+        .filter((b) => b.isToday)
+        .map(mapClinikoBookingToNoteTask);
+      setClinikoTasks(tasks);
+      if (tasks[0]) setSelected(tasks[0]);
+    }
+  }
 
   function handleStructure() {
     if (!transcript.trim()) return;
     setStructured(structureNote(transcript, template.sections));
-    setSaved(false);
+    setSaveResult(null);
   }
 
   function handleDictation() {
@@ -42,35 +75,104 @@ export function NotesAssistant() {
     }, 800);
   }
 
-  function handleSave() {
-    setSaved(true);
-    setTranscript("");
-    setStructured(null);
+  async function handleSave() {
+    if (!structured) return;
+    setSaving(true);
+    setSaveResult(null);
+
+    const bookingId =
+      selectedCliniko?.bookingId ??
+      (selected && !("clinikoId" in selected) ? selected.id : undefined);
+
+    try {
+      const res = await fetch("/api/cliniko/treatment-note-draft", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bookingId,
+          templateName: template.name,
+          title: `${template.name} — ${selected?.clientName ?? "patient"}`,
+          sections: structured,
+        }),
+      });
+      const json = (await res.json()) as SaveResult;
+      setSaveResult(json);
+      setTranscript("");
+      setStructured(null);
+    } catch {
+      setSaveResult({
+        ok: false,
+        mode: "dry_run",
+        message: "Could not reach Cliniko draft endpoint.",
+      });
+    } finally {
+      setSaving(false);
+    }
   }
 
   function handleDiscard() {
     setTranscript("");
     setStructured(null);
-    setSaved(false);
+    setSaveResult(null);
   }
+
+  const saveSuccess = saveResult?.ok;
 
   return (
     <div>
-      <CalloutBox variant="warning" title="Demo safety">
-        Notes are temporary in this demo. Audio and transcripts are not stored.
-        Draft notes should be saved to Cliniko only after practitioner review.
-      </CalloutBox>
+      <div className="mt-4">
+        <button
+          type="button"
+          onClick={() => void handleLoadClinikoToday()}
+          disabled={loading}
+          className="min-h-10 rounded-lg bg-green px-4 py-2 text-sm font-semibold text-white hover:bg-green-light disabled:opacity-50"
+        >
+          {loading ? "Loading Cliniko sandbox data…" : "Load today's Cliniko sandbox appointments"}
+        </button>
+        {clinikoTasks.length > 0 && (
+          <span className="ml-3 text-sm text-slate">
+            {clinikoTasks.length} Cliniko task(s) · <DataSourceBadge source={source} />
+          </span>
+        )}
+      </div>
 
-      {saved && (
+      {loading && (
         <div className="mt-4">
-          <CalloutBox variant="success" title="Draft saved to Cliniko (demo)">
-          <ul className="list-disc space-y-1 pl-4">
-            <li>Draft note saved to Cliniko sandbox</li>
-            <li>Follow-up task created</li>
-            <li>Insurance session updated if relevant</li>
-            <li>Invoice task prepared</li>
-            <li>Local transcript purged</li>
-          </ul>
+          <ClinikoLoadState loading />
+        </div>
+      )}
+
+      {error && !loading && (
+        <div className="mt-4">
+          <ClinikoLoadState error={error} />
+        </div>
+      )}
+
+      {saveResult && (
+        <div className="mt-4">
+          <CalloutBox
+            variant={saveSuccess ? "success" : "warning"}
+            title={
+              saveResult.mode === "created"
+                ? "Draft note saved to Cliniko"
+                : saveSuccess
+                  ? "Draft validated (dry run)"
+                  : "Could not save draft"
+            }
+          >
+            <p>{saveResult.message}</p>
+            {saveSuccess && (
+              <ul className="mt-3 list-disc space-y-1 pl-4">
+                <li>
+                  {saveResult.mode === "created"
+                    ? "Draft note saved to Cliniko"
+                    : "Draft validated. Cliniko writing is currently disabled for safety."}
+                </li>
+                <li>Follow-up task created</li>
+                <li>Invoice task prepared</li>
+                <li>Local transcript purged</li>
+              </ul>
+            )}
           </CalloutBox>
         </div>
       )}
@@ -79,14 +181,14 @@ export function NotesAssistant() {
         <div className="rounded-xl border border-cream-dark bg-white p-4">
           <h3 className="font-semibold text-navy">Appointments needing notes</h3>
           <ul className="mt-3 space-y-2">
-            {noteAppointments.map((appt) => (
+            {allTasks.map((appt) => (
               <li key={appt.id}>
                 <button
                   type="button"
                   onClick={() => {
                     setSelected(appt);
                     setStructured(null);
-                    setSaved(false);
+                    setSaveResult(null);
                   }}
                   className={`w-full rounded-lg border p-3 text-left text-sm transition-colors ${
                     selected?.id === appt.id
@@ -94,7 +196,12 @@ export function NotesAssistant() {
                       : "border-cream-dark hover:border-green/50"
                   }`}
                 >
-                  <span className="font-medium text-navy">{appt.clientName}</span>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium text-navy">{appt.clientName}</span>
+                    {appt.dataSource === "cliniko" && (
+                      <DataSourceBadge source="cliniko" />
+                    )}
+                  </div>
                   <span className="mt-1 block text-slate">
                     {appt.date} {appt.time}
                   </span>
@@ -119,6 +226,31 @@ export function NotesAssistant() {
               <h3 className="font-semibold text-navy">
                 {selected.clientName} — {selected.appointmentType}
               </h3>
+
+              {selectedCliniko && (
+                <dl className="mt-3 grid gap-2 rounded-lg bg-cream/50 p-3 text-sm sm:grid-cols-2">
+                  <div>
+                    <dt className="text-slate">Source</dt>
+                    <dd><DataSourceBadge source="cliniko" /></dd>
+                  </div>
+                  <div>
+                    <dt className="text-slate">Booking ID</dt>
+                    <dd className="font-mono text-xs">{selectedCliniko.bookingId}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-slate">Practitioner</dt>
+                    <dd>
+                      {selectedCliniko.practitionerMatched
+                        ? selectedCliniko.practitionerName
+                        : "Unmatched Cliniko practitioner"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-slate">Location</dt>
+                    <dd>{selectedCliniko.locationLabel}</dd>
+                  </div>
+                </dl>
+              )}
 
               <div className="mt-4">
                 <label htmlFor="template" className="block text-sm font-medium text-navy">
@@ -189,14 +321,17 @@ export function NotesAssistant() {
                       />
                     </div>
                   ))}
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <button
                       type="button"
-                      onClick={handleSave}
-                      className="min-h-10 rounded-lg bg-green px-4 py-2 text-sm font-semibold text-white hover:bg-green-light"
+                      onClick={() => void handleSave()}
+                      disabled={saving}
+                      className="min-h-10 rounded-lg bg-green px-4 py-2 text-sm font-semibold text-white hover:bg-green-light disabled:opacity-50"
                     >
-                      Save draft to Cliniko sandbox
+                      {saving ? "Saving…" : "Save draft to Cliniko sandbox"}
                     </button>
+                    <DataSourceBadge source="dry-run" />
+                    <DataSourceBadge source="safety-gated" />
                     <button
                       type="button"
                       onClick={handleDiscard}

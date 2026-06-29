@@ -1,4 +1,6 @@
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { InsuranceCaseActions } from "@/components/admin/InsuranceCaseActions";
+import { ClinikoInsurancePanel } from "@/components/admin/ClinikoInsurancePanel";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import {
@@ -21,6 +23,10 @@ export default function InsurancePage() {
         title="Insurance cases"
         subtitle="Track authorisations, sessions and invoices — claim details captured for admin follow-up."
       />
+
+      <ClinikoInsurancePanel />
+
+      <h2 className="mb-4 text-lg font-bold text-navy">Command Hub demo insurance cases</h2>
 
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard label="Active insurance cases" value={summary.active} />
@@ -78,24 +84,18 @@ export default function InsurancePage() {
               </p>
             )}
 
-            <div className="mt-4 flex flex-wrap gap-2">
-              <InsAction label="Add session" />
-              <InsAction label="Draft invoice" />
-              <InsAction label="Mark auth received" />
-              <InsAction label="Send reminder draft" />
-              <InsAction label="Open Cliniko booking" />
-            </div>
+            <InsuranceCaseActions
+              actions={[
+                "Add session",
+                "Draft invoice",
+                "Mark auth received",
+                "Send reminder draft",
+                "Open Cliniko booking",
+              ]}
+            />
           </article>
         ))}
       </div>
     </>
-  );
-}
-
-function InsAction({ label }: { label: string }) {
-  return (
-    <button type="button" className="min-h-9 rounded-lg border border-cream-dark px-3 py-1.5 text-xs font-medium text-green hover:bg-cream">
-      {label}
-    </button>
   );
 }

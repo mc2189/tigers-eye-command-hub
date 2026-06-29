@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PublicHubNote } from "@/components/PublicHubNote";
 import { ContactForm } from "@/components/ContactForm";
 import { PageHero } from "@/components/PageHero";
 import { Section } from "@/components/Section";
@@ -51,6 +52,9 @@ export default function ContactPage() {
             <div className="mt-6">
               <ContactForm />
             </div>
+            <PublicHubNote>
+              Enquiries submitted here can appear in the Command Hub for follow-up.
+            </PublicHubNote>
           </div>
         </div>
       </Section>

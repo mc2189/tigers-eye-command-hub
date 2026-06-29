@@ -34,6 +34,21 @@ export default function AdminDashboardPage() {
         subtitle="Your whole business in one place — bookings, finance, insurance, stock and follow-ups around Cliniko."
       />
 
+      <section className="mb-8 rounded-xl border border-green/30 bg-green-muted/30 p-5 sm:p-6">
+        <h2 className="text-lg font-bold text-navy">Start demo walkthrough</h2>
+        <p className="mt-2 max-w-2xl text-base text-slate">
+          New to the Command Hub? Follow the guided walkthrough to see how the public
+          website, Cliniko bookings, notes, payments, invoices, insurance and stock all
+          connect.
+        </p>
+        <Link
+          href="/admin/demo-walkthrough"
+          className="mt-4 inline-flex min-h-11 items-center justify-center rounded-lg bg-green px-5 py-2.5 text-sm font-semibold text-white hover:bg-green-light"
+        >
+          Start walkthrough
+        </Link>
+      </section>
+
       <section aria-labelledby="today-heading">
         <h2 id="today-heading" className="mb-4 text-lg font-bold text-navy">
           Today at a glance
