@@ -2,17 +2,17 @@
 
 | Field | Value |
 |-------|-------|
-| **Last updated** | 2026-06-29 (client crash fix — commit `7c3c8e0`) |
-| **Local smoke** | **25/25 PASS** (with `DEMO_STAFF_PASSWORD` matching server env) |
-| **Production smoke** | **25/25 PASS** (2026-06-29, post `7c3c8e0` deploy) |
+| **Last updated** | 2026-06-29 (live appointment source fix — commit `124ff00`) |
+| **Local smoke** | **25/25 PASS** |
+| **Production smoke** | **25/25 PASS** (2026-06-29, post `124ff00` deploy) |
 | **Base URL (prod)** | https://tigers-eye-command-hub.vercel.app |
 
 ## Latest run summary
 
 | Environment | Result | Passed | Failed | Notes |
 |-------------|--------|--------|--------|-------|
-| Local (`localhost:3000`) | **PASS** | 25 | 0 | Client crash fix — safe Cliniko rendering |
-| Production (Vercel) | **PASS** | 25 | 0 | Post `7c3c8e0` deploy — `/admin/cliniko` stable |
+| Local (`localhost:3000`) | **PASS** | 25 | 0 | Live-only Cliniko DEMO appointments |
+| Production (Vercel) | **PASS** | 25 | 0 | Post `124ff00` deploy — truthful test lab list |
 
 ## Cliniko-first Aviemore checks
 
@@ -26,6 +26,13 @@
 | `/admin/cliniko` | Aviemore + system of record | PASS |
 | `/admin/settings` | Cliniko, Aviemore, Setmore legacy | PASS |
 | `/admin/demo-walkthrough` | Location-first + both locations | PASS |
+
+## Live Cliniko test data versus demo examples (`124ff00`)
+
+- Test lab appointments come only from `/individual_appointments` with numeric Cliniko ids
+- Strict patient_id match to DEMO patients — no label-only or demo fallback rows
+- Full DEMO patient names shown (no `DEMO 0.` abbreviated labels)
+- Appointment source diagnostics panel added; local proof state stores badges only
 
 ## Client crash fix (`7c3c8e0`)
 
