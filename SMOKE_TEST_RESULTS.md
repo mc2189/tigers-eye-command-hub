@@ -27,7 +27,9 @@ Production probe run (read-only, uk3 shard):
 | Practitioner | 4 | 0* | |
 | Created recently | 4 | 0* | |
 
-\*Initial deploy: `demoMatchCount` was 0 because Cliniko list responses omit top-level `patient_id` — nested `patient.links.self` must be parsed. Follow-up fix adds `extractResourceId` and inferred patient_id on patient-filtered merges.
+\*Initial deploy (`826d68d`): `demoMatchCount` was 0 because Cliniko list responses omit top-level `patient_id` — nested `patient.links.self` must be parsed. Fix in `fd0ae57` adds `extractResourceId` and inferred patient_id on patient-filtered merges.
+
+**Post-fix verification (`fd0ae57`):** Patient probe returns 2 DEMO matches; `check_demo_appointments` reports **2 live DEMO appointments**.
 
 **Conclusion from probes:** Cliniko is returning appointments; read-back failed on patient_id extraction, not query filters. Patient-specific probe is the reliable path for DEMO appointment read-back.
 
