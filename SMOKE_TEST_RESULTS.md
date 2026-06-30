@@ -2,13 +2,13 @@
 
 | Field | Value |
 |-------|-------|
-| **Last updated** | 2026-06-30 (Demo Clinic Week — commit `581a7b6`) |
-| **Feature commit** | `581a7b6` — Add demo clinic week and full client journey |
+| **Last updated** | 2026-06-30 (Appointment records + patient matching — commit `2854dce`) |
+| **Feature commit** | `2854dce` — Add appointment records and patient matching workflow |
 | **Smoke record commit** | pending |
 | **Local lint** | **PASS** |
 | **Local build** | **PASS** |
-| **Local smoke** | **35/35 PASS** (production build on port 3011) |
-| **Production smoke** | **35/35 PASS** (2026-06-30, post `581a7b6` deploy) |
+| **Local smoke** | **37/37 PASS** (production build on port 3012) |
+| **Production smoke** | **37/37 PASS** (2026-06-30, post `2854dce` deploy) |
 | **Base URL (prod)** | https://tigers-eye-command-hub.vercel.app |
 
 ## Latest run summary
@@ -17,8 +17,26 @@
 |-------------|--------|--------|--------|-------|
 | Local lint | **PASS** | — | 0 | `npm run lint` |
 | Local build | **PASS** | — | 0 | `npm run build` |
-| Local smoke | **PASS** | 35 | 0 | `BASE_URL=http://localhost:3011 node scripts/smoke-check.mjs` |
-| Production (Vercel) | **PASS** | 35 | 0 | Demo clinic week + client journey checks |
+| Local smoke | **PASS** | 37 | 0 | `BASE_URL=http://127.0.0.1:3012 node scripts/smoke-check.mjs` |
+| Production (Vercel) | **PASS** | 37 | 0 | Appointment records + patient matching checks |
+
+## Appointment actions and patient matching (`2854dce`)
+
+- Appointment cards include **Open record** on Today, Bookings, Notes, Follow-ups, Insurance invoice queue
+- `/admin/appointments/[appointmentId]` — appointment detail (client, Cliniko status, note, follow-up, invoice)
+- `/admin/clients/[clientId]` — client journey detail page
+- `/admin/intake` — booking intake with exact/possible/none/unsafe match scenarios
+- `lib/cliniko-patient-matching.ts` — patient matching scoring and recommended actions
+- `POST /api/cliniko/patient-match` and `POST /api/cliniko/create-demo-patient-intake` (DEMO-only writes)
+- Smoke expanded to 37 checks (includes `/admin/intake`, `/admin/appointments/dcw-001`, Open record actions)
+
+| Route | Content check | Result |
+|-------|---------------|--------|
+| `/admin` | Open record action | PASS |
+| `/admin/bookings` | Open record action | PASS |
+| `/admin/clients` | Open client record | PASS |
+| `/admin/intake` | Booking intake, match scenarios, DEMO patient creation | PASS |
+| `/admin/appointments/dcw-001` | Treatment note, invoice draft, patient match status | PASS |
 
 ## Demo Clinic Week and client journey (`581a7b6`)
 
@@ -223,7 +241,7 @@ Production probe run (read-only, uk3 shard):
 
 ## Failed routes (if any)
 
-_None — all routes passed on production (2026-06-30, post `581a7b6`)._
+_None — all routes passed on production (2026-06-30, post `2854dce`)._
 
 ## How to run
 
