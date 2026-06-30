@@ -97,14 +97,25 @@ export function WorkflowBundleCard({
         </div>
       )}
 
-      {(bundle.hiddenActions.length > 0 || bundle.actions.length > 3) && (
-        <button
-          type="button"
-          onClick={() => setShowAllActions((open) => !open)}
-          className="mt-3 text-sm font-semibold text-green hover:underline"
-        >
-          {showAllActions ? "Hide workflow actions" : "Show all workflow actions"}
-        </button>
+      <button
+        type="button"
+        onClick={() => setShowAllActions((open) => !open)}
+        className="mt-3 text-sm font-semibold text-green hover:underline"
+      >
+        {showAllActions ? "Hide workflow actions" : "Show all workflow actions"}
+      </button>
+
+      {showAllActions && bundle.hiddenActions.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-2">
+          {bundle.hiddenActions.map((action) => (
+            <ActionChip
+              key={`${bundle.appointmentId}-hidden-${action.label}`}
+              label={action.label}
+              kind={action.type}
+              inferred={action.source === "inferred"}
+            />
+          ))}
+        </div>
       )}
 
       {bundle.setupActions.length > 0 && (
