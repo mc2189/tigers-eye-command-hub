@@ -4,7 +4,7 @@
 |-------|-------|
 | **Last updated** | 2026-06-30 (Appointment records + patient matching — commit `2854dce`) |
 | **Feature commit** | `2854dce` — Add appointment records and patient matching workflow |
-| **Smoke record commit** | pending |
+| **Smoke record commit** | `cca288f` |
 | **Local lint** | **PASS** |
 | **Local build** | **PASS** |
 | **Local smoke** | **37/37 PASS** (production build on port 3012) |
