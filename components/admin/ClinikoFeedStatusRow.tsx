@@ -10,6 +10,7 @@ interface ClinikoFeedStatusRowProps {
   lastChecked: string | null;
   loading: boolean;
   onRefresh: () => void;
+  sourceLabel?: string;
 }
 
 export function ClinikoFeedStatusRow({
@@ -20,24 +21,32 @@ export function ClinikoFeedStatusRow({
   lastChecked,
   loading,
   onRefresh,
+  sourceLabel,
 }: ClinikoFeedStatusRowProps) {
-  const connectionLabel = connected
-    ? "Cliniko test account connected"
-    : configured
-      ? "Cliniko test account configured"
-      : "Cliniko test account not configured";
+  const connectionLabel = sourceLabel
+    ? sourceLabel
+    : connected
+      ? "Cliniko test account connected"
+      : configured
+        ? "Cliniko test account configured"
+        : "Cliniko test account not configured";
 
   return (
     <div className="mb-6 flex flex-col gap-3 rounded-xl border border-cream-dark bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="space-y-1 text-sm">
         <div className="flex flex-wrap items-center gap-2">
-          <DataSourcePill kind={isLive || configured ? "cliniko-test" : "demo"} />
-          <span className="font-medium text-navy">{connectionLabel}</span>
+          <DataSourcePill
+            kind={sourceLabel ? "demo" : isLive || configured ? "cliniko-test" : "demo"}
+            label={sourceLabel}
+          />
+          <span className="font-medium text-navy">
+            {sourceLabel ? connectionLabel : connectionLabel}
+          </span>
         </div>
         <p className="text-slate">
-          {isLive
-            ? `${appointmentCount} live appointment${appointmentCount === 1 ? "" : "s"} loaded`
-            : "No live appointments loaded yet"}
+          {appointmentCount > 0
+            ? `${appointmentCount} appointment${appointmentCount === 1 ? "" : "s"} loaded`
+            : "No appointments loaded yet"}
           {lastChecked ? ` · Last checked ${lastChecked}` : ""}
         </p>
       </div>

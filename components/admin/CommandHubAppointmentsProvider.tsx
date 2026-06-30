@@ -10,6 +10,8 @@ import {
   type ReactNode,
 } from "react";
 import type { MappedBooking, MappedCalendarItem, DataSource } from "@/lib/cliniko-mappers";
+import { mapDemoClinicWeekToBookings, mapDemoClinicWeekToCalendarItems } from "@/lib/demo-week-to-mapped";
+import { isDemoWeekPreviewActive, DEMO_WEEK_PREVIEW_KEY } from "@/lib/demo-week-preview";
 import { useMappedClinikoBookings } from "./useMappedClinikoBookings";
 import type { ClinikoStatusData } from "./ClinikoConnectionPanel";
 
@@ -35,6 +37,7 @@ interface CommandHubAppointmentsContextValue {
   connected: boolean;
   configured: boolean;
   isLive: boolean;
+  demoWeekPreview: boolean;
   reload: () => Promise<void>;
   loadToday: () => Promise<void>;
   loadRange: (from: string, to: string) => Promise<void>;
@@ -71,6 +74,37 @@ export function CommandHubAppointmentsProvider({ children }: { children: ReactNo
   const [status, setStatus] = useState<ClinikoStatusData | null>(null);
   const [initialized, setInitialized] = useState(false);
   const [statusLoading, setStatusLoading] = useState(false);
+  const [demoWeekPreview, setDemoWeekPreview] = useState(false);
+
+  useEffect(() => {
+    setDemoWeekPreview(isDemoWeekPreviewActive());
+    const handler = () => setDemoWeekPreview(isDemoWeekPreviewActive());
+    window.addEventListener("demo-week-preview-changed", handler);
+    return () => window.removeEventListener("demo-week-preview-changed", handler);
+  }, []);
+
+  // Default demo week preview on for rich demo layout unless user opted out
+  useEffect(() => {
+    if (!initialized) return;
+    if (localStorage.getItem(DEMO_WEEK_PREVIEW_KEY) === "inactive") return;
+    if (mapped.length > 0 && mapped.length >= 8) return;
+    setDemoWeekPreview(true);
+  }, [initialized, mapped.length]);
+
+  const demoWeekMapped = useMemo(() => mapDemoClinicWeekToBookings("demo"), []);
+  const demoWeekCalendar = useMemo(() => mapDemoClinicWeekToCalendarItems(), []);
+
+  const effectiveMapped = useMemo(() => {
+    if (demoWeekPreview) return demoWeekMapped;
+    return mapped;
+  }, [demoWeekPreview, demoWeekMapped, mapped]);
+
+  const effectiveCalendar = useMemo(() => {
+    if (demoWeekPreview) return demoWeekCalendar;
+    return calendarItems;
+  }, [demoWeekPreview, demoWeekCalendar, calendarItems]);
+
+  const effectiveSource: DataSource = demoWeekPreview ? "demo" : source;
 
   const connected = Boolean(
     status?.status === "connected" && status.source === "cliniko"
@@ -80,14 +114,15 @@ export function CommandHubAppointmentsProvider({ children }: { children: ReactNo
 
   const isLive = useMemo(
     () =>
+      !demoWeekPreview &&
       configured &&
       initialized &&
       !error &&
       (source === "cliniko-test" || source === "cliniko"),
-    [configured, error, initialized, source]
+    [configured, demoWeekPreview, error, initialized, source]
   );
 
-  const hasLiveAppointments = isLive && mapped.length > 0;
+  const hasLiveAppointments = isLive && effectiveMapped.length > 0;
 
   const refreshStatus = useCallback(async () => {
     setStatusLoading(true);
@@ -129,17 +164,18 @@ export function CommandHubAppointmentsProvider({ children }: { children: ReactNo
 
   const value = useMemo<CommandHubAppointmentsContextValue>(
     () => ({
-      mapped,
-      calendarItems,
-      source,
+      mapped: effectiveMapped,
+      calendarItems: effectiveCalendar,
+      source: effectiveSource,
       loading: appointmentsLoading || statusLoading || !initialized,
       lastChecked,
       error,
       connected,
       configured,
       isLive,
+      demoWeekPreview,
       hasLiveAppointments,
-      hasDisplayQualityIssues,
+      hasDisplayQualityIssues: demoWeekPreview ? false : hasDisplayQualityIssues,
       clinikoStatus: status,
       reload: async () => {
         const json = await refreshStatus();
@@ -155,9 +191,9 @@ export function CommandHubAppointmentsProvider({ children }: { children: ReactNo
       },
     }),
     [
-      mapped,
-      calendarItems,
-      source,
+      effectiveMapped,
+      effectiveCalendar,
+      effectiveSource,
       appointmentsLoading,
       statusLoading,
       initialized,
@@ -166,6 +202,7 @@ export function CommandHubAppointmentsProvider({ children }: { children: ReactNo
       connected,
       configured,
       isLive,
+      demoWeekPreview,
       hasLiveAppointments,
       hasDisplayQualityIssues,
       status,

@@ -48,7 +48,11 @@ export type TestLabAction =
   | "check_demo_appointments"
   | "cleanup_demo_records"
   | "probe_individual_appointments"
-  | "lookup_appointment_by_id";
+  | "lookup_appointment_by_id"
+  | "seed_demo_clinic_week"
+  | "preview_demo_clinic_week"
+  | "check_demo_clinic_week"
+  | "cleanup_demo_clinic_week";
 
 export interface DemoPatientRecord {
   id: string;

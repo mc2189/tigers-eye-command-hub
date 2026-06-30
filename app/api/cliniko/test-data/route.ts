@@ -13,6 +13,12 @@ import {
   type DemoTestLabSnapshot,
   type TestLabAction,
 } from "@/lib/cliniko-test-lab";
+import {
+  checkSeededDemoClinicWeek,
+  cleanupDemoClinicWeek,
+  previewDemoClinicWeek,
+  seedDemoClinicWeek,
+} from "@/lib/demo-clinic-week-seed";
 
 export const dynamic = "force-dynamic";
 
@@ -229,6 +235,26 @@ export async function POST(request: NextRequest) {
       break;
     case "cleanup_demo_records":
       result = await cleanupDemoTestData();
+      break;
+    case "seed_demo_clinic_week":
+      result = await seedDemoClinicWeek();
+      break;
+    case "preview_demo_clinic_week": {
+      const preview = await previewDemoClinicWeek();
+      result = {
+        ok: preview.ok,
+        action: "preview_demo_clinic_week",
+        proofStatus: preview.proofStatus,
+        message: preview.message,
+        result: preview,
+      };
+      break;
+    }
+    case "check_demo_clinic_week":
+      result = await checkSeededDemoClinicWeek();
+      break;
+    case "cleanup_demo_clinic_week":
+      result = await cleanupDemoClinicWeek();
       break;
     default:
       return NextResponse.json(

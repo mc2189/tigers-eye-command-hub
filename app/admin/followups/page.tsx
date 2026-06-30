@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { WorkflowPageHeader } from "@/components/admin/WorkflowPageHeader";
 import { FollowUpWorkflowQueue } from "@/components/admin/FollowUpWorkflowQueue";
+import { DemoWeekReferenceStrip } from "@/components/admin/DemoWeekReferenceStrip";
+import { WhatThisShows } from "@/components/admin/WhatThisShows";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { followUpTasks } from "@/lib/demo-data";
 
@@ -33,6 +35,10 @@ export default function FollowupsPage() {
       />
 
       <p className="sr-only">follow-up suggestions from live appointments</p>
+
+      <WhatThisShows>
+        Suggested follow-up actions from appointment types — not sent automatically.
+      </WhatThisShows>
 
       <FollowUpWorkflowQueue />
 
@@ -94,6 +100,7 @@ export default function FollowupsPage() {
           </article>
         ))}
       </div>
+      <DemoWeekReferenceStrip variant="followups" />
     </>
   );
 }

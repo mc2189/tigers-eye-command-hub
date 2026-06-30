@@ -1,4 +1,5 @@
 import { BookingsPageContent } from "@/components/admin/BookingsPageContent";
+import { DemoWeekReferenceStrip } from "@/components/admin/DemoWeekReferenceStrip";
 
 export default function BookingsPage() {
   return (
@@ -10,6 +11,7 @@ export default function BookingsPage() {
         need the full checklist for that booking.
       </p>
       <BookingsPageContent />
+      <DemoWeekReferenceStrip variant="bookings" />
     </>
   );
 }

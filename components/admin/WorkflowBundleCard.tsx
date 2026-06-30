@@ -9,6 +9,8 @@ interface WorkflowBundleCardProps {
   bundle: AppointmentWorkflowBundle;
   showDetails?: boolean;
   compact?: boolean;
+  journeySummary?: string;
+  sourceLabel?: string;
 }
 
 function formatWhen(bundle: AppointmentWorkflowBundle): string {
@@ -32,6 +34,8 @@ export function WorkflowBundleCard({
   bundle,
   showDetails = true,
   compact = false,
+  journeySummary,
+  sourceLabel,
 }: WorkflowBundleCardProps) {
   const [showAllActions, setShowAllActions] = useState(false);
   const sourcePill =
@@ -58,14 +62,19 @@ export function WorkflowBundleCard({
         <DataSourcePill
           kind={sourcePill}
           label={
-            bundle.source === "demo"
-              ? "Demo example"
+            sourceLabel ??
+            (bundle.source === "demo"
+              ? "Demo week preview"
               : bundle.source === "inferred"
                 ? "Suggested by Command Hub"
-                : "Cliniko test account"
+                : "Cliniko test account")
           }
         />
       </div>
+
+      {journeySummary && (
+        <p className="mt-2 text-xs font-medium text-slate">{journeySummary}</p>
+      )}
 
       {bundle.primaryAction && (
         <div className="mt-4 rounded-lg border border-green/20 bg-green-muted/20 p-3">

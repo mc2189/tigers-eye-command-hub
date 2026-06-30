@@ -1,6 +1,7 @@
-import { WorkflowPageHeader } from "@/components/admin/WorkflowPageHeader";
-import { WorkflowHelpPanel } from "@/components/admin/WorkflowHelpPanel";
 import Link from "next/link";
+import { DemoWeekPreviewToggle } from "@/components/admin/DemoWeekPreviewToggle";
+import { WorkflowHelpPanel } from "@/components/admin/WorkflowHelpPanel";
+import { WorkflowPageHeader } from "@/components/admin/WorkflowPageHeader";
 
 const workingNow = [
   "Cliniko connection",
@@ -39,12 +40,16 @@ export default function ProofPage() {
         purpose="What is working now versus what is inferred or planned — honest demo status for George."
       />
 
-      <p className="sr-only">Insurance session tracking</p>
+      <p className="sr-only">Preview demo clinic week</p>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <WorkflowHelpPanel title="Working now" items={workingNow} />
         <WorkflowHelpPanel title="Inferred workflow" items={inferredWorkflow} />
         <WorkflowHelpPanel title="Future integrations" items={futureIntegrations} />
+      </div>
+
+      <div className="mt-8">
+        <DemoWeekPreviewToggle />
       </div>
 
       <div className="mt-8 rounded-xl border border-cream-dark bg-cream/40 p-5">

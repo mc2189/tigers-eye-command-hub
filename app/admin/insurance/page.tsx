@@ -1,4 +1,5 @@
 import { InsuranceCaseTracker } from "@/components/admin/InsuranceCaseTracker";
+import { DemoWeekReferenceStrip } from "@/components/admin/DemoWeekReferenceStrip";
 
 export default function InsurancePage() {
   return (
@@ -8,6 +9,7 @@ export default function InsurancePage() {
         sessions
       </p>
       <InsuranceCaseTracker />
+      <DemoWeekReferenceStrip variant="insurance" />
     </>
   );
 }

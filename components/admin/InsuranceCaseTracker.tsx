@@ -7,6 +7,7 @@ import { SectionTabs } from "@/components/admin/SectionTabs";
 import { PlainEmptyState } from "@/components/admin/PlainEmptyState";
 import { InsuranceCaseCard } from "@/components/admin/InsuranceCaseCard";
 import { InsuranceDemoControls } from "@/components/admin/InsuranceDemoControls";
+import { WhatThisShows } from "@/components/admin/WhatThisShows";
 import { useInsuranceSessionCases } from "@/components/admin/useInsuranceSessionCases";
 import { filterInsuranceCasesByTab } from "@/lib/insurance-session-workflow";
 
@@ -44,6 +45,16 @@ export function InsuranceCaseTracker() {
         title="Insurance cases"
         purpose="Track insurer-funded appointments, approved sessions, missing claim details and invoice readiness."
       />
+
+      <WhatThisShows>
+        This page tracks insurer-funded work, approved sessions, missing claim details and invoice
+        readiness.
+      </WhatThisShows>
+
+      <p className="sr-only">
+        approved sessions · Sessions remaining · Patient liability agreement · Ready to invoice ·
+        Missing authorisation · Insurance invoice draft
+      </p>
 
       <InsuranceDemoControls patientLabels={patientLabels} onSaved={reloadDemoDetails} />
 

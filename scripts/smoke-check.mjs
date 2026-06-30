@@ -69,6 +69,7 @@ const protectedRoutes = [
   "/admin/notes",
   "/admin/stock",
   "/admin/followups",
+  "/admin/clients",
   "/admin/proof",
   "/admin/settings",
   "/api/cliniko/status",
@@ -112,9 +113,10 @@ const contentChecks = {
     return null;
   },
   "/admin": (body) => {
-    if (!/Today'?s command|Needs attention|Appointments/i.test(body)) {
-      return "missing Today cockpit wording";
-    }
+    if (!/Today at a glance/i.test(body)) return "missing Today at a glance";
+    if (!/Urgent \/ needs action/i.test(body)) return "missing Urgent / needs action section";
+    if (!/What this shows/i.test(body)) return "missing What this shows helper";
+    if (!/Client journey/i.test(body)) return "missing Client journey section";
     return null;
   },
   "/admin/bookings": (body) => {
@@ -122,11 +124,16 @@ const contentChecks = {
       return "missing bookings purpose line";
     }
     if (!/Needs attention/i.test(body)) return "missing Needs attention tab";
+    if (!/Upcoming bookings|Today/i.test(body)) {
+      return "missing Upcoming bookings or Today grouping";
+    }
     if (body.includes("DEMO 0.")) return "contains broken label DEMO 0.";
     if (body.includes("DEMO (.")) return "contains broken label DEMO (.";
     if (!/Show all workflow actions/i.test(body)) {
       return "missing Show all workflow actions disclosure";
     }
+    if (!/Note needed/i.test(body)) return "missing Note needed wording";
+    if (!/Follow-up suggested/i.test(body)) return "missing Follow-up suggested wording";
     return null;
   },
   "/admin/notes": (body) => {
@@ -136,6 +143,10 @@ const contentChecks = {
     if (!/Appointments needing notes/i.test(body)) {
       return "missing Appointments needing notes section";
     }
+    if (!/Initial assessment note/i.test(body)) {
+      return "missing Initial assessment note template";
+    }
+    if (!/No audio stored/i.test(body)) return "missing No audio stored safety copy";
     return null;
   },
   "/admin/payments": (body) => {
@@ -157,13 +168,33 @@ const contentChecks = {
     if (!/Insurance invoice queue/i.test(body)) {
       return "missing Insurance invoice queue section";
     }
+    if (!/Ready to draft/i.test(body)) return "missing Ready to draft wording";
+    if (!/Insurance invoice draft/i.test(body)) {
+      return "missing Insurance invoice draft section";
+    }
+    if (!/Prepared invoice draft/i.test(body)) {
+      return "missing Prepared invoice draft wording";
+    }
+    if (!/Future Xero integration/i.test(body)) {
+      return "missing Future Xero integration wording";
+    }
+    if (!/Future Healthcode integration/i.test(body)) {
+      return "missing Future Healthcode integration wording";
+    }
     return null;
   },
   "/admin/insurance": (body) => {
     if (!/Insurance cases/i.test(body)) return "missing Insurance cases title";
     if (!/approved sessions/i.test(body)) return "missing approved sessions wording";
+    if (!/Sessions remaining/i.test(body)) return "missing Sessions remaining";
+    if (!/Patient liability agreement/i.test(body)) {
+      return "missing Patient liability agreement";
+    }
     if (!/Demo case controls/i.test(body)) return "missing Demo case controls";
     if (!/Ready to invoice/i.test(body)) return "missing Ready to invoice tab";
+    if (!/Insurance invoice draft/i.test(body)) {
+      return "missing Insurance invoice draft wording";
+    }
     return null;
   },
   "/admin/stock": (body) => {
@@ -174,11 +205,25 @@ const contentChecks = {
   },
   "/admin/followups": (body) => {
     if (!/follow-up/i.test(body)) return "missing follow-up wording";
+    if (!/Suggested by Command Hub/i.test(body)) {
+      return "missing Suggested by Command Hub label";
+    }
+    return null;
+  },
+  "/admin/clients": (body) => {
+    if (!/Client journeys/i.test(body)) return "missing Client journeys";
+    if (!/Notes status/i.test(body)) return "missing Notes status";
+    if (!/Invoice status/i.test(body)) return "missing Invoice status";
+    if (!/Follow-up status/i.test(body)) return "missing Follow-up status";
+    if (!/What this shows/i.test(body)) return "missing What this shows helper";
     return null;
   },
   "/admin/proof": (body) => {
     if (!/Insurance session tracking/i.test(body)) {
       return "missing Insurance session tracking on proof page";
+    }
+    if (!/Preview demo clinic week/i.test(body)) {
+      return "missing Preview demo clinic week link";
     }
     return null;
   },
@@ -201,23 +246,27 @@ const contentChecks = {
     if (!/Technical Cliniko test lab/i.test(body)) {
       return "missing Technical Cliniko test lab link";
     }
+    if (!/Preview demo clinic week/i.test(body)) {
+      return "missing Preview demo clinic week link";
+    }
+    for (const term of ["Cliniko", "Aviemore", "Setmore"]) {
+      if (!body.includes(term)) return `missing "${term}"`;
+    }
+    if (!/legacy|transition/i.test(body)) {
+      return 'missing "legacy" or "transition" for Setmore';
+    }
     return null;
   },
   "/admin/cliniko/test-lab": (body) => {
     if (!/Technical test lab/i.test(body)) {
       return "missing Technical test lab banner";
     }
+    if (!/Demo Clinic Week/i.test(body)) return "missing Demo Clinic Week section";
+    if (!/Seed demo clinic week/i.test(body)) {
+      return "missing Seed demo clinic week control";
+    }
     if (!/Cliniko appointment discovery|Run appointment discovery|Live Cliniko DEMO appointments/i.test(body)) {
       return "missing Cliniko test lab discovery sections";
-    }
-    return null;
-  },
-  "/admin/settings": (body) => {
-    for (const term of ["Cliniko", "Aviemore", "Setmore"]) {
-      if (!body.includes(term)) return `missing "${term}"`;
-    }
-    if (!/legacy|transition/i.test(body)) {
-      return 'missing "legacy" or "transition" for Setmore';
     }
     return null;
   },

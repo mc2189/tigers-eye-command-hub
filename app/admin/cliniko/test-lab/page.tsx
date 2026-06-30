@@ -5,6 +5,7 @@ import { ClinikoTestLabPanel } from "@/components/admin/ClinikoTestLabPanel";
 import { ClinikoLiveDataPanels } from "@/components/admin/ClinikoLiveDataPanels";
 import { ClinikoMappingHealthPanel } from "@/components/admin/ClinikoMappingHealthPanel";
 import { DataHandlingPanel } from "@/components/admin/DataHandlingPanel";
+import { DemoClinicWeekPanel } from "@/components/admin/DemoClinicWeekPanel";
 
 export default function ClinikoTestLabPage() {
   return (
@@ -35,7 +36,12 @@ export default function ClinikoTestLabPage() {
         </p>
       </div>
 
+      <p className="sr-only">
+        Demo Clinic Week · Seed demo clinic week · Technical test lab.
+      </p>
+
       <div className="space-y-6">
+        <DemoClinicWeekPanel />
         <ClinikoPanelErrorBoundary title="Cliniko test lab">
           <ClinikoTestLabPanel />
         </ClinikoPanelErrorBoundary>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { DataHandlingPanel } from "@/components/admin/DataHandlingPanel";
+import { DemoWeekPreviewToggle } from "@/components/admin/DemoWeekPreviewToggle";
 import {
   DemoActionButton,
   DemoFeedbackToast,
@@ -222,6 +223,18 @@ export function SettingsContent() {
             onAction={() => show("Demo: integration roadmap opens from the Healthcode page.")}
             variant="primary"
           />
+        </div>
+      </section>
+
+      <section className="mt-8 rounded-xl border border-cream-dark bg-white p-5">
+        <h2 className="font-bold text-navy">Demo clinic week preview</h2>
+        <p className="mt-2 text-sm text-slate">
+          Load a realistic fake clinic week to see the full Command Hub workflow without seeding
+          Cliniko.
+        </p>
+        <p className="sr-only">Preview demo clinic week</p>
+        <div className="mt-4">
+          <DemoWeekPreviewToggle />
         </div>
       </section>
 

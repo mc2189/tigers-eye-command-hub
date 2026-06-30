@@ -3,6 +3,8 @@ import { DataHandlingPanel } from "@/components/admin/DataHandlingPanel";
 import { NotesAssistant } from "@/components/admin/NotesAssistant";
 import { NotesWorkflowQueue } from "@/components/admin/NotesWorkflowQueue";
 import { SafeNotesPanel } from "@/components/admin/SafeNotesPanel";
+import { DemoWeekReferenceStrip } from "@/components/admin/DemoWeekReferenceStrip";
+import { WhatThisShows } from "@/components/admin/WhatThisShows";
 
 export default function NotesPage() {
   return (
@@ -11,6 +13,10 @@ export default function NotesPage() {
         title="Notes"
         purpose="Prepare treatment-note drafts safely. Cliniko remains the clinical record."
       />
+      <WhatThisShows>
+        Treatment note tasks from appointments — prepared for Cliniko, not saved until the
+        practitioner confirms in Cliniko.
+      </WhatThisShows>
       <NotesWorkflowQueue />
       <div className="mb-6 space-y-6">
         <SafeNotesPanel />
@@ -19,6 +25,7 @@ export default function NotesPage() {
       <div id="notes-assistant">
         <NotesAssistant />
       </div>
+      <DemoWeekReferenceStrip variant="notes" />
     </>
   );
 }

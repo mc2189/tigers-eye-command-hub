@@ -24,6 +24,39 @@ export const DEFAULT_DEMO_INSURANCE_CASES: DemoInsuranceCaseDetail[] = [
     liabilityAccepted: true,
     invoiceStatus: "ready-to-invoice",
   },
+  {
+    patientLabel: "DEMO Sarah McKay",
+    insurer: "Aviva",
+    claimNumber: "DEMO-CLAIM-AVIVA-001",
+    authorisationNumber: "DEMO-AUTH-AVIVA-001",
+    approvedSessions: 6,
+    liabilityAccepted: true,
+    invoiceStatus: "ready-to-invoice",
+  },
+  {
+    patientLabel: "DEMO Jamie Ross",
+    insurer: "Vitality",
+    claimNumber: "DEMO-CLAIM-VIT-002",
+    approvedSessions: 4,
+    liabilityAccepted: true,
+    invoiceStatus: "not-ready",
+  },
+  {
+    patientLabel: "DEMO Fiona Stewart",
+    insurer: "Bupa",
+    claimNumber: "DEMO-CLAIM-BUPA-010",
+    liabilityAccepted: false,
+    invoiceStatus: "not-ready",
+  },
+  {
+    patientLabel: "DEMO Callum Reid",
+    insurer: "Aviva",
+    claimNumber: "DEMO-CLAIM-AVIVA-011",
+    authorisationNumber: "DEMO-AUTH-AVIVA-011",
+    approvedSessions: 6,
+    liabilityAccepted: true,
+    invoiceStatus: "ready-to-invoice",
+  },
 ];
 
 export const DEMO_INSURANCE_STORAGE_KEY = "tigers-eye-demo-insurance-cases-v1";

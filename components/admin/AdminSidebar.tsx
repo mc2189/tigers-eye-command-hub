@@ -43,6 +43,7 @@ const navSections: NavSection[] = [
   {
     title: "Clinic",
     items: [
+      { href: "/admin/clients", label: "Clients" },
       { href: "/admin/waitlist", label: "Waitlist" },
       { href: "/admin/external-work", label: "External Work" },
       { href: "/admin/stock", label: "Stock" },

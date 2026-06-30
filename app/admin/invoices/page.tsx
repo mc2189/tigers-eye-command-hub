@@ -5,6 +5,9 @@ import { WorkflowPageHeader } from "@/components/admin/WorkflowPageHeader";
 import { InvoiceGenerator } from "@/components/admin/InvoiceGenerator";
 import { ClinikoInvoiceQueuePanel } from "@/components/admin/ClinikoInvoiceQueuePanel";
 import { InsuranceInvoiceQueue } from "@/components/admin/InsuranceInvoiceQueue";
+import { DemoWeekInvoicesPanel } from "@/components/admin/DemoWeekInvoicesPanel";
+import { DemoWeekReferenceStrip } from "@/components/admin/DemoWeekReferenceStrip";
+import { WhatThisShows } from "@/components/admin/WhatThisShows";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { invoices, invoiceStatusLabels, type InvoiceStatus } from "@/lib/demo-data";
 
@@ -36,9 +39,16 @@ export default function InvoicesPage() {
         <InvoiceGenerator />
       </WorkflowPageHeader>
 
+      <WhatThisShows>
+        Invoice readiness, insurance invoice drafts and prepared private invoices — not connected
+        to Xero or Healthcode yet.
+      </WhatThisShows>
+
       <ClinikoInvoiceQueuePanel />
 
       <InsuranceInvoiceQueue />
+
+      <DemoWeekInvoicesPanel />
 
       <h2 className="mb-4 text-lg font-bold text-navy">Command Hub demo invoices</h2>
 
@@ -96,6 +106,7 @@ export default function InvoicesPage() {
           </article>
         ))}
       </div>
+      <DemoWeekReferenceStrip variant="invoices" />
     </>
   );
 }

@@ -135,6 +135,21 @@ It must **not** appear as the active Aviemore booking provider on `/book`.
 - Today, bookings and workflow bundles enriched with insurance-specific action chips when cases exist
 - No real patient insurance data should be entered
 
+## Demo Clinic Week and full DEMO client journey
+
+- `lib/demo-clinic-week.ts` — 12 DEMO clients, 12 appointment scenarios (private, insurance, telehealth, external, stock, follow-up)
+- Full fake client profiles: DOB, contact, GP, insurance details, treatment plans
+- `lib/demo-week-to-mapped.ts` — maps scenarios to `MappedBooking` for workflow engine
+- `lib/demo-client-journey.ts` — client journey view data with honest source labels
+- `lib/demo-clinic-week-seed.ts` — Cliniko test-lab seeding (DEMO patients + appointments only)
+- Demo week preview mode (`localStorage`) — rich layout without mixing unlabelled data
+- `/admin/clients` — client journey page under Clinic sidebar group
+- Test lab: Demo Clinic Week panel (preview, seed, check, cleanup)
+- Today/Bookings/Insurance/Invoices/Notes/Follow-ups enriched with scenario data
+- `WhatThisShows` helper on key workflow pages
+- Entity audit: patients/appointments writable to Cliniko; notes/invoices/follow-ups prepared only
+- Smoke expanded to 35 checks including `/admin/clients`
+
 ## Command Hub GUI polish and live data display fix
 
 - **Root cause:** `toPatientLabel()` in `lib/cliniko.ts` abbreviated full DEMO names (e.g. `DEMO Test Patient 001` → `DEMO 0.`)

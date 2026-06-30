@@ -209,6 +209,23 @@ Use this before showing George. Tick each item after verifying in the browser.
 
 ---
 
+## Demo Clinic Week and client journey
+
+- [ ] Preview demo clinic week toggle works on Settings and Proof pages
+- [ ] Demo week preview banner shows when preview is active
+- [ ] `/admin/clients` shows DEMO client journeys with notes/invoice/follow-up status
+- [ ] Today page groups Urgent / Ready / Money / Insurance / Client journey / Setup
+- [ ] Bookings page groups Today / Tomorrow / Later this week
+- [ ] Insurance page shows Sessions remaining, liability agreement, invoice readiness
+- [ ] Invoices page shows insurance invoice drafts and Prepared invoice draft
+- [ ] Notes page shows note templates and safety copy
+- [ ] Follow-ups page shows Suggested by Command Hub actions
+- [ ] Test lab Demo Clinic Week panel: preview, seed, check, cleanup
+- [ ] Seeding creates DEMO-prefixed patients only
+- [ ] Preview data labelled Demo week preview — not confused with live Cliniko
+
+---
+
 ## Command Hub GUI polish (live labels + daily workflow)
 
 - [ ] `/admin/bookings` shows full DEMO patient names (not `DEMO 0.` or `DEMO (.`)
@@ -232,5 +249,5 @@ npm run lint
 npm run build
 npm run dev          # terminal 1
 npm run smoke:local  # terminal 2 — includes unauthenticated auth checks
-npm run smoke:prod   # after Vercel deploy (34 checks)
+npm run smoke:prod   # after Vercel deploy (35 checks)
 ```
