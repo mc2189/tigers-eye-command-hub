@@ -51,6 +51,19 @@ export function InsuranceCaseTracker() {
         readiness.
       </WhatThisShows>
 
+      <section className="mb-6 rounded-xl border border-cream-dark bg-cream/40 p-4 text-sm">
+        <p className="font-semibold text-navy">Insurance storage audit</p>
+        <p className="mt-1 text-slate">
+          Patient and appointment records live in the Cliniko test account when seeded. Insurer,
+          policy, claim and authorisation details are stored in the{" "}
+          <strong>Command Hub demo case</strong> (browser only) — not written to Cliniko unless
+          custom fields are wired in future.
+        </p>
+        <p className="mt-2 text-xs text-slate">
+          Command Hub demo case · Future Healthcode integration · Future Xero integration
+        </p>
+      </section>
+
       <p className="sr-only">
         approved sessions · Sessions remaining · Patient liability agreement · Ready to invoice ·
         Missing authorisation · Insurance invoice draft

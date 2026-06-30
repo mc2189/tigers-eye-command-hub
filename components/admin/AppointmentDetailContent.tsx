@@ -16,6 +16,7 @@ import {
 } from "@/lib/demo-record-state";
 import type { BookingIntakeInput } from "@/lib/cliniko-patient-matching";
 import { buildAppointmentCompleteness } from "@/lib/record-completeness";
+import { getTreatmentNoteEligibility } from "@/lib/treatment-note-eligibility";
 
 interface AppointmentDetailContentProps {
   appointmentId: string;
@@ -97,8 +98,10 @@ export function AppointmentDetailContent({ appointmentId }: AppointmentDetailCon
       })()
     : null;
 
+  const linkedPatientId = recordState.linkedPatientId ?? record?.clinikoPatientId ?? undefined;
+
   const saveNoteToCliniko = useCallback(async () => {
-    if (!scenario) return;
+    if (!scenario || !record) return;
     setNoteSaving(true);
     setNoteMessage(null);
     try {
@@ -106,32 +109,37 @@ export function AppointmentDetailContent({ appointmentId }: AppointmentDetailCon
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          bookingId: record?.clinikoAppointmentId ?? undefined,
-          patientId: recordState.linkedPatientId ?? undefined,
+          bookingId: record.clinikoAppointmentId ?? record.appointmentId,
+          clinikoAppointmentId: record.clinikoAppointmentId,
+          patientId: linkedPatientId,
+          patientLabel: record.patientLabel,
+          isLiveCliniko: record.isLiveCliniko,
+          isDemoWeekPreview: record.isDemoWeekPreview,
           title: scenario.noteDraft.templateName,
           templateName: scenario.noteDraft.templateName,
           sections: scenario.noteDraft.sections,
         }),
       });
       const json = await res.json();
-      if (json.mode === "created" && json.ok) {
-        updateAppointmentState(appointmentId, {
-          noteSavedToCliniko: true,
-          noteClinikoId: json.noteId,
-        });
-        setNoteMessage("Saved to Cliniko test account");
-      } else if (json.mode === "dry_run") {
-        updateAppointmentState(appointmentId, { noteSavedToCliniko: false });
-        setNoteMessage("Prepared for Cliniko — not saved yet");
-      } else {
-        setNoteMessage(json.message ?? "Could not save note.");
-      }
+      updateAppointmentState(appointmentId, {
+        noteSavedToCliniko:
+          json.status === "saved" && json.verified !== false && json.mode === "created",
+        noteClinikoId: json.noteId,
+        lastNoteSaveResult: {
+          status: json.status,
+          uiLabel: json.uiLabel,
+          verified: json.verified,
+          linkStatusMessage: json.linkStatusMessage,
+          blocked: json.status === "blocked",
+        },
+      });
+      setNoteMessage(json.uiLabel ?? json.message ?? "Prepared for Cliniko — not saved yet");
     } catch {
       setNoteMessage("Prepared for Cliniko — not saved yet");
     } finally {
       setNoteSaving(false);
     }
-  }, [scenario, record, recordState.linkedPatientId, appointmentId]);
+  }, [scenario, record, linkedPatientId, appointmentId]);
 
   const copyNoteDraft = useCallback(async () => {
     if (!scenario) return;
@@ -162,8 +170,6 @@ export function AppointmentDetailContent({ appointmentId }: AppointmentDetailCon
     await navigator.clipboard.writeText(lines.join("\n"));
     setFollowUpMessage("Invoice details copied");
   }, [scenario]);
-
-  const linkedPatientId = recordState.linkedPatientId ?? record?.clinikoPatientId ?? undefined;
 
   const bookFollowUpInCliniko = useCallback(async () => {
     if (!scenario || !linkedPatientId) {
@@ -206,6 +212,11 @@ export function AppointmentDetailContent({ appointmentId }: AppointmentDetailCon
     return buildAppointmentCompleteness(record, recordState, { writesEnabled });
   }, [record, recordState, writesEnabled]);
 
+  const noteEligibility = useMemo(() => {
+    if (!record) return null;
+    return getTreatmentNoteEligibility(record, recordState, { writesEnabled, configured });
+  }, [record, recordState, writesEnabled, configured]);
+
   if (!record) {
     return (
       <div className="rounded-xl border border-cream-dark bg-white p-6">
@@ -234,9 +245,8 @@ export function AppointmentDetailContent({ appointmentId }: AppointmentDetailCon
   return (
     <div className="space-y-6">
       <p className="sr-only">
-        Appointment record · Treatment note · Prepared invoice draft · Patient match status ·
-        Record completeness · Saved fields · Prepared-only fields · Book DEMO follow-up in Cliniko
-        test account
+        Appointment record · Treatment note · Patient/appointment link status · Blocked for safety
+        · Saved to Cliniko test account · Prepared for Cliniko · Record completeness
       </p>
 
       <header className="rounded-xl border border-cream-dark bg-white p-5">
@@ -336,6 +346,37 @@ export function AppointmentDetailContent({ appointmentId }: AppointmentDetailCon
           <section id="treatment-note" className="rounded-xl border border-cream-dark bg-white p-5">
             <h2 className="text-lg font-bold text-navy">Treatment note</h2>
             <p className="mt-1 text-sm text-slate">{DEMO_NOTE_SAFETY_COPY.join(" ")}</p>
+
+            <dl className="mt-4 grid gap-2 rounded-lg bg-cream/40 p-3 text-sm sm:grid-cols-2">
+              <div>
+                <dt className="text-slate">Note status</dt>
+                <dd className="font-medium text-navy">
+                  {recordState.lastNoteSaveResult?.uiLabel ??
+                    (recordState.noteSavedToCliniko
+                      ? "Saved to Cliniko test account"
+                      : "Prepared for Cliniko")}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-slate">Patient/appointment link status</dt>
+                <dd className="font-medium text-navy">
+                  {recordState.lastNoteSaveResult?.linkStatusMessage ??
+                    noteEligibility?.linkStatus ??
+                    "Not verified"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-slate">Can save to Cliniko?</dt>
+                <dd className="font-medium text-navy">{noteEligibility?.canSave ? "Yes" : "No"}</dd>
+              </div>
+              {noteEligibility?.reason && (
+                <div className="sm:col-span-2">
+                  <dt className="text-slate">Reason if not</dt>
+                  <dd className="text-navy">{noteEligibility.reason}</dd>
+                </div>
+              )}
+            </dl>
+
             <p className="mt-2 text-sm font-medium text-navy">{scenario.noteDraft.templateName}</p>
             <dl className="mt-4 space-y-3 text-sm">
               {Object.entries(scenario.noteDraft.sections).map(([key, value]) => (
@@ -349,14 +390,22 @@ export function AppointmentDetailContent({ appointmentId }: AppointmentDetailCon
               <button type="button" onClick={() => setNoteMessage("Prepared for Cliniko")} className="min-h-10 rounded-lg border border-cream-dark px-4 py-2 text-sm font-medium text-navy hover:bg-cream">
                 Prepare note
               </button>
-              <button type="button" disabled={noteSaving || !configured} onClick={() => void saveNoteToCliniko()} className="min-h-10 rounded-lg bg-green px-4 py-2 text-sm font-semibold text-white hover:bg-green-light disabled:opacity-50">
-                {noteSaving ? "Saving…" : "Save DEMO draft note to Cliniko"}
+              <button
+                type="button"
+                disabled={noteSaving || !noteEligibility?.canSave}
+                onClick={() => void saveNoteToCliniko()}
+                className="min-h-10 rounded-lg bg-green px-4 py-2 text-sm font-semibold text-white hover:bg-green-light disabled:opacity-50"
+              >
+                {noteSaving ? "Saving…" : "Save DEMO note to Cliniko test account"}
               </button>
               <button type="button" onClick={() => void copyNoteDraft()} className="min-h-10 rounded-lg border border-cream-dark px-4 py-2 text-sm font-medium text-navy hover:bg-cream">
                 Copy note draft
               </button>
             </div>
             {noteMessage && <p className="mt-2 text-sm text-navy">{noteMessage}</p>}
+            {recordState.lastNoteSaveResult?.verified && (
+              <p className="mt-1 text-sm text-green">Saved and verified in Cliniko test account</p>
+            )}
           </section>
 
           <section id="follow-up" className="rounded-xl border border-cream-dark bg-white p-5">

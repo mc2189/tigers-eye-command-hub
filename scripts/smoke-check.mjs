@@ -148,10 +148,11 @@ const contentChecks = {
     if (!/Appointments needing notes/i.test(body)) {
       return "missing Appointments needing notes section";
     }
-    if (!/Initial assessment note/i.test(body)) {
-      return "missing Initial assessment note template";
-    }
     if (!/No audio stored/i.test(body)) return "missing No audio stored safety copy";
+    if (!/Notes can only be saved for DEMO-linked patients/i.test(body)) {
+      return "missing DEMO-linked save safety copy";
+    }
+    if (!/Open record/i.test(body)) return "missing Open record action";
     return null;
   },
   "/admin/payments": (body) => {
@@ -199,6 +200,14 @@ const contentChecks = {
     if (!/Ready to invoice/i.test(body)) return "missing Ready to invoice tab";
     if (!/Insurance invoice draft/i.test(body)) {
       return "missing Insurance invoice draft wording";
+    }
+    if (!/Insurance storage audit/i.test(body)) return "missing Insurance storage audit";
+    if (!/Command Hub demo case/i.test(body)) return "missing Command Hub demo case wording";
+    if (!/Future Healthcode integration/i.test(body)) {
+      return "missing Future Healthcode integration wording";
+    }
+    if (!/Future Xero integration/i.test(body)) {
+      return "missing Future Xero integration wording";
     }
     return null;
   },
@@ -259,11 +268,25 @@ const contentChecks = {
       return "missing follow-up booking action";
     }
     if (!/Treatment note/i.test(body)) return "missing Treatment note section";
+    if (!/Patient\/appointment link status/i.test(body)) {
+      return "missing Patient/appointment link status";
+    }
+    if (
+      !/Blocked for safety/i.test(body) &&
+      !/Saved to Cliniko test account/i.test(body) &&
+      !/Prepared for Cliniko/i.test(body)
+    ) {
+      return "missing note save status label";
+    }
     if (!/Patient match status/i.test(body)) return "missing Patient match status";
     return null;
   },
   "/admin/clients/demo-alex-wilson": (body) => {
     if (!/Record completeness/i.test(body)) return "missing Record completeness section";
+    if (!/Clinical record/i.test(body)) return "missing Clinical record section";
+    if (!/Command Hub prepares note drafts/i.test(body)) {
+      return "missing Command Hub prepares note drafts copy";
+    }
     if (!/Future integration/i.test(body)) return "missing Future integration section";
     return null;
   },
@@ -319,6 +342,12 @@ const contentChecks = {
     }
     if (!/Patient record write proof/i.test(body)) {
       return "missing Patient record write proof section";
+    }
+    if (!/Treatment note safety proof/i.test(body)) {
+      return "missing Treatment note safety proof section";
+    }
+    if (!/Insurance field storage audit/i.test(body)) {
+      return "missing Insurance field storage audit section";
     }
     if (!/Cliniko appointment discovery|Run appointment discovery|Live Cliniko DEMO appointments/i.test(body)) {
       return "missing Cliniko test lab discovery sections";

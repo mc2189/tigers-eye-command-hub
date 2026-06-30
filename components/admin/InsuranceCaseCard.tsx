@@ -58,6 +58,19 @@ export function InsuranceCaseCard({ insuranceCase }: InsuranceCaseCardProps) {
         <p className="mt-1 text-sm text-navy">{insuranceCase.nextAction}</p>
       </div>
 
+      <div className="mt-4 rounded-lg border border-cream-dark bg-cream/30 p-3 text-sm">
+        <p className="font-semibold text-navy">Where this is stored</p>
+        <p className="sr-only">Insurance storage audit</p>
+        <ul className="mt-2 list-inside list-disc text-slate">
+          <li>Patient and appointment: Cliniko test account (when seeded/linked)</li>
+          <li>Insurance case details: Command Hub demo case</li>
+          <li>Invoice submission: Future Healthcode/Xero integration</li>
+        </ul>
+        <p className="mt-2 text-xs text-slate">
+          Future Healthcode integration · Future Xero integration
+        </p>
+      </div>
+
       <div className="mt-4">
         <InsuranceMissingDetailsChecklist insuranceCase={insuranceCase} />
       </div>

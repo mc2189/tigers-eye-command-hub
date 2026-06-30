@@ -273,6 +273,40 @@ Use this before showing George. Tick each item after verifying in the browser.
 
 ---
 
+## Treatment note hardening and insurance storage audit
+
+- [ ] `/admin/appointments/dcw-001` shows Treatment note status, Patient/appointment link status, Can save?
+- [ ] Note save blocked for preview-only appointments or shows honest Saved/Prepared label
+- [ ] Note save does not claim success unless Cliniko API confirms (`mode: created` + read-back when supported)
+- [ ] `/admin/clients/demo-alex-wilson` shows **Clinical record** section with honest Cliniko vs prepared copy
+- [ ] `/admin/notes` explains DEMO-linked save safety and shows Open record on each card
+- [ ] `/admin/insurance` shows Insurance storage audit — Command Hub demo case, not falsely saved to Cliniko
+- [ ] Insurance case cards show **Where this is stored**
+- [ ] `/admin/cliniko/test-lab` shows Treatment note safety proof and Insurance field storage audit
+- [ ] Record completeness panels show insurance storage location per field
+
+### Mobile responsive QA (375px width — 2026-06-30)
+
+Checked admin routes at 375×812 (iPhone SE viewport) via responsive devtools:
+
+| Route | Result | Notes |
+|-------|--------|-------|
+| `/admin` | PASS | Cards stack; no horizontal scroll |
+| `/admin/bookings` | PASS | Workflow cards wrap; actions tappable |
+| `/admin/appointments/dcw-001` | PASS | Sections stack; min tap targets on buttons |
+| `/admin/clients/demo-alex-wilson` | PASS | Clinical record grid stacks on mobile |
+| `/admin/intake` | PASS | Panels full-width; no overflow |
+| `/admin/insurance` | PASS | Session tables scroll horizontally inside card |
+| `/admin/invoices` | PASS | Queue cards readable |
+| `/admin/notes` | PASS | Note cards stack; Open record visible |
+| `/admin/calendar` | PASS | Week view scrolls within container |
+
+- [x] No sideways scrolling on admin shell (`overflow-x-hidden` on main)
+- [x] Primary actions remain tappable (`min-h-9` on key buttons)
+- [x] Dense tables use `overflow-x-auto` wrappers
+
+---
+
 ## Automated smoke tests
 
 ```bash

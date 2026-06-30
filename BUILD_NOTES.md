@@ -175,6 +175,22 @@ It must **not** appear as the active Aviemore booking provider on `/book`.
 - Calendar cards include **Open record** linking to appointment detail
 - Test lab: **Patient record write proof** section with field map summary
 
+## Treatment note hardening and insurance storage audit
+
+- `lib/demo-treatment-note-safety.ts` — server-side note save safety: DEMO patient/appointment validation, appointment ownership via `GET /individual_appointments/{id}`, read-back via `GET /treatment_notes/{id}`
+- `lib/treatment-note-safety-checks.ts` — shared check labels for test lab (client-safe)
+- `lib/treatment-note-eligibility.ts` — client-side eligibility mirror for UI
+- `lib/cliniko-insurance-field-audit.ts` — insurance field storage audit (Cliniko vs Command Hub demo vs future integration)
+- `/api/cliniko/treatment-note-draft` — returns `saved`, `prepared-only`, `blocked`, `failed`, or `verification-incomplete` with honest UI labels
+- Appointment detail: note status, patient/appointment link status, can save?, reason if blocked, last save result
+- Client detail: **Clinical record** section (prepared/saved notes, blocked writes)
+- Notes page: DEMO-linked save safety copy; each card shows can save? and reason
+- Insurance page: **Insurance storage audit** banner; per-case **Where this is stored**
+- Record completeness panels: insurance fields with storage location labels; note status includes Blocked for safety
+- Test lab: **Treatment note safety proof** and **Insurance field storage audit** panels
+- Mobile/responsive QA documented in `DEMO_QA_CHECKLIST.md` (375px admin routes)
+- Smoke checks expanded for note safety, clinical record, insurance audit, test-lab proof panels
+
 ## Command Hub GUI polish and live data display fix
 
 - **Root cause:** `toPatientLabel()` in `lib/cliniko.ts` abbreviated full DEMO names (e.g. `DEMO Test Patient 001` → `DEMO 0.`)

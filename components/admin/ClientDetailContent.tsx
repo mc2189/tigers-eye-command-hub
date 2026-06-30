@@ -120,6 +120,48 @@ export function ClientDetailContent({ clientSlug }: ClientDetailContentProps) {
       </section>
 
       <section className="rounded-xl border border-cream-dark bg-white p-5">
+        <h2 className="text-lg font-bold text-navy">Clinical record</h2>
+        <p className="mt-1 text-sm text-slate">
+          Command Hub prepares note drafts. Cliniko remains the clinical record.
+        </p>
+        <p className="sr-only">Command Hub prepares note drafts</p>
+        <dl className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
+          <div>
+            <dt className="text-slate">Treatment notes prepared</dt>
+            <dd className="font-medium text-navy">
+              {appointments.filter((a) => a.noteDraft.status === "prepared-for-cliniko").length}{" "}
+              appointment(s)
+            </dd>
+          </div>
+          <div>
+            <dt className="text-slate">Treatment notes saved to Cliniko test account</dt>
+            <dd className="font-medium text-navy">
+              {appointments.filter((a) => a.clinikoSaved.note).length} (seeded scenarios only)
+            </dd>
+          </div>
+          <div>
+            <dt className="text-slate">Appointments without notes</dt>
+            <dd className="font-medium text-navy">
+              {appointments.filter((a) => a.noteStatus !== "complete").length}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-slate">Latest note status</dt>
+            <dd className="font-medium text-navy">
+              {journey.noteRecordStatus} — {journey.notesStatus}
+            </dd>
+          </div>
+          <div className="sm:col-span-2">
+            <dt className="text-slate">Note save safety</dt>
+            <dd className="text-navy">
+              Notes can only be saved for DEMO-linked patients and Cliniko appointments. Preview
+              appointments show Blocked for safety until linked.
+            </dd>
+          </div>
+        </dl>
+      </section>
+
+      <section className="rounded-xl border border-cream-dark bg-white p-5">
         <h2 className="text-lg font-bold text-navy">Record status</h2>
         <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
           <div><dt className="text-slate">Notes status</dt><dd>{journey.notesStatus} ({journey.noteRecordStatus})</dd></div>

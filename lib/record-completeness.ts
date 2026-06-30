@@ -6,6 +6,10 @@ import type { DemoClinicWeekScenario } from "@/lib/demo-clinic-week";
 import type { AppointmentRecordView } from "@/lib/appointment-records";
 import type { AppointmentRecordState } from "@/lib/demo-record-state";
 import { CLINIKO_PATIENT_FIELD_MAP } from "@/lib/cliniko-patient-field-map";
+import {
+  INSURANCE_FIELD_AUDIT,
+  insuranceStorageLabel,
+} from "@/lib/cliniko-insurance-field-audit";
 
 export type CompletenessStatus =
   | "Saved to Cliniko test account"
@@ -13,7 +17,8 @@ export type CompletenessStatus =
   | "Suggested by Command Hub"
   | "Demo-only browser state"
   | "Future integration"
-  | "Needs staff confirmation";
+  | "Needs staff confirmation"
+  | "Blocked for safety";
 
 export interface CompletenessRow {
   label: string;
@@ -101,11 +106,15 @@ export function buildAppointmentCompleteness(
   const profile = scenario?.clientProfile;
   const { saved, prepared } = profileFieldRows(profile, recordState.linkedPatientId);
 
-  const noteStatus: CompletenessStatus = recordState.noteSavedToCliniko
-    ? "Saved to Cliniko test account"
-    : scenario?.noteDraft.status === "prepared-for-cliniko"
-      ? "Prepared for Cliniko"
-      : "Suggested by Command Hub";
+  const noteStatus: CompletenessStatus = recordState.lastNoteSaveResult?.blocked
+    ? "Blocked for safety"
+    : recordState.noteSavedToCliniko
+      ? "Saved to Cliniko test account"
+      : recordState.lastNoteSaveResult?.uiLabel?.includes("Prepared")
+        ? "Prepared for Cliniko"
+        : scenario?.noteDraft.status === "prepared-for-cliniko"
+          ? "Prepared for Cliniko"
+          : "Suggested by Command Hub";
 
   const followUpStatus: CompletenessStatus = recordState.followUpBookedInCliniko
     ? "Saved to Cliniko test account"
@@ -122,8 +131,32 @@ export function buildAppointmentCompleteness(
     : "Prepared for Cliniko";
 
   const insuranceStatus: CompletenessStatus = profile?.insurer
-    ? "Prepared for Cliniko"
+    ? "Demo-only browser state"
     : "Prepared for Cliniko";
+
+  if (profile?.insurer) {
+    for (const field of INSURANCE_FIELD_AUDIT.filter(
+      (f) => f.fieldName !== "patientAndAppointment"
+    )) {
+      const value =
+        field.fieldName === "insuranceProvider"
+          ? profile.insurer
+          : field.fieldName === "policyNumber"
+            ? profile.policyNumber
+            : field.fieldName === "claimNumber"
+              ? profile.claimNumber
+              : field.fieldName === "authorisationNumber"
+                ? profile.authorisationNumber
+                : field.fieldName === "approvedSessions"
+                  ? profile.approvedSessions?.toString()
+                  : undefined;
+      if (!value && field.fieldName !== "invoiceReadiness") continue;
+      prepared.push({
+        label: `${field.displayLabel} (${insuranceStorageLabel(field.currentStorage)})`,
+        reason: field.reason,
+      });
+    }
+  }
 
   const matchStatus: CompletenessStatus = recordState.linkedPatientId
     ? "Saved to Cliniko test account"
@@ -154,9 +187,11 @@ export function buildAppointmentCompleteness(
     { label: "Follow-up appointment", status: followUpStatus },
     { label: "Invoice", status: invoiceStatus },
     {
-      label: "Insurance case",
+      label: "Insurance details",
       status: profile?.insurer ? insuranceStatus : "Prepared for Cliniko",
-      detail: profile?.insurer ? profile.insurer : undefined,
+      detail: profile?.insurer
+        ? "Command Hub demo case — not saved to Cliniko"
+        : undefined,
     },
     { label: "Payment status", status: "Future integration" },
     {

@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createDraftTreatmentNote } from "@/lib/cliniko";
+import {
+  saveTreatmentNoteSafely,
+  type TreatmentNoteSaveInput,
+} from "@/lib/demo-treatment-note-safety";
 
 export const dynamic = "force-dynamic";
 
-interface TreatmentNoteBody {
-  bookingId?: string;
-  patientId?: string;
-  title?: string;
-  templateName?: string;
-  sections?: Record<string, string>;
+interface TreatmentNoteBody extends TreatmentNoteSaveInput {
   audio?: unknown;
   transcript?: unknown;
 }
@@ -20,7 +18,7 @@ export async function POST(request: NextRequest) {
     body = (await request.json()) as TreatmentNoteBody;
   } catch {
     return NextResponse.json(
-      { ok: false, message: "Invalid JSON payload." },
+      { ok: false, status: "failed", message: "Invalid JSON payload." },
       { status: 400 }
     );
   }
@@ -29,7 +27,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         ok: false,
+        status: "blocked",
         message: "Audio and transcript payloads are not accepted.",
+        uiLabel: "Blocked for safety",
         localContentStored: false,
       },
       { status: 400 }
@@ -40,6 +40,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         ok: false,
+        status: "failed",
         message: "Structured sections are required.",
         localContentStored: false,
       },
@@ -47,21 +48,27 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const result = await createDraftTreatmentNote({
+  const result = await saveTreatmentNoteSafely({
     bookingId: body.bookingId,
     patientId: body.patientId,
+    patientLabel: body.patientLabel,
     title: body.title,
     templateName: body.templateName,
     sections: body.sections,
+    isLiveCliniko: body.isLiveCliniko,
+    isDemoWeekPreview: body.isDemoWeekPreview,
+    clinikoAppointmentId: body.clinikoAppointmentId,
   });
 
-  if (!result.ok && result.mode === "dry_run" && result.message.includes("required")) {
-    return NextResponse.json(result, { status: 400 });
-  }
+  const httpStatus =
+    result.status === "blocked"
+      ? 403
+      : result.status === "failed"
+        ? 502
+        : 200;
 
-  if (!result.ok && result.mode !== "dry_run") {
-    return NextResponse.json(result, { status: 502 });
-  }
-
-  return NextResponse.json(result);
+  return NextResponse.json({
+    ...result,
+    mode: result.mode,
+  }, { status: httpStatus });
 }

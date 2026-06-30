@@ -10,7 +10,9 @@ export default async function ClientDetailPage({ params }: PageProps) {
   const { clientId } = await params;
   return (
     <>
-      <p className="sr-only">Record completeness · Future integration</p>
+      <p className="sr-only">
+        Clinical record · Command Hub prepares note drafts · Record completeness · Future integration
+      </p>
       <ClientDetailContent clientSlug={clientId} />
     </>
   );

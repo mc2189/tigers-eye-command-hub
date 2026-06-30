@@ -26,6 +26,13 @@ export interface AppointmentRecordState {
     savedFieldLabels?: string[];
     verified?: boolean;
   };
+  lastNoteSaveResult?: {
+    status?: string;
+    uiLabel?: string;
+    verified?: boolean;
+    linkStatusMessage?: string;
+    blocked?: boolean;
+  };
 }
 
 export interface DemoRecordStore {

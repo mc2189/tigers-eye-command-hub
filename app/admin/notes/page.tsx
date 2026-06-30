@@ -17,6 +17,10 @@ export default function NotesPage() {
         Treatment note tasks from appointments — prepared for Cliniko, not saved until the
         practitioner confirms in Cliniko.
       </WhatThisShows>
+      <p className="sr-only mb-4 text-sm">
+        Notes can only be saved for DEMO-linked patients and appointments in this test account.
+        Cliniko remains the clinical record. No audio stored.
+      </p>
       <NotesWorkflowQueue />
       <div className="mb-6 space-y-6">
         <SafeNotesPanel />

@@ -2,13 +2,13 @@
 
 | Field | Value |
 |-------|-------|
-| **Last updated** | 2026-06-30 (Cliniko record completeness — commit `8a18395`) |
-| **Feature commit** | `8a18395` — Improve Cliniko record completeness and follow-up booking |
-| **Smoke record commit** | `42ead4c` |
+| **Last updated** | 2026-06-30 (Treatment note hardening — pending prod smoke) |
+| **Feature commit** | _(pending push)_ |
+| **Smoke record commit** | _(pending prod smoke)_ |
 | **Local lint** | **PASS** |
 | **Local build** | **PASS** |
 | **Local smoke** | **38/38 PASS** (production build on port 3013) |
-| **Production smoke** | **38/38 PASS** (2026-06-30, post `8a18395` deploy) |
+| **Production smoke** | _(pending deploy)_ |
 | **Base URL (prod)** | https://tigers-eye-command-hub.vercel.app |
 
 ## Latest run summary
@@ -18,7 +18,26 @@
 | Local lint | **PASS** | — | 0 | `npm run lint` |
 | Local build | **PASS** | — | 0 | `npm run build` |
 | Local smoke | **PASS** | 38 | 0 | `BASE_URL=http://127.0.0.1:3013 node scripts/smoke-check.mjs` |
-| Production (Vercel) | **PASS** | 38 | 0 | Record completeness + follow-up booking checks |
+| Production (Vercel) | _(pending)_ | — | — | After feature deploy |
+
+## Treatment note hardening and insurance storage audit
+
+- `lib/demo-treatment-note-safety.ts` — server-side DEMO validation before note write; appointment ownership check; read-back verification
+- `lib/cliniko-insurance-field-audit.ts` — insurance fields classified as Cliniko / Command Hub demo / future integration
+- Appointment detail: note status, link status, can save?, blocked reasons, last save result
+- Client detail: Clinical record section
+- Notes page: DEMO-linked save safety copy
+- Insurance page: storage audit banner and per-case storage labels
+- Test lab: Treatment note safety proof + Insurance field storage audit panels
+- Mobile responsive QA at 375px documented in `DEMO_QA_CHECKLIST.md`
+
+| Route | Content check | Local result |
+|-------|---------------|--------------|
+| `/admin/appointments/dcw-001` | Treatment note, link status, save status label | PASS |
+| `/admin/clients/demo-alex-wilson` | Clinical record, Command Hub prepares note drafts | PASS |
+| `/admin/notes` | DEMO-linked save safety, Open record | PASS |
+| `/admin/insurance` | Insurance storage audit, Healthcode/Xero future | PASS |
+| `/admin/cliniko/test-lab` | Treatment note safety proof, Insurance field audit | PASS |
 
 ## Cliniko patient record completeness and follow-up booking (`8a18395`)
 

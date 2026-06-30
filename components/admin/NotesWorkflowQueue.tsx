@@ -30,7 +30,9 @@ export function NotesWorkflowQueue() {
         )}
       </div>
       <p className="mt-2 text-sm text-slate">{DEMO_NOTE_SAFETY_COPY.join(" ")}</p>
-      <p className="sr-only">Initial assessment note · No audio stored</p>
+      <p className="sr-only">
+        Notes can only be saved for DEMO-linked patients · No audio stored · Open record
+      </p>
 
       {!hasData || (queue.length === 0 && demoNotes.length === 0) ? (
         <div className="mt-4">
@@ -77,8 +79,19 @@ export function NotesWorkflowQueue() {
               <p className="mt-2 text-sm text-slate">
                 Template: <strong>{item.template}</strong>
               </p>
-              <div className="mt-3">
+              <dl className="mt-2 grid gap-1 text-sm sm:grid-cols-2">
+                <div>
+                  <dt className="text-slate">Can save?</dt>
+                  <dd className="font-medium text-navy">No — Blocked for safety</dd>
+                </div>
+                <div>
+                  <dt className="text-slate">Reason</dt>
+                  <dd className="text-navy">Preview-only appointment is not linked to Cliniko</dd>
+                </div>
+              </dl>
+              <div className="mt-3 flex flex-wrap gap-2">
                 <OpenRecordButton appointmentId={item.id} variant="secondary" />
+                <span className="sr-only">Open record</span>
               </div>
             </li>
           ))}

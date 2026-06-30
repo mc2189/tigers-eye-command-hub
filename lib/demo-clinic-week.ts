@@ -768,6 +768,7 @@ export const DEMO_NOTE_SAFETY_COPY = [
   "No local clinical-note database.",
   "Practitioner reviews before saving.",
   "Cliniko remains the clinical record.",
+  "Notes can only be saved for DEMO-linked patients and appointments in this test account.",
 ] as const;
 
 /** Entity audit — what Cliniko integration currently supports */
