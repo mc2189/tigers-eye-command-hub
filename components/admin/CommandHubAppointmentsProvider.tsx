@@ -39,6 +39,7 @@ interface CommandHubAppointmentsContextValue {
   loadToday: () => Promise<void>;
   loadRange: (from: string, to: string) => Promise<void>;
   hasLiveAppointments: boolean;
+  hasDisplayQualityIssues: boolean;
   clinikoStatus: ClinikoStatusData | null;
 }
 
@@ -65,6 +66,7 @@ export function CommandHubAppointmentsProvider({ children }: { children: ReactNo
     error,
     load,
     loadToday,
+    hasDisplayQualityIssues,
   } = useMappedClinikoBookings();
   const [status, setStatus] = useState<ClinikoStatusData | null>(null);
   const [initialized, setInitialized] = useState(false);
@@ -137,6 +139,7 @@ export function CommandHubAppointmentsProvider({ children }: { children: ReactNo
       configured,
       isLive,
       hasLiveAppointments,
+      hasDisplayQualityIssues,
       clinikoStatus: status,
       reload: async () => {
         const json = await refreshStatus();
@@ -164,6 +167,7 @@ export function CommandHubAppointmentsProvider({ children }: { children: ReactNo
       configured,
       isLive,
       hasLiveAppointments,
+      hasDisplayQualityIssues,
       status,
       refreshStatus,
       loadCurrentWeek,

@@ -10,7 +10,8 @@
     "smoke": "node scripts/smoke-check.mjs",
     "smoke:local": "BASE_URL=http://localhost:3000 node scripts/smoke-check.mjs",
     "smoke:prod": "BASE_URL=https://tigers-eye-command-hub.vercel.app node scripts/smoke-check.mjs",
-    "sync:vercel-env": "node scripts/sync-vercel-env.mjs"
+    "sync:vercel-env": "node scripts/sync-vercel-env.mjs",
+    "test": "node --test lib/cliniko-demo-appointments.test.ts"
   },
   "dependencies": {
     "next": "^15.3.3",

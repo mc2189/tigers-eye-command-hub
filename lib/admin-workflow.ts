@@ -1,5 +1,6 @@
 import type { MappedBooking } from "@/lib/cliniko-mappers";
 import { getSafeDemoPatientLabel } from "@/lib/cliniko-demo-appointments";
+import { GENERIC_APPOINTMENT_TYPE } from "@/lib/cliniko-display-labels";
 import {
   detectAppointmentCategory,
   getFollowUpSuggestionForCategory,
@@ -69,8 +70,10 @@ export interface AppointmentWorkflowBundle {
   endTime: string;
   source: "cliniko-test" | "demo" | "inferred";
   actions: WorkflowAction[];
+  setupActions: WorkflowAction[];
   primaryAction: WorkflowAction | null;
   secondaryActions: WorkflowAction[];
+  hiddenActions: WorkflowAction[];
   summary: {
     needsNote: boolean;
     needsPaymentCheck: boolean;
@@ -216,7 +219,7 @@ function needsNote(booking: MappedBooking): boolean {
 export function buildAppointmentWorkflowBundle(
   booking: MappedBooking
 ): AppointmentWorkflowBundle {
-  const typeName = booking.appointmentTypeName || "Unknown appointment type";
+  const typeName = booking.appointmentTypeName || GENERIC_APPOINTMENT_TYPE;
   const category = detectAppointmentCategory(typeName);
   const commercial = getCommercialContext(typeName, {
     clinikoPrice: booking.estimatedFee,
@@ -379,9 +382,15 @@ export function buildAppointmentWorkflowBundle(
   }
 
   const sorted = sortActions(actions);
-  const attentionActions = sorted.filter((a) => a.status !== "future-integration");
-  const primary = attentionActions[0] ?? sorted[0] ?? null;
-  const secondary = attentionActions.slice(1, 4);
+  const setupActions = sorted.filter((a) => a.type === "setup");
+  const operational = sorted.filter(
+    (a) => a.type !== "setup" && a.status !== "future-integration"
+  );
+  const primary = operational[0] ?? null;
+  const secondary = operational.slice(1, 3);
+  const hiddenActions = operational.slice(3);
+
+  const attentionActions = operational;
 
   const summary = {
     needsNote: needsNote(booking),
@@ -398,16 +407,18 @@ export function buildAppointmentWorkflowBundle(
     patientLabel: patientLabel(booking),
     appointmentType: typeName,
     category,
-    practitioner: booking.practitionerName || "Unknown practitioner",
-    location: booking.locationLabel || booking.businessName || "Unknown clinic",
+    practitioner: booking.practitionerName || "Practitioner not returned",
+    location: booking.locationLabel || booking.businessName || "Clinic not returned",
     startsAt: booking.date && booking.time ? `${booking.date}T${booking.time}` : null,
     date: booking.date,
     time: booking.time || "Time not returned",
     endTime: booking.endTime || "",
     source: bookingSource(booking),
     actions: sorted,
+    setupActions,
     primaryAction: primary,
     secondaryActions: secondary,
+    hiddenActions,
     summary,
   };
 }
@@ -571,14 +582,13 @@ export function summariseFinanceWorkflow(appointments: MappedBooking[]): Finance
 export function bundleNeedsAttention(bundle: AppointmentWorkflowBundle): boolean {
   return bundle.actions.some(
     (a) =>
-      a.status === "needs-attention" ||
-      a.status === "missing-setup" ||
-      a.type === "warning"
+      a.type !== "setup" &&
+      (a.status === "needs-attention" || a.type === "warning")
   );
 }
 
 export function bundleIsReady(bundle: AppointmentWorkflowBundle): boolean {
-  return !bundleNeedsAttention(bundle) && bundle.summary.missingSetup.length === 0;
+  return bundle.actions.some((a) => a.type !== "setup") && !bundleNeedsAttention(bundle);
 }
 
 export function bundleMissingSetup(bundle: AppointmentWorkflowBundle): boolean {

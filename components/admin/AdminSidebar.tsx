@@ -1,10 +1,10 @@
 "use client";
 
-import { AdminLogoutButton } from "./AdminLogoutButton";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { AdminLogoutButton } from "./AdminLogoutButton";
+import Image from "next/image";
 import { business } from "@/lib/tigers-eye-content";
 
 const ADMIN_FOOTER =
@@ -22,7 +22,7 @@ interface NavSection {
 
 const navSections: NavSection[] = [
   {
-    title: "Daily Work",
+    title: "Daily",
     items: [
       { href: "/admin", label: "Today" },
       { href: "/admin/calendar", label: "Calendar" },
@@ -41,7 +41,7 @@ const navSections: NavSection[] = [
     ],
   },
   {
-    title: "Operations",
+    title: "Clinic",
     items: [
       { href: "/admin/waitlist", label: "Waitlist" },
       { href: "/admin/external-work", label: "External Work" },
@@ -49,12 +49,10 @@ const navSections: NavSection[] = [
     ],
   },
   {
-    title: "Setup & Proof",
+    title: "Setup",
     items: [
       { href: "/admin/cliniko", label: "Cliniko" },
       { href: "/admin/healthcode", label: "Healthcode" },
-      { href: "/admin/proof", label: "Proof" },
-      { href: "/admin/cliniko/test-lab", label: "Demo Proof" },
       { href: "/admin/settings", label: "Settings" },
     ],
   },

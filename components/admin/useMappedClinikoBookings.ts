@@ -18,6 +18,7 @@ interface LoadResult {
   source: DataSource;
   lastChecked: string;
   individualAppointmentCount: number;
+  hasDisplayQualityIssues: boolean;
 }
 
 export function useMappedClinikoBookings() {
@@ -27,6 +28,7 @@ export function useMappedClinikoBookings() {
   const [loading, setLoading] = useState(false);
   const [lastChecked, setLastChecked] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [hasDisplayQualityIssues, setHasDisplayQualityIssues] = useState(false);
   const [individualAppointmentCount, setIndividualAppointmentCount] = useState(0);
 
   const load = useCallback(async (params?: { from?: string; to?: string }) => {
@@ -47,6 +49,7 @@ export function useMappedClinikoBookings() {
         source: DataSource;
         error?: string;
         warning?: string;
+        hasDisplayQualityIssues?: boolean;
       };
 
       if (!appointmentsRes.ok || appointmentsJson.ok === false) {
@@ -88,6 +91,7 @@ export function useMappedClinikoBookings() {
       setCalendarItems(calItems);
       setSource(resolvedSource);
       setIndividualAppointmentCount(appointments.length);
+      setHasDisplayQualityIssues(Boolean(appointmentsJson.hasDisplayQualityIssues));
       setLastChecked(new Date().toLocaleString("en-GB"));
 
       return {
@@ -96,6 +100,7 @@ export function useMappedClinikoBookings() {
         source: resolvedSource,
         lastChecked: new Date().toLocaleString("en-GB"),
         individualAppointmentCount: appointments.length,
+        hasDisplayQualityIssues: Boolean(appointmentsJson.hasDisplayQualityIssues),
       } satisfies LoadResult;
     } catch {
       setError("Cliniko could not be reached. Try refresh again in a few seconds.");
@@ -117,6 +122,7 @@ export function useMappedClinikoBookings() {
     loading,
     lastChecked,
     error,
+    hasDisplayQualityIssues,
     individualAppointmentCount,
     load,
     loadToday,

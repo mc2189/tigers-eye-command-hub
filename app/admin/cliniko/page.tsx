@@ -10,7 +10,7 @@ export default function ClinikoPage() {
       />
 
       <p className="sr-only">
-        Open technical test lab. Cliniko connected. Cliniko remains the diary and clinical record.
+        Technical Cliniko test lab. Cliniko test account connected. Cliniko remains the diary and clinical record.
       </p>
 
       <ClinikoIntegrationOverview />

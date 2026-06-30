@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import type { AppointmentWorkflowBundle } from "@/lib/admin-workflow";
 import { ActionChip } from "./ActionChip";
 import { DataSourcePill } from "./DataSourcePill";
@@ -5,22 +8,52 @@ import { DataSourcePill } from "./DataSourcePill";
 interface WorkflowBundleCardProps {
   bundle: AppointmentWorkflowBundle;
   showDetails?: boolean;
+  compact?: boolean;
 }
 
-export function WorkflowBundleCard({ bundle, showDetails = true }: WorkflowBundleCardProps) {
+function formatWhen(bundle: AppointmentWorkflowBundle): string {
+  if (!bundle.date) return bundle.time || "Time not returned";
+  try {
+    const day = new Date(`${bundle.date}T12:00:00`).toLocaleDateString("en-GB", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+    });
+    const range = bundle.endTime
+      ? `${bundle.time}–${bundle.endTime}`
+      : bundle.time;
+    return `${range} · ${day}`;
+  } catch {
+    return `${bundle.time}${bundle.date ? ` · ${bundle.date}` : ""}`;
+  }
+}
+
+export function WorkflowBundleCard({
+  bundle,
+  showDetails = true,
+  compact = false,
+}: WorkflowBundleCardProps) {
+  const [showAllActions, setShowAllActions] = useState(false);
   const sourcePill =
     bundle.source === "demo" ? "demo" : bundle.source === "inferred" ? "inferred" : "cliniko-test";
+
+  const extraActions = [
+    ...bundle.secondaryActions,
+    ...(showAllActions ? bundle.hiddenActions : []),
+  ];
 
   return (
     <article className="rounded-xl border border-cream-dark bg-white p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="text-sm font-medium text-slate">
-            {bundle.time}
-            {bundle.endTime ? ` – ${bundle.endTime}` : ""}
-            {bundle.date ? ` · ${bundle.date}` : ""}
-          </p>
-          <h3 className="mt-1 text-lg font-semibold text-navy">{bundle.patientLabel}</h3>
+        <div className="min-w-0 flex-1 space-y-2">
+          <p className="text-sm font-medium text-slate">{formatWhen(bundle)}</p>
+          <div>
+            <h3 className="text-lg font-semibold text-navy">{bundle.patientLabel}</h3>
+            <p className="mt-1 text-sm font-medium text-navy">{bundle.appointmentType}</p>
+            <p className="mt-1 text-sm text-slate">
+              {bundle.practitioner} · {bundle.location}
+            </p>
+          </div>
         </div>
         <DataSourcePill
           kind={sourcePill}
@@ -28,54 +61,31 @@ export function WorkflowBundleCard({ bundle, showDetails = true }: WorkflowBundl
             bundle.source === "demo"
               ? "Demo example"
               : bundle.source === "inferred"
-                ? "Inferred workflow"
+                ? "Suggested by Command Hub"
                 : "Cliniko test account"
           }
         />
       </div>
 
-      <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
-        <div>
-          <dt className="text-slate">Appointment type</dt>
-          <dd className="font-medium text-navy">{bundle.appointmentType}</dd>
-        </div>
-        <div>
-          <dt className="text-slate">Practitioner</dt>
-          <dd className="font-medium text-navy">{bundle.practitioner}</dd>
-        </div>
-        <div>
-          <dt className="text-slate">Location</dt>
-          <dd className="font-medium text-navy">{bundle.location}</dd>
-        </div>
-        <div>
-          <dt className="text-slate">Source</dt>
-          <dd className="font-medium text-navy">
-            {bundle.source === "demo" ? "Demo example" : "Cliniko test account"}
-          </dd>
-        </div>
-      </dl>
-
       {bundle.primaryAction && (
         <div className="mt-4 rounded-lg border border-green/20 bg-green-muted/20 p-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate">Primary action</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate">
+            Primary action
+          </p>
           <p className="mt-1 font-semibold text-navy">{bundle.primaryAction.label}</p>
-          {showDetails && bundle.primaryAction.whyItMatters && (
-            <p className="mt-2 text-sm text-slate">{bundle.primaryAction.whyItMatters}</p>
-          )}
-          {showDetails && bundle.primaryAction.suggestedNextStep && (
-            <p className="mt-2 text-sm text-navy">
-              <span className="font-medium">Suggested next step: </span>
-              {bundle.primaryAction.suggestedNextStep}
-            </p>
+          {showDetails && bundle.primaryAction.suggestedNextStep && !compact && (
+            <p className="mt-2 text-sm text-slate">{bundle.primaryAction.suggestedNextStep}</p>
           )}
         </div>
       )}
 
-      {bundle.secondaryActions.length > 0 && (
+      {extraActions.length > 0 && (
         <div className="mt-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate">Secondary actions</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate">
+            Secondary actions
+          </p>
           <div className="mt-2 flex flex-wrap gap-2">
-            {bundle.secondaryActions.map((action) => (
+            {extraActions.slice(0, showAllActions ? extraActions.length : 2).map((action) => (
               <ActionChip
                 key={`${bundle.appointmentId}-${action.label}`}
                 label={action.label}
@@ -87,21 +97,26 @@ export function WorkflowBundleCard({ bundle, showDetails = true }: WorkflowBundl
         </div>
       )}
 
-      {showDetails && (
-        <div className="mt-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate">All workflow actions</p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {bundle.actions
-              .filter((a) => a.status !== "future-integration")
-              .map((action) => (
-                <ActionChip
-                  key={`${bundle.appointmentId}-all-${action.label}`}
-                  label={action.label}
-                  kind={action.type}
-                  inferred={action.source === "inferred"}
-                />
-              ))}
-          </div>
+      {(bundle.hiddenActions.length > 0 || bundle.actions.length > 3) && (
+        <button
+          type="button"
+          onClick={() => setShowAllActions((open) => !open)}
+          className="mt-3 text-sm font-semibold text-green hover:underline"
+        >
+          {showAllActions ? "Hide workflow actions" : "Show all workflow actions"}
+        </button>
+      )}
+
+      {bundle.setupActions.length > 0 && (
+        <div className="mt-4 rounded-lg border border-cream-dark bg-cream/40 p-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate">
+            Setup to improve later
+          </p>
+          <ul className="mt-2 space-y-1 text-sm text-slate">
+            {bundle.setupActions.map((action) => (
+              <li key={`${bundle.appointmentId}-setup-${action.label}`}>· {action.label}</li>
+            ))}
+          </ul>
         </div>
       )}
     </article>

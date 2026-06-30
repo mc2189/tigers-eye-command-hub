@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { DataHandlingPanel } from "@/components/admin/DataHandlingPanel";
@@ -60,9 +61,9 @@ export function SettingsContent() {
     {
       title: "Cliniko connection",
       description: connected
-        ? "Sandbox API connected. Cliniko remains the system of record."
+        ? "Sterile Cliniko test account connected. Cliniko remains the system of record."
         : "No live key configured — demo data fallback is active.",
-      value: connected ? "Sandbox connected" : "Demo fallback",
+      value: connected ? "Test account connected" : "Demo fallback",
       variant: connected ? ("success" as const) : ("warning" as const),
     },
     {
@@ -102,7 +103,7 @@ export function SettingsContent() {
       title: "Aviemore Cliniko location",
       description:
         "Aviemore is a separate Cliniko location or business. The public site asks for location first so patients reach the right booking route.",
-      value: "Planned / sandbox",
+      value: "Planned test location",
       variant: "warning" as const,
     },
     {
@@ -221,6 +222,27 @@ export function SettingsContent() {
             onAction={() => show("Demo: integration roadmap opens from the Healthcode page.")}
             variant="primary"
           />
+        </div>
+      </section>
+
+      <section className="mt-8 rounded-xl border border-cream-dark bg-white p-5">
+        <h2 className="font-bold text-navy">Technical demo tools</h2>
+        <p className="mt-2 text-sm text-slate">
+          Proof pages and Cliniko diagnostics are kept out of the main daily navigation.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <Link
+            href="/admin/proof"
+            className="inline-flex min-h-10 items-center rounded-lg border border-cream-dark px-4 py-2 text-sm font-semibold text-navy hover:bg-cream"
+          >
+            Demo proof page
+          </Link>
+          <Link
+            href="/admin/cliniko/test-lab"
+            className="inline-flex min-h-10 items-center rounded-lg border border-cream-dark px-4 py-2 text-sm font-semibold text-navy hover:bg-cream"
+          >
+            Technical Cliniko test lab
+          </Link>
         </div>
       </section>
 

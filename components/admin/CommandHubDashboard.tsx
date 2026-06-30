@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { useCommandHubAppointments } from "@/components/admin/CommandHubAppointmentsProvider";
+import { ClinikoDataQualityBanner } from "@/components/admin/ClinikoDataQualityBanner";
+import { ClinikoFeedStatusRow } from "@/components/admin/ClinikoFeedStatusRow";
 import { ClinikoLoadState } from "@/components/admin/ClinikoLoadState";
 import { PlainEmptyState } from "@/components/admin/PlainEmptyState";
 import { WorkflowBundleCard } from "@/components/admin/WorkflowBundleCard";
@@ -11,6 +13,8 @@ import { WorkflowPageHeader } from "@/components/admin/WorkflowPageHeader";
 import { WorkflowSummaryCard } from "@/components/admin/WorkflowSummaryCard";
 import { useInsuranceSessionCases } from "@/components/admin/useInsuranceSessionCases";
 import {
+  bundleMissingSetup,
+  bundleNeedsAttention,
   getCommandListContext,
   summariseWorkflowActions,
 } from "@/lib/admin-workflow";
@@ -22,8 +26,29 @@ const quickActions = [
   { href: "/admin/notes", label: "Write notes" },
   { href: "/admin/invoices", label: "Check invoices" },
   { href: "/admin/insurance", label: "Review insurance cases" },
-  { href: "/admin/cliniko/test-lab", label: "Open Cliniko test lab", technical: true },
 ];
+
+function BundleSection({
+  title,
+  bundles,
+}: {
+  title: string;
+  bundles: ReturnType<typeof useInsuranceSessionCases>["enrichedBundles"];
+}) {
+  if (bundles.length === 0) return null;
+  return (
+    <div className="space-y-3">
+      <h3 className="text-sm font-semibold uppercase tracking-wide text-slate">{title}</h3>
+      <ul className="space-y-3">
+        {bundles.map((bundle) => (
+          <li key={bundle.appointmentId}>
+            <WorkflowBundleCard bundle={bundle} showDetails={false} compact />
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 export function CommandHubDashboard() {
   const {
@@ -34,6 +59,7 @@ export function CommandHubDashboard() {
     connected,
     configured,
     hasLiveAppointments,
+    hasDisplayQualityIssues,
     clinikoStatus,
     lastChecked,
     reload,
@@ -51,11 +77,22 @@ export function CommandHubDashboard() {
     };
   }, [mapped, todayIso, enrichedBundles]);
 
+  const grouped = useMemo(() => {
+    return {
+      attention: command.bundles.filter(bundleNeedsAttention),
+      ready: command.bundles.filter(
+        (b) => !bundleNeedsAttention(b) && !bundleMissingSetup(b)
+      ),
+      setup: command.bundles.filter(bundleMissingSetup),
+    };
+  }, [command.bundles]);
+
   const metrics = useMemo(() => {
     const base = summariseWorkflowActions(command.bundles);
     return {
       ...base,
-      insuranceItems: insuranceSummary.openCases > 0 ? insuranceSummary.openCases : base.insuranceItems,
+      insuranceItems:
+        insuranceSummary.openCases > 0 ? insuranceSummary.openCases : base.insuranceItems,
     };
   }, [command.bundles, insuranceSummary.openCases]);
 
@@ -63,23 +100,20 @@ export function CommandHubDashboard() {
     <>
       <WorkflowPageHeader
         title="Today"
-        purpose="Here is what needs attention today, what each appointment needs, and what to do next."
-      >
-        {(connected || configured) && (
-          <button
-            type="button"
-            onClick={() => void reload()}
-            disabled={loading}
-            className="min-h-10 rounded-lg bg-green px-4 py-2 text-sm font-semibold text-white hover:bg-green-light disabled:opacity-50"
-          >
-            {loading ? "Refreshing…" : "Refresh live feed"}
-          </button>
-        )}
-      </WorkflowPageHeader>
+        purpose="Your daily clinic cockpit — what needs attention now and what each appointment needs next."
+      />
 
-      <p className="sr-only">
-        Today&apos;s command list · Notes to complete · Cliniko connected
-      </p>
+      <ClinikoFeedStatusRow
+        configured={configured}
+        connected={connected}
+        isLive={isLive}
+        appointmentCount={mapped.length}
+        lastChecked={lastChecked}
+        loading={loading}
+        onRefresh={() => void reload()}
+      />
+
+      <ClinikoDataQualityBanner visible={Boolean(isLive && hasDisplayQualityIssues)} />
 
       {loading && <ClinikoLoadState loading />}
       {error && (
@@ -90,35 +124,25 @@ export function CommandHubDashboard() {
 
       <section className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <WorkflowSummaryCard
-          label={command.isToday ? "Appointments today" : "Upcoming appointments"}
+          label="Appointments"
           value={isLive ? metrics.appointments : "—"}
-          hint={
-            isLive
-              ? "From Cliniko test account"
-              : configured
-                ? "Cliniko test account configured"
-                : "Configure Cliniko to see live appointments"
-          }
+          hint={isLive ? "From Cliniko test account" : "Connect Cliniko to see live appointments"}
           href="/admin/bookings"
           status={metrics.appointments > 0 ? "ready" : "default"}
         />
         <WorkflowSummaryCard
-          label="Notes to complete"
-          value={isLive ? metrics.notesToComplete : "—"}
-          href="/admin/notes"
-          status={metrics.notesToComplete > 0 ? "attention" : "default"}
+          label="Needs action"
+          value={isLive ? grouped.attention.length : "—"}
+          href="/admin/bookings"
+          status={grouped.attention.length > 0 ? "attention" : "default"}
         />
         <WorkflowSummaryCard
-          label="Payments to check"
-          value={isLive ? metrics.paymentsToCheck : "—"}
+          label="Money checks"
+          value={isLive ? metrics.paymentsToCheck + metrics.invoicesToReview : "—"}
           href="/admin/payments"
-          status={metrics.paymentsToCheck > 0 ? "attention" : "default"}
-        />
-        <WorkflowSummaryCard
-          label="Invoices to review"
-          value={isLive ? metrics.invoicesToReview : "—"}
-          href="/admin/invoices"
-          status={metrics.invoicesToReview > 0 ? "attention" : "default"}
+          status={
+            metrics.paymentsToCheck + metrics.invoicesToReview > 0 ? "attention" : "default"
+          }
         />
         <WorkflowSummaryCard
           label="Insurance items"
@@ -127,7 +151,13 @@ export function CommandHubDashboard() {
           status={metrics.insuranceItems > 0 ? "attention" : "default"}
         />
         <WorkflowSummaryCard
-          label="Stock impacts"
+          label="Follow-ups"
+          value={isLive ? metrics.followUpsSuggested : "—"}
+          href="/admin/followups"
+          status={metrics.followUpsSuggested > 0 ? "attention" : "default"}
+        />
+        <WorkflowSummaryCard
+          label="Stock notes"
           value={isLive ? metrics.stockImpacts : "—"}
           href="/admin/stock"
           status={metrics.stockImpacts > 0 ? "attention" : "default"}
@@ -135,19 +165,15 @@ export function CommandHubDashboard() {
       </section>
 
       <div className="grid gap-8 xl:grid-cols-[1fr_320px]">
-        <section className="space-y-4" aria-labelledby="command-list-heading">
+        <section className="space-y-6" aria-labelledby="command-list-heading">
           <h2 id="command-list-heading" className="text-lg font-bold text-navy">
             {command.title}
           </h2>
+
           {!configured && !loading ? (
             <PlainEmptyState
               title={connectionEmpty.title}
               description={connectionEmpty.description}
-            />
-          ) : error && !hasLiveAppointments && !loading ? (
-            <PlainEmptyState
-              title="Cliniko appointments could not be loaded."
-              description={error}
             />
           ) : isLive && command.bundles.length === 0 ? (
             <PlainEmptyState
@@ -160,18 +186,21 @@ export function CommandHubDashboard() {
               }
               description={
                 hasLiveAppointments
-                  ? "When appointments appear in Cliniko, they will show here with the actions each one needs."
+                  ? "Nothing urgent right now. Live Cliniko appointments are still listed below for review."
                   : "Create a DEMO appointment in Cliniko (within the next 90 days), then refresh the live feed."
               }
             />
+          ) : isLive && grouped.attention.length === 0 && grouped.ready.length === 0 ? (
+            <PlainEmptyState
+              title="Nothing urgent right now."
+              description="Live Cliniko appointments are still listed below for review."
+            />
           ) : isLive ? (
-            <ul className="space-y-3">
-              {command.bundles.map((bundle) => (
-                <li key={bundle.appointmentId}>
-                  <WorkflowBundleCard bundle={bundle} showDetails={false} />
-                </li>
-              ))}
-            </ul>
+            <div className="space-y-8">
+              <BundleSection title="Needs attention" bundles={grouped.attention} />
+              <BundleSection title="Ready / lower priority" bundles={grouped.ready} />
+              <BundleSection title="Setup to improve" bundles={grouped.setup} />
+            </div>
           ) : (
             <PlainEmptyState
               title={connectionEmpty.title}
@@ -187,13 +216,11 @@ export function CommandHubDashboard() {
               connected
                 ? "Cliniko test account connected"
                 : configured
-                  ? "Cliniko test account configured — checking connection"
+                  ? "Cliniko test account configured"
                   : "Cliniko test account not configured on this server",
               isLive
                 ? `${mapped.length} live appointment(s) loaded from Cliniko`
-                : hasLiveAppointments
-                  ? `${mapped.length} appointment(s) loaded`
-                  : "No live appointments loaded yet",
+                : "No live appointments loaded yet",
               lastChecked ? `Last checked ${lastChecked}` : "Not checked yet",
               "Sterile Cliniko test account — safe to book and manage DEMO patients",
             ]}
@@ -206,18 +233,9 @@ export function CommandHubDashboard() {
                 <Link
                   key={action.href}
                   href={action.href}
-                  className={`rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors ${
-                    action.technical
-                      ? "border-cream-dark text-slate hover:bg-cream"
-                      : "border-green/20 text-navy hover:bg-green-muted"
-                  }`}
+                  className="rounded-lg border border-green/20 px-3 py-2.5 text-sm font-medium text-navy transition-colors hover:bg-green-muted"
                 >
                   {action.label}
-                  {action.technical ? (
-                    <span className="mt-0.5 block text-xs font-normal text-slate">
-                      Technical demo proof only
-                    </span>
-                  ) : null}
                 </Link>
               ))}
             </div>

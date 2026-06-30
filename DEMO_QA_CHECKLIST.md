@@ -209,12 +209,28 @@ Use this before showing George. Tick each item after verifying in the browser.
 
 ---
 
+## Command Hub GUI polish (live labels + daily workflow)
+
+- [ ] `/admin/bookings` shows full DEMO patient names (not `DEMO 0.` or `DEMO (.`)
+- [ ] Appointment type, practitioner and location show real Cliniko values or explicit not-returned labels
+- [ ] Booking cards show time first, one Cliniko test account pill, primary action before setup warnings
+- [ ] “Show all workflow actions” disclosure works
+- [ ] Today page groups Needs attention / Ready / Setup to improve
+- [ ] Sidebar no longer lists Proof or Demo Proof as primary daily nav
+- [ ] `/admin/cliniko` links to Technical Cliniko test lab
+- [ ] `/admin/settings` links to Demo proof page and Technical Cliniko test lab
+- [ ] Incognito `/admin` and `/admin/bookings` redirect to login
+- [ ] Banner reads “sterile Cliniko test account only”
+
+---
+
 ## Automated smoke tests
 
 ```bash
+npm run test
 npm run lint
 npm run build
 npm run dev          # terminal 1
-npm run smoke:local  # terminal 2 — set DEMO_STAFF_PASSWORD to match server env
-npm run smoke:prod   # after Vercel deploy (same password as production env)
+npm run smoke:local  # terminal 2 — includes unauthenticated auth checks
+npm run smoke:prod   # after Vercel deploy (33 checks)
 ```

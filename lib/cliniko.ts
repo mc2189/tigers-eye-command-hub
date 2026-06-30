@@ -1435,7 +1435,7 @@ function mapIndividualAppointment(appt: Record<string, unknown>): ClinikoIndivid
     endsAt: String(appt.ends_at ?? appt.end_time ?? ""),
     patientId: resolvePatientIdFromRaw(appt),
     patientName,
-    patientLabel: patientName ? toPatientLabel(patientName) : undefined,
+    patientLabel: patientName?.trim() || undefined,
     appointmentTypeId:
       appt.appointment_type_id != null
         ? String(appt.appointment_type_id)

@@ -79,6 +79,10 @@ export function getSafeDemoPatientLabel(
     return label;
   }
 
+  if (rawName && !/^DEMO/i.test(rawName)) {
+    return "Cliniko patient";
+  }
+
   return "DEMO patient";
 }
 

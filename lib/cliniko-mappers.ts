@@ -11,6 +11,15 @@ import {
   getFinanceWarningsForAppointmentType,
   getPaymentRuleForAppointmentType,
 } from "@/lib/pricing-rules";
+import { getSafeDemoPatientLabel } from "@/lib/cliniko-demo-appointments";
+import {
+  GENERIC_APPOINTMENT_TYPE,
+  GENERIC_LOCATION,
+  GENERIC_PRACTITIONER,
+  isGenericAppointmentType,
+  isGenericLocation,
+  isGenericPractitioner,
+} from "@/lib/cliniko-display-labels";
 import { safeString } from "@/lib/safe-data";
 
 // ─── Shared input shapes (match API route outputs) ───────────────────────────
@@ -64,10 +73,14 @@ export interface ClinikoIndividualAppointmentInput {
   id: string;
   startsAt: string;
   endsAt: string;
+  patientId?: string;
   patientName?: string;
   patientLabel?: string;
+  appointmentTypeId?: string;
   appointmentTypeName?: string;
+  practitionerId?: string;
   practitionerName?: string;
+  businessId?: string;
   businessName?: string;
   noteStatus?: string;
   invoiceStatus?: string;
@@ -569,20 +582,23 @@ export function mapClinikoBookingToNoteTask(
 export function mapClinikoIndividualAppointmentToBookingInput(
   appointment: ClinikoIndividualAppointmentInput
 ): ClinikoBookingInput {
+  const patientLabel = getSafeDemoPatientLabel({
+    patientName: appointment.patientName,
+    patientLabel: appointment.patientLabel,
+    patientId: appointment.patientId,
+  });
+
   return {
     id: safeString(appointment.id, "unknown"),
     startsAt: safeString(appointment.startsAt),
     endsAt: safeString(appointment.endsAt, appointment.startsAt),
     appointmentTypeName: safeString(
       appointment.appointmentTypeName,
-      "Appointment"
+      GENERIC_APPOINTMENT_TYPE
     ),
-    practitionerName: safeString(appointment.practitionerName, "Practitioner"),
-    businessName: safeString(appointment.businessName, "Clinic"),
-    patientLabel: safeString(
-      appointment.patientLabel ?? appointment.patientName,
-      "Cliniko patient"
-    ),
+    practitionerName: safeString(appointment.practitionerName, GENERIC_PRACTITIONER),
+    businessName: safeString(appointment.businessName, GENERIC_LOCATION),
+    patientLabel,
     noteStatus: appointment.noteStatus,
     invoiceStatus: appointment.invoiceStatus,
   };
@@ -593,6 +609,7 @@ export function mapClinikoIndividualAppointmentToBooking(
   context?: {
     appointmentTypes?: ClinikoAppointmentTypeInput[];
     practitioners?: ClinikoPractitionerInput[];
+    businesses?: ClinikoBusinessInput[];
   }
 ): MappedBooking {
   const mapped = mapClinikoBookingToBooking(

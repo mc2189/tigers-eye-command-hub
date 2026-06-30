@@ -123,7 +123,7 @@ export function ClinikoIntegrationOverview() {
           href="/admin/cliniko/test-lab"
           className="mt-4 inline-flex min-h-10 items-center rounded-lg bg-navy px-4 py-2 text-sm font-semibold text-white hover:bg-navy/90"
         >
-          Open technical test lab
+          Technical Cliniko test lab
         </Link>
       </div>
     </div>

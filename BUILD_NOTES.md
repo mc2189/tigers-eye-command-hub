@@ -135,6 +135,18 @@ It must **not** appear as the active Aviemore booking provider on `/book`.
 - Today, bookings and workflow bundles enriched with insurance-specific action chips when cases exist
 - No real patient insurance data should be entered
 
+## Command Hub GUI polish and live data display fix
+
+- **Root cause:** `toPatientLabel()` in `lib/cliniko.ts` abbreviated full DEMO names (e.g. `DEMO Test Patient 001` → `DEMO 0.`)
+- `lib/cliniko-workflow-enrichment.ts` enriches live appointments server-side with appointment type, practitioner, business and DEMO patient labels
+- `getSafeDemoPatientLabel()` rejects broken abbreviated labels; tests in `lib/cliniko-demo-appointments.test.ts`
+- Generic fallbacks replaced with explicit not-returned labels when Cliniko data is missing
+- `WorkflowBundleCard` — calmer hierarchy: time, patient, type, practitioner/location, one source pill, primary/secondary actions, setup section subdued
+- Today and Bookings — status row, grouped command list (needs attention / ready / setup), data quality banner when needed
+- Sidebar — Daily / Money / Clinic / Setup; proof and test lab moved to Cliniko + Settings pages
+- Smoke — unauthenticated redirect/401 checks plus bookings label quality checks
+- Public pages — Cliniko-first Dundee/Aviemore; Setmore legacy only
+
 ## Cliniko appointment proof update
 
 - Manual Cliniko appointments are read from `/individual_appointments`

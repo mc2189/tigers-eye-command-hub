@@ -31,7 +31,7 @@ export interface ClinikoStatusData {
 
 function statusLabel(status: ClinikoStatusData["status"], source: ClinikoStatusData["source"]) {
   if (status === "connected" && source === "cliniko") {
-    return "Connected to Cliniko sandbox";
+    return "Connected to Cliniko test account";
   }
   if (status === "not_configured") {
     return "Demo mode: no Cliniko key configured";
@@ -78,7 +78,7 @@ export function ClinikoConnectionPanel() {
   if (loading) {
     return (
       <div className="rounded-xl border border-cream-dark bg-white p-5">
-        <p className="text-sm text-slate">Loading Cliniko sandbox data…</p>
+        <p className="text-sm text-slate">Loading Cliniko test account…</p>
       </div>
     );
   }
@@ -116,18 +116,18 @@ export function ClinikoConnectionPanel() {
         <div>
           <dt className="text-slate">Data source</dt>
           <dd className="font-medium text-navy">
-            {data.source === "cliniko" ? "Cliniko sandbox" : "Using demo data"}
+            {data.source === "cliniko" ? "Cliniko test account" : "Using demo data"}
           </dd>
         </div>
       </dl>
 
       {data.authenticatedUser && (
         <div className="mt-4 rounded-lg bg-cream p-3 text-sm">
-          <p className="font-medium text-navy">Authenticated sandbox user</p>
+          <p className="font-medium text-navy">Authenticated Cliniko user</p>
           <p className="text-slate">
             {[data.authenticatedUser.firstName, data.authenticatedUser.lastName]
               .filter(Boolean)
-              .join(" ") || "Sandbox user"}
+              .join(" ") || "Cliniko user"}
             {data.authenticatedUser.role ? ` · ${data.authenticatedUser.role}` : ""}
             {data.authenticatedUser.email ? ` · ${data.authenticatedUser.email}` : ""}
           </p>

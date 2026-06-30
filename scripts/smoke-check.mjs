@@ -111,17 +111,21 @@ const contentChecks = {
     return null;
   },
   "/admin": (body) => {
-    if (!/Today'?s command/i.test(body)) return "missing Today's command";
-    if (!/Notes to complete/i.test(body)) return "missing Notes to complete";
-    if (!/Insurance items/i.test(body)) return "missing Insurance items";
-    if (!/Cliniko connected/i.test(body)) return "missing Cliniko connected status";
+    if (!/Today'?s command|Needs attention|Appointments/i.test(body)) {
+      return "missing Today cockpit wording";
+    }
     return null;
   },
   "/admin/bookings": (body) => {
-    if (!/Review appointments coming from Cliniko/i.test(body)) {
+    if (!/Review appointments from Cliniko/i.test(body)) {
       return "missing bookings purpose line";
     }
     if (!/Needs attention/i.test(body)) return "missing Needs attention tab";
+    if (body.includes("DEMO 0.")) return "contains broken label DEMO 0.";
+    if (body.includes("DEMO (.")) return "contains broken label DEMO (.";
+    if (!/Show all workflow actions/i.test(body)) {
+      return "missing Show all workflow actions disclosure";
+    }
     return null;
   },
   "/admin/notes": (body) => {
@@ -186,8 +190,15 @@ const contentChecks = {
     if (!/system of record|diary and clinical record/i.test(body)) {
       return "missing system-of-record wording";
     }
-    if (!/Open technical test lab/i.test(body)) {
-      return "missing Open technical test lab link";
+    if (!/Technical Cliniko test lab/i.test(body)) {
+      return "missing Technical Cliniko test lab link";
+    }
+    return null;
+  },
+  "/admin/settings": (body) => {
+    if (!/Demo proof page/i.test(body)) return "missing Demo proof page link";
+    if (!/Technical Cliniko test lab/i.test(body)) {
+      return "missing Technical Cliniko test lab link";
     }
     return null;
   },
@@ -288,6 +299,41 @@ async function staffLogin() {
   return Boolean(cookie);
 }
 
+async function checkUnauthenticatedRedirect(route, expectedLocationPart) {
+  const label = `unauth ${route}`.padEnd(36);
+  try {
+    const res = await fetch(`${BASE_URL}${route}`, { redirect: "manual" });
+    const location = res.headers.get("location") ?? "";
+    if ((res.status === 307 || res.status === 308) && location.includes(expectedLocationPart)) {
+      passCount++;
+      console.log(`PASS  ${label}`);
+      return;
+    }
+    failCount++;
+    console.log(`FAIL  ${label} expected redirect to ${expectedLocationPart}, got ${res.status} ${location}`);
+  } catch (err) {
+    failCount++;
+    console.log(`FAIL  ${label} ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+async function checkUnauthenticatedApi(route) {
+  const label = `unauth ${route}`.padEnd(36);
+  try {
+    const res = await fetch(`${BASE_URL}${route}`, { redirect: "manual" });
+    if (res.status === 401) {
+      passCount++;
+      console.log(`PASS  ${label}`);
+      return;
+    }
+    failCount++;
+    console.log(`FAIL  ${label} expected HTTP 401, got ${res.status}`);
+  } catch (err) {
+    failCount++;
+    console.log(`FAIL  ${label} ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
 async function checkRoute(route, requiresAuth) {
   const url = `${BASE_URL}${route}`;
   const label = route.padEnd(36);
@@ -347,6 +393,14 @@ for (const route of publicRoutes) {
 
 await checkRoute("/admin/login", false);
 
+console.log("\nUnauthenticated auth checks\n");
+
+await checkUnauthenticatedRedirect("/admin", "/admin/login");
+await checkUnauthenticatedRedirect("/admin/bookings", "/admin/login");
+await checkUnauthenticatedRedirect("/admin/cliniko/test-lab", "/admin/login");
+await checkUnauthenticatedApi("/api/cliniko/status");
+await checkUnauthenticatedApi("/api/cliniko/test-data");
+
 if (STAFF_PASSWORD) {
   const loggedIn = await staffLogin();
   console.log(loggedIn ? "Auth: demo staff login OK\n" : "Auth: login failed — protected routes may fail\n");
@@ -358,9 +412,9 @@ for (const route of protectedRoutes.filter((r) => r !== "/admin/login")) {
   await checkRoute(route, true);
 }
 
-const total = publicRoutes.length + protectedRoutes.length;
+const total = publicRoutes.length + protectedRoutes.length + 5;
 console.log(
-  `\nSummary: ${passCount} passed, ${failCount} failed, ${skipCount} skipped, ${total} total\n`
+  `\nSummary: ${passCount} passed, ${failCount} failed, ${skipCount} skipped, ${total} checks\n`
 );
 
 if (failCount > 0) {
