@@ -232,5 +232,5 @@ npm run lint
 npm run build
 npm run dev          # terminal 1
 npm run smoke:local  # terminal 2 — includes unauthenticated auth checks
-npm run smoke:prod   # after Vercel deploy (33 checks)
+npm run smoke:prod   # after Vercel deploy (34 checks)
 ```

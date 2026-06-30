@@ -2,17 +2,64 @@
 
 | Field | Value |
 |-------|-------|
-| **Last updated** | 2026-06-30 (Cliniko test account — commit `6a635e0`) |
-| **Local smoke** | **28/28 PASS** |
-| **Production smoke** | **28/28 PASS** (2026-06-30, post `f606408` deploy) |
+| **Last updated** | 2026-06-30 (Command Hub GUI polish — commit `8ee9cf2`) |
+| **Feature commit** | `4515ab0` — Polish Command Hub GUI and fix live appointment labels |
+| **Smoke fix commit** | `8ee9cf2` — Fix bookings smoke checks for SSR and live appointment labels |
+| **Local lint** | **PASS** |
+| **Local build** | **PASS** |
+| **Local smoke** | Not re-run this session (production smoke used as gate) |
+| **Production smoke** | **34/34 PASS** (2026-06-30, post `8ee9cf2` deploy) |
 | **Base URL (prod)** | https://tigers-eye-command-hub.vercel.app |
 
 ## Latest run summary
 
 | Environment | Result | Passed | Failed | Notes |
 |-------------|--------|--------|--------|-------|
-| Local (dev server) | **PASS** | 28 | 0 | Cliniko live feed fix — shard auto-correct, wider date window |
-| Production (Vercel) | **PASS** | 28 | 0 | Post `6a635e0` — Cliniko test account handling |
+| Local lint | **PASS** | — | 0 | `npm run lint` |
+| Local build | **PASS** | — | 0 | `npm run build` |
+| Production (Vercel) | **PASS** | 34 | 0 | Strengthened auth + GUI polish checks |
+
+## Unauthenticated auth smoke (production)
+
+| Check | Result |
+|-------|--------|
+| `/admin` redirects to `/admin/login` | PASS |
+| `/admin/bookings` redirects to `/admin/login` | PASS |
+| `/admin/cliniko/test-lab` redirects to `/admin/login` | PASS |
+| `/api/cliniko/status` returns 401 | PASS |
+| `/api/cliniko/test-data` returns 401 | PASS |
+
+## Authenticated content smoke (production)
+
+| Route | Content check | Result |
+|-------|---------------|--------|
+| `/admin/bookings` | No `DEMO 0.` / `DEMO (.`; disclosure copy present | PASS |
+| `/api/cliniko/individual-appointments?perPage=10` | No broken DEMO labels in JSON | PASS |
+| `/admin/cliniko` | Technical Cliniko test lab link | PASS |
+| `/admin/settings` | Demo proof page link | PASS |
+| `/admin` | Today command list | PASS |
+| `/admin/cliniko/test-lab` | Technical test lab | PASS |
+| `/admin/proof` | Proof page still reachable | PASS |
+
+## Command Hub GUI polish and live data display fix (`4515ab0`, `8ee9cf2`)
+
+- **Root cause:** `toPatientLabel()` abbreviated full DEMO names (`DEMO Test Patient 001` → `DEMO 0.`); mapper used generic fallbacks before ID-based enrichment
+- Fixed `getSafeDemoPatientLabel()` — rejects broken abbreviated labels; unit tests in `lib/cliniko-demo-appointments.test.ts`
+- Server-side enrichment via `lib/cliniko-workflow-enrichment.ts` (appointment type, practitioner, business, DEMO patient by ID)
+- Generic fallbacks replaced with explicit not-returned labels when Cliniko data is missing
+- `WorkflowBundleCard` — calmer hierarchy; setup warnings subdued; “Show all workflow actions” disclosure
+- Today and Bookings — status row, grouped command list, data quality banner when needed
+- Sidebar — Daily / Money / Clinic / Setup; proof and test lab moved to Cliniko + Settings pages
+- Demo banner — “sterile Cliniko test account only. No real patient data is stored in this app.”
+- Public pages — Cliniko-first Dundee/Aviemore; Setmore legacy only
+
+| Route | Content check | Result |
+|-------|---------------|--------|
+| `/book` | Cliniko-first; Setmore not active Aviemore provider | PASS |
+| `/locations` | Dundee, Aviemore, Cliniko | PASS |
+| `/admin/settings` | Demo proof page, Cliniko | PASS |
+
+## Cliniko test account system of record (`6a635e0`)
 
 ## Cliniko test account system of record (`6a635e0`)
 
@@ -156,7 +203,7 @@ Production probe run (read-only, uk3 shard):
 
 ## Failed routes (if any)
 
-_None — all routes passed locally and on production (2026-06-30, post `fa031d5`)._
+_None — all routes passed on production (2026-06-30, post `8ee9cf2`)._
 
 ## How to run
 
