@@ -7,6 +7,7 @@ export interface ClinikoStatusData {
   ok: boolean;
   source: "cliniko" | "demo";
   status: "not_configured" | "connected" | "error";
+  configured?: boolean;
   shard: string | null;
   baseUrl: string | null;
   userAgentConfigured: boolean;

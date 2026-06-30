@@ -152,6 +152,8 @@ export interface ClinikoStatusResponse {
   ok: boolean;
   source: "cliniko" | "demo";
   status: ClinikoConnectionState;
+  /** True when CLINIKO_API_KEY is present on this server (test account intended). */
+  configured: boolean;
   shard: string | null;
   baseUrl: string | null;
   userAgentConfigured: boolean;
@@ -246,6 +248,27 @@ function redactError(status: number, statusText: string): string {
   return `Cliniko request failed (${status} ${statusText})`;
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function retryDelayMs(response: Response, attempt: number): number {
+  const retryAfter = response.headers.get("retry-after");
+  if (retryAfter) {
+    const seconds = Number.parseInt(retryAfter, 10);
+    if (!Number.isNaN(seconds) && seconds > 0) return seconds * 1000;
+  }
+  return Math.min(1000 * 2 ** attempt, 8000);
+}
+
+function isRateLimitError(err: unknown): boolean {
+  return err instanceof ClinikoApiError && err.status === 429;
+}
+
+function isRateLimitMessage(error?: string): boolean {
+  return Boolean(error?.includes("429") || error?.toLowerCase().includes("rate limit"));
+}
+
 // ─── Fetch ───────────────────────────────────────────────────────────────────
 
 export async function clinikoFetch<T>(
@@ -269,35 +292,50 @@ export async function clinikoFetch<T>(
     headers["Content-Type"] = "application/json";
   }
 
-  const response = await fetch(url, {
-    ...options,
-    method,
-    headers: { ...headers, ...(options.headers as Record<string, string>) },
-    cache: "no-store",
-  });
+  const maxAttempts = 4;
 
-  if (!response.ok) {
-    const bodyText = await response.text().catch(() => "");
-    const clinikoMessage = parseClinikoErrorBody(bodyText);
-    throw new ClinikoApiError({
-      message: redactError(response.status, response.statusText),
-      status: response.status,
-      path,
-      bodyText: bodyText ? redactClinikoBody(bodyText) : undefined,
-      clinikoMessage,
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const response = await fetch(url, {
+      ...options,
+      method,
+      headers: { ...headers, ...(options.headers as Record<string, string>) },
+      cache: "no-store",
     });
+
+    if (response.status === 429 && attempt < maxAttempts - 1) {
+      await sleep(retryDelayMs(response, attempt));
+      continue;
+    }
+
+    if (!response.ok) {
+      const bodyText = await response.text().catch(() => "");
+      const clinikoMessage = parseClinikoErrorBody(bodyText);
+      throw new ClinikoApiError({
+        message: redactError(response.status, response.statusText),
+        status: response.status,
+        path,
+        bodyText: bodyText ? redactClinikoBody(bodyText) : undefined,
+        clinikoMessage,
+      });
+    }
+
+    if (response.status === 204) {
+      return {} as T;
+    }
+
+    const contentType = response.headers.get("content-type") ?? "";
+    if (!contentType.includes("application/json")) {
+      return {} as T;
+    }
+
+    return (await response.json()) as T;
   }
 
-  if (response.status === 204) {
-    return {} as T;
-  }
-
-  const contentType = response.headers.get("content-type") ?? "";
-  if (!contentType.includes("application/json")) {
-    return {} as T;
-  }
-
-  return (await response.json()) as T;
+  throw new ClinikoApiError({
+    message: redactError(429, "Too Many Requests"),
+    status: 429,
+    path,
+  });
 }
 
 // ─── Demo fallbacks ──────────────────────────────────────────────────────────
@@ -1125,6 +1163,7 @@ export async function getBookings(params?: {
 
 export async function getClinikoStatus(): Promise<ClinikoStatusResponse> {
   const config = getClinikoConfig();
+  const configured = Boolean(config.apiKey);
 
   if (!config.apiKey) {
     const demoBookings = demoBookingsList();
@@ -1132,6 +1171,7 @@ export async function getClinikoStatus(): Promise<ClinikoStatusResponse> {
       ok: true,
       source: "demo",
       status: "not_configured",
+      configured: false,
       shard: null,
       baseUrl: null,
       userAgentConfigured: Boolean(process.env.CLINIKO_USER_AGENT?.trim()),
@@ -1153,40 +1193,62 @@ export async function getClinikoStatus(): Promise<ClinikoStatusResponse> {
   }
 
   try {
-    const [userResult, businessesResult, practitionersResult, typesResult, bookingsResult] =
-      await Promise.all([
-        getAuthenticatedUser(),
-        getBusinesses(),
-        getPractitioners(),
-        getAppointmentTypes(),
-        getIndividualAppointments({ perPage: 10 }),
-      ]);
-
+    const userResult = await getAuthenticatedUser();
     const connected = userResult.status === "connected";
+
+    let businessesResult: ClinikoResult<ClinikoBusiness[]> | null = null;
+    let practitionersResult: ClinikoResult<ClinikoPractitioner[]> | null = null;
+    let typesResult: ClinikoResult<ClinikoAppointmentType[]> | null = null;
+    let bookingsResult: ClinikoResult<ClinikoIndividualAppointmentsResponse> | null = null;
+
+    if (connected) {
+      await sleep(150);
+      businessesResult = await getBusinesses();
+      await sleep(150);
+      practitionersResult = await getPractitioners();
+      await sleep(150);
+      typesResult = await getAppointmentTypes();
+      await sleep(150);
+      bookingsResult = await getIndividualAppointments({ perPage: 10 });
+    }
+
+    const rateLimited =
+      !connected &&
+      (isRateLimitMessage(userResult.error) ||
+        isRateLimitMessage(businessesResult?.warning));
 
     return {
       ok: connected,
-      source: connected ? "cliniko" : "demo",
+      source: connected || configured ? "cliniko" : "demo",
       status: connected ? "connected" : "error",
+      configured,
       shard: config.shard,
       baseUrl: config.baseUrl,
       userAgentConfigured: Boolean(config.userAgent),
       writesEnabled: config.writesEnabled,
       authenticatedUser: userResult.data,
       counts: {
-        businesses: businessesResult.data?.length ?? 0,
-        practitioners: practitionersResult.data?.length ?? 0,
-        appointmentTypes: typesResult.data?.length ?? 0,
-        bookings: bookingsResult.data?.totalEntries ?? bookingsResult.data?.appointments.length ?? 0,
+        businesses: businessesResult?.data?.length ?? 0,
+        practitioners: practitionersResult?.data?.length ?? 0,
+        appointmentTypes: typesResult?.data?.length ?? 0,
+        bookings:
+          bookingsResult?.data?.totalEntries ??
+          bookingsResult?.data?.appointments.length ??
+          0,
       },
-      error: connected ? undefined : userResult.error ?? "Cliniko authentication failed",
-      warning: config.warning ?? userResult.warning ?? businessesResult.warning,
+      error: connected
+        ? undefined
+        : rateLimited
+          ? "Cliniko rate limit reached — wait a few seconds and refresh."
+          : userResult.error ?? "Cliniko authentication failed",
+      warning: config.warning ?? userResult.warning ?? businessesResult?.warning,
     };
   } catch (err) {
     return {
       ok: false,
-      source: "demo",
+      source: configured ? "cliniko" : "demo",
       status: "error",
+      configured,
       shard: config.shard,
       baseUrl: config.baseUrl,
       userAgentConfigured: Boolean(config.userAgent),

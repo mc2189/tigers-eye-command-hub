@@ -3,26 +3,38 @@ import type { ClinikoStatusData } from "@/components/admin/ClinikoConnectionPane
 export function getClinikoConnectionEmptyState(
   status: ClinikoStatusData | null
 ): { title: string; description: string } {
-  if (status?.status === "not_configured") {
+  const error = status?.error ?? "";
+  const rateLimited =
+    error.includes("429") || error.toLowerCase().includes("rate limit");
+
+  if (rateLimited) {
     return {
-      title: "Cliniko API key not configured on this server.",
+      title: "Cliniko test account is rate-limited.",
       description:
-        "Your local .env.local does not apply to Vercel. Add CLINIKO_API_KEY (and related Cliniko env vars) in the Vercel project settings, redeploy, then refresh this page.",
+        "The configured Cliniko test account hit a temporary API limit. Wait a few seconds, then refresh. This is the live test account — not demo fallback data.",
     };
   }
 
-  if (status?.status === "error") {
+  if (status?.configured && status.status === "error") {
     return {
-      title: "Cliniko connection failed.",
+      title: "Cliniko test account connection failed.",
       description:
-        status.error ??
-        "Check CLINIKO_API_KEY and CLINIKO_SHARD in your server environment, then open the Cliniko test lab to diagnose.",
+        error ||
+        "The Cliniko test API key is configured on this server but could not be reached. Open the Cliniko test lab to diagnose, then refresh.",
+    };
+  }
+
+  if (status?.status === "not_configured" || status?.configured === false) {
+    return {
+      title: "Cliniko test account not configured on this server.",
+      description:
+        "Add CLINIKO_API_KEY from your Cliniko test account to this server's environment (.env.local locally, Vercel env vars for production), redeploy if needed, then refresh.",
     };
   }
 
   return {
-    title: "Cliniko not connected.",
+    title: "Cliniko test account not connected.",
     description:
-      "Add your Cliniko test API key and matching shard to the server environment, then refresh this page.",
+      "Configure the Cliniko test API key on this server, then refresh this page.",
   };
 }

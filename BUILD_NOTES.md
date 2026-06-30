@@ -163,19 +163,35 @@ Possible setup causes when appointment create fails:
 - Online booking / available-times constraints
 - Payload rejected by Cliniko (422) — see diagnostics panel on `/admin/cliniko`
 
+## Cliniko test account (pre-production system of record)
+
+The sterile Cliniko **test account** is a real Cliniko environment — not synthetic demo JSON. Command Hub uses it to validate every workflow (bookings, notes, payments, insurance, stock, writes) before switching to the live business Cliniko account. DEMO-labelled patients/appointments in that account are safe to create and use; there is no negative impact on production Cliniko data.
+
+| Layer | Purpose |
+|-------|---------|
+| **Cliniko test account** | Live API — diary, patients, appointments, notes (configured via `CLINIKO_API_KEY`) |
+| **Demo examples** | Static fallback in code only when Cliniko is unreachable or not configured |
+
+**Local:** `.env.local` (gitignored) — read automatically by Next.js dev/build on your machine.
+
+**Production (Vercel):** same keys must be set in Vercel → Project → Settings → Environment Variables, or run `node scripts/sync-vercel-env.mjs` after `npx vercel link`.
+
 ## Environment variables
 
 Copy `.env.local.example` to `.env.local` (never commit `.env.local`):
 
 ```
 CLINIKO_API_KEY=your-sandbox-key-here
-CLINIKO_SHARD=uk1
+# Shard must match API key suffix (e.g. ...-uk3 → uk3)
+CLINIKO_SHARD=uk3
 CLINIKO_USER_AGENT=Tigers Eye Command Hub Demo / built by Mike Currie
 CLINIKO_ENABLE_WRITES=true
 NEXT_PUBLIC_DEMO_MODE=true
 DEMO_STAFF_PASSWORD=change-me-before-deploy
 DEMO_SESSION_SECRET=change-me-use-long-random-string
 ```
+
+Sync local → Vercel: `node scripts/sync-vercel-env.mjs` (requires Vercel CLI login + link).
 
 ## Quality commands
 

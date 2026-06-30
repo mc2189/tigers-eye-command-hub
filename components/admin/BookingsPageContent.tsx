@@ -16,6 +16,7 @@ export function BookingsPageContent() {
     error,
     isLive,
     connected,
+    configured,
     hasLiveAppointments,
     clinikoStatus,
     reload,
@@ -31,8 +32,8 @@ export function BookingsPageContent() {
         title="Bookings"
         purpose="Review appointments coming from Cliniko and see what each one needs next."
       >
-        <DataSourcePill kind={isLive ? "cliniko-test" : "demo"} />
-        {connected && (
+        <DataSourcePill kind={isLive || configured ? "cliniko-test" : "demo"} />
+        {(connected || configured) && (
           <button
             type="button"
             onClick={() => void reload()}
@@ -57,7 +58,7 @@ export function BookingsPageContent() {
 
       {!loading && !error && (
         <>
-          {!connected ? (
+          {!connected && !hasLiveAppointments ? (
             <PlainEmptyState
               title={connectionEmpty.title}
               description={connectionEmpty.description}

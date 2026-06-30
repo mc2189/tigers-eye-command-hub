@@ -33,6 +33,7 @@ interface CommandHubAppointmentsContextValue {
   lastChecked: string | null;
   error: string | null;
   connected: boolean;
+  configured: boolean;
   isLive: boolean;
   reload: () => Promise<void>;
   loadToday: () => Promise<void>;
@@ -63,6 +64,8 @@ export function CommandHubAppointmentsProvider({ children }: { children: ReactNo
     status?.status === "connected" && status.source === "cliniko"
   );
 
+  const configured = Boolean(status?.configured);
+
   const isLive = useMemo(
     () =>
       connected &&
@@ -89,7 +92,7 @@ export function CommandHubAppointmentsProvider({ children }: { children: ReactNo
         if (cancelled) return;
         setStatus(json);
 
-        if (json.status === "connected" && json.source === "cliniko") {
+        if (json.configured) {
           await loadCurrentWeek();
         }
       } catch {
@@ -114,6 +117,7 @@ export function CommandHubAppointmentsProvider({ children }: { children: ReactNo
       lastChecked: cliniko.lastChecked,
       error: cliniko.error,
       connected,
+      configured,
       isLive,
       hasLiveAppointments,
       clinikoStatus: status,
@@ -130,6 +134,7 @@ export function CommandHubAppointmentsProvider({ children }: { children: ReactNo
     [
       cliniko,
       connected,
+      configured,
       initialized,
       isLive,
       hasLiveAppointments,
