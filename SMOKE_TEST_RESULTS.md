@@ -2,7 +2,7 @@
 
 | Field | Value |
 |-------|-------|
-| **Last updated** | 2026-06-30 (Cliniko connection empty state — commit `f606408`) |
+| **Last updated** | 2026-06-30 (Cliniko test account — commit `6a635e0`) |
 | **Local smoke** | **28/28 PASS** |
 | **Production smoke** | **28/28 PASS** (2026-06-30, post `f606408` deploy) |
 | **Base URL (prod)** | https://tigers-eye-command-hub.vercel.app |
@@ -12,7 +12,14 @@
 | Environment | Result | Passed | Failed | Notes |
 |-------------|--------|--------|--------|-------|
 | Local (dev server) | **PASS** | 28 | 0 | Cliniko live feed fix — shard auto-correct, wider date window |
-| Production (Vercel) | **PASS** | 28 | 0 | Post `f606408` — Cliniko connection empty state |
+| Production (Vercel) | **PASS** | 28 | 0 | Post `6a635e0` — Cliniko test account handling |
+
+## Cliniko test account system of record (`6a635e0`)
+
+- Rate-limit retries and sequential status probes to avoid false "not connected"
+- `configured` flag separates API key present vs live connection
+- Bookings shows "Cliniko test account" pill when configured
+- `npm run sync:vercel-env` to mirror `.env.local` → Vercel
 
 ## Cliniko connection empty state (`f606408`)
 
