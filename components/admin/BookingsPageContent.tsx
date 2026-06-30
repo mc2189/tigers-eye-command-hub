@@ -7,6 +7,7 @@ import { DataSourcePill } from "@/components/admin/DataSourcePill";
 import { PlainEmptyState } from "@/components/admin/PlainEmptyState";
 import { useCommandHubAppointments } from "@/components/admin/CommandHubAppointmentsProvider";
 import { useInsuranceSessionCases } from "@/components/admin/useInsuranceSessionCases";
+import { getClinikoConnectionEmptyState } from "@/lib/cliniko-connection-copy";
 
 export function BookingsPageContent() {
   const {
@@ -16,11 +17,13 @@ export function BookingsPageContent() {
     isLive,
     connected,
     hasLiveAppointments,
+    clinikoStatus,
     reload,
   } = useCommandHubAppointments();
   const { enrichedBundles } = useInsuranceSessionCases();
 
   const bundles = enrichedBundles;
+  const connectionEmpty = getClinikoConnectionEmptyState(clinikoStatus);
 
   return (
     <>
@@ -56,8 +59,8 @@ export function BookingsPageContent() {
         <>
           {!connected ? (
             <PlainEmptyState
-              title="Cliniko not connected."
-              description="Add your Cliniko test API key and matching shard, then refresh this page."
+              title={connectionEmpty.title}
+              description={connectionEmpty.description}
             />
           ) : isLive && !hasLiveAppointments ? (
             <PlainEmptyState

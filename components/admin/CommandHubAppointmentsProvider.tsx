@@ -38,6 +38,7 @@ interface CommandHubAppointmentsContextValue {
   loadToday: () => Promise<void>;
   loadRange: (from: string, to: string) => Promise<void>;
   hasLiveAppointments: boolean;
+  clinikoStatus: ClinikoStatusData | null;
 }
 
 const CommandHubAppointmentsContext =
@@ -115,6 +116,7 @@ export function CommandHubAppointmentsProvider({ children }: { children: ReactNo
       connected,
       isLive,
       hasLiveAppointments,
+      clinikoStatus: status,
       reload: async () => {
         await loadCurrentWeek();
       },
@@ -131,6 +133,7 @@ export function CommandHubAppointmentsProvider({ children }: { children: ReactNo
       initialized,
       isLive,
       hasLiveAppointments,
+      status,
       loadCurrentWeek,
     ]
   );
