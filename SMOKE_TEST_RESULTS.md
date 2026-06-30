@@ -2,17 +2,26 @@
 
 | Field | Value |
 |-------|-------|
-| **Last updated** | 2026-06-29 (Admin UX workflow refactor — commit `2306aa0`) |
-| **Local smoke** | **26/26 PASS** |
-| **Production smoke** | **26/26 PASS** (2026-06-29, post `2306aa0` deploy) |
+| **Last updated** | 2026-06-30 (Workflow intelligence — commit `0e6ea69`) |
+| **Local smoke** | **28/28 PASS** |
+| **Production smoke** | **28/28 PASS** (2026-06-30, post `0e6ea69` deploy) |
 | **Base URL (prod)** | https://tigers-eye-command-hub.vercel.app |
 
 ## Latest run summary
 
 | Environment | Result | Passed | Failed | Notes |
 |-------------|--------|--------|--------|-------|
-| Local (fresh build) | **PASS** | 26 | 0 | New workflow content checks on admin pages |
-| Production (Vercel) | **PASS** | 26 | 0 | Post `2306aa0` — Today command screen + test lab separation |
+| Local (fresh build) | **PASS** | 28 | 0 | Workflow intelligence content checks |
+| Production (Vercel) | **PASS** | 28 | 0 | Post `0e6ea69` — workflow bundles across admin |
+
+## Workflow intelligence layer (`0e6ea69`)
+
+- Live Cliniko appointments generate workflow bundles (note, payment, invoice, insurance, stock, follow-up, setup)
+- Today command list driven by `getTodayCommandItems` — uses **Upcoming command list** when no appointments today
+- Queue pages: notes, payments, invoices, insurance, stock, follow-ups use dedicated workflow helpers
+- `lib/appointment-rules.ts` and `lib/clinic-commercial-rules.ts` for demo-safe type/commercial inference
+- `/admin/proof` — working now vs inferred vs future integrations
+- New routes in smoke: `/admin/followups`, `/admin/proof` (28 routes total)
 
 ## Admin UX and workflow refactor (`2306aa0`)
 
@@ -107,7 +116,7 @@ Production probe run (read-only, uk3 shard):
 
 ## Failed routes (if any)
 
-_None — all routes passed locally and on production (2026-06-29, post `2306aa0`)._
+_None — all routes passed locally and on production (2026-06-30, post `0e6ea69`)._
 
 ## How to run
 
