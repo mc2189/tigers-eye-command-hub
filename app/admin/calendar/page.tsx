@@ -26,7 +26,7 @@ export default function CalendarPage() {
       </CalloutBox>
 
       <div className="mt-6">
-        <WeeklyCalendar enableClinikoLoad />
+        <WeeklyCalendar />
       </div>
     </>
   );

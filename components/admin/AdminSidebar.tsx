@@ -55,6 +55,7 @@ const navSections: NavSection[] = [
     title: "Integrations",
     items: [
       { href: "/admin/cliniko", label: "Cliniko" },
+      { href: "/admin/cliniko/test-lab", label: "Cliniko test lab" },
       { href: "/admin/healthcode", label: "Healthcode" },
       { href: "/admin/settings", label: "Settings" },
     ],

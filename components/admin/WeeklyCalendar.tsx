@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import {
   calendarItems,
@@ -19,10 +19,51 @@ import {
 } from "@/lib/demo-data";
 import {
   filterCalendarByPractitionerName,
-  useMappedClinikoBookings,
 } from "./useMappedClinikoBookings";
+import { useCommandHubAppointments } from "./CommandHubAppointmentsProvider";
 import { DataSourceBadge } from "./DataSourceBadge";
+import type { MappedCalendarItem } from "@/lib/cliniko-mappers";
+import { ClinikoLoadState } from "./ClinikoLoadState";
 import { SourceBadge, StatusBadge } from "./StatusBadge";
+
+const DEMO_OVERLAY_SOURCES = new Set<BookingSource>([
+  "external-work",
+  "admin-block",
+  "stock-task",
+]);
+
+function demoOverlayItems(): DisplayItem[] {
+  return calendarItems
+    .filter((item) => DEMO_OVERLAY_SOURCES.has(item.source) || item.isGap)
+    .map((item) => ({ ...item, isCliniko: false }));
+}
+
+function mapClinikoCalendarItem(i: MappedCalendarItem): DisplayItem {
+  return {
+    id: i.id,
+    date: i.date,
+    startTime: i.startTime,
+    endTime: i.endTime,
+    title: i.title,
+    clientName: i.clientName,
+    practitionerId: i.practitionerId,
+    locationId: i.locationId,
+    source: i.source,
+    paymentStatus: i.paymentStatus,
+    noteStatus: i.noteStatus,
+    invoiceStatus: i.invoiceStatus,
+    estimatedFee: i.estimatedFee,
+    stockWarning: i.stockWarning,
+    isGap: i.isGap,
+    isCliniko: true,
+    workstream: i.workstream,
+    paymentRule: i.paymentRule,
+    stockImpact: i.stockImpact,
+    warnings: i.warnings,
+    practitionerMatched: i.practitionerMatched,
+    practitionerName: i.practitionerName,
+  };
+}
 
 type DisplayItem = CalendarItem & {
   isCliniko?: boolean;
@@ -39,8 +80,6 @@ interface WeeklyCalendarProps {
   practitionerNameMatcher?: string;
   title?: string;
   subtitle?: string;
-  enableClinikoLoad?: boolean;
-  loadButtonLabel?: string;
 }
 
 export function WeeklyCalendar({
@@ -48,8 +87,6 @@ export function WeeklyCalendar({
   practitionerNameMatcher,
   title,
   subtitle,
-  enableClinikoLoad = false,
-  loadButtonLabel = "Load Cliniko sandbox calendar",
 }: WeeklyCalendarProps) {
   const [practitioner, setPractitioner] = useState<PractitionerId | "all">(
     practitionerFilter ?? "all"
@@ -64,18 +101,12 @@ export function WeeklyCalendar({
     source: clinikoSource,
     loading,
     lastChecked,
-    load,
     mapped,
-  } = useMappedClinikoBookings();
-
-  const [clinikoLoaded, setClinikoLoaded] = useState(false);
-
-  const handleLoadCliniko = useCallback(async () => {
-    const from = weekDays[0];
-    const to = weekDays[weekDays.length - 1];
-    await load({ from, to });
-    setClinikoLoaded(true);
-  }, [load]);
+    isLive,
+    connected,
+    error,
+    reload,
+  } = useCommandHubAppointments();
 
   const activeClinikoItems = useMemo(() => {
     let items = clinikoItems;
@@ -89,35 +120,12 @@ export function WeeklyCalendar({
   }, [clinikoItems, practitionerNameMatcher, practitionerFilter]);
 
   const mergedItems = useMemo((): DisplayItem[] => {
-    const demo: DisplayItem[] = calendarItems.map((i) => ({ ...i, isCliniko: false }));
-    const cliniko: DisplayItem[] = clinikoLoaded
-      ? activeClinikoItems.map((i) => ({
-          id: i.id,
-          date: i.date,
-          startTime: i.startTime,
-          endTime: i.endTime,
-          title: i.title,
-          clientName: i.clientName,
-          practitionerId: i.practitionerId,
-          locationId: i.locationId,
-          source: i.source,
-          paymentStatus: i.paymentStatus,
-          noteStatus: i.noteStatus,
-          invoiceStatus: i.invoiceStatus,
-          estimatedFee: i.estimatedFee,
-          stockWarning: i.stockWarning,
-          isGap: i.isGap,
-          isCliniko: true,
-          workstream: i.workstream,
-          paymentRule: i.paymentRule,
-          stockImpact: i.stockImpact,
-          warnings: i.warnings,
-          practitionerMatched: i.practitionerMatched,
-          practitionerName: i.practitionerName,
-        }))
-      : [];
-    return [...demo, ...cliniko];
-  }, [clinikoLoaded, activeClinikoItems]);
+    if (isLive) {
+      const cliniko = activeClinikoItems.map(mapClinikoCalendarItem);
+      return [...cliniko, ...demoOverlayItems()];
+    }
+    return calendarItems.map((i) => ({ ...i, isCliniko: false }));
+  }, [isLive, activeClinikoItems]);
 
   const filtered = useMemo(() => {
     return mergedItems.filter((item) => {
@@ -151,37 +159,41 @@ export function WeeklyCalendar({
         </div>
       )}
 
-      {enableClinikoLoad && (
+      {connected && (
         <div className="mb-6 rounded-xl border border-cream-dark bg-white p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h3 className="font-semibold text-navy">Cliniko sandbox sync</h3>
+              <h3 className="font-semibold text-navy">Appointment source</h3>
               <p className="text-sm text-slate">
-                External/admin/stock overlays remain demo data.
+                {isLive
+                  ? "Cliniko appointments for this week, with external work and admin overlays."
+                  : "Demo calendar until Cliniko returns live appointments."}
               </p>
             </div>
             <button
               type="button"
-              onClick={() => void handleLoadCliniko()}
+              onClick={() => void reload()}
               disabled={loading}
               className="min-h-10 rounded-lg bg-green px-4 py-2 text-sm font-semibold text-white hover:bg-green-light disabled:opacity-50"
             >
-              {loading ? "Loading…" : loadButtonLabel}
+              {loading ? "Refreshing…" : "Refresh from Cliniko"}
             </button>
           </div>
-          {clinikoLoaded && (
+          {loading && <div className="mt-3"><ClinikoLoadState loading /></div>}
+          {error && <div className="mt-3"><ClinikoLoadState error={error} /></div>}
+          {!loading && (
             <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-4">
               <div>
                 <dt className="text-slate">Source</dt>
-                <dd><DataSourceBadge source={clinikoSource} /></dd>
+                <dd><DataSourceBadge source={isLive ? clinikoSource : "demo"} /></dd>
               </div>
               <div>
-                <dt className="text-slate">Bookings loaded</dt>
-                <dd className="font-medium">{mapped.length}</dd>
+                <dt className="text-slate">Appointments</dt>
+                <dd className="font-medium">{isLive ? mapped.length : "—"}</dd>
               </div>
               <div>
-                <dt className="text-slate">Mapped to calendar</dt>
-                <dd className="font-medium">{activeClinikoItems.length}</dd>
+                <dt className="text-slate">On calendar</dt>
+                <dd className="font-medium">{isLive ? activeClinikoItems.length : calendarItems.length}</dd>
               </div>
               <div>
                 <dt className="text-slate">Last checked</dt>

@@ -89,10 +89,17 @@ It must **not** appear as the active Aviemore booking provider on `/book`.
 ## Cliniko appointment discovery
 
 - Manual appointments can exist in Cliniko but not appear if the API query/filter is wrong
-- Discovery probes: unfiltered, future window, patient-specific, business-specific, practitioner-specific, created-recently
+- Discovery probes live on **`/admin/cliniko/test-lab`** (developer proof area)
 - Read-back prefers `patient_id:=` filters for each DEMO patient, then merges unique appointment ids
 - Direct appointment ID lookup via `/individual_appointments/{id}` proves API visibility for a specific row
 - Date filters use proper Cliniko `q[]` syntax with ISO UTC datetimes (`field:>=`, `field:<=`, `field:=`)
+
+## Command Hub daily workflow
+
+- `CommandHubAppointmentsProvider` auto-loads live Cliniko appointments when connected and shares them across dashboard, calendar, bookings and notes
+- `/admin/cliniko` — daily integration (connection, Aviemore, roadmap); link to test lab for proof tools
+- `/admin/cliniko/test-lab` — DEMO CRUD, discovery probes, mapping health, diagnostics
+- Calendar keeps demo external-work/admin overlays alongside live Cliniko appointments
 
 ## Cliniko appointment proof update
 

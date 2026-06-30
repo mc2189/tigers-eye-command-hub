@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   noteTemplates,
   noteAppointments,
@@ -9,7 +9,7 @@ import {
 } from "@/lib/demo-data";
 import { mapClinikoBookingToNoteTask, type MappedNoteTask } from "@/lib/cliniko-mappers";
 import { structureNote } from "@/lib/structure-note";
-import { useMappedClinikoBookings } from "./useMappedClinikoBookings";
+import { useCommandHubAppointments } from "./CommandHubAppointmentsProvider";
 import { ClinikoLoadState } from "./ClinikoLoadState";
 import { DataSourceBadge } from "./DataSourceBadge";
 import { CalloutBox } from "./AdminUI";
@@ -33,16 +33,19 @@ export function NotesAssistant() {
   }));
 
   const [writesEnabled, setWritesEnabled] = useState(false);
+  const { mapped, loading, source, error, isLive, loadToday, reload } =
+    useCommandHubAppointments();
 
-  useEffect(() => {
-    fetch("/api/cliniko/status", { cache: "no-store" })
-      .then((r) => r.json())
-      .then((json: { writesEnabled?: boolean }) => setWritesEnabled(Boolean(json.writesEnabled)))
-      .catch(() => setWritesEnabled(false));
-  }, []);
-  const { mapped, loadToday, loading, source, error } = useMappedClinikoBookings();
-  const [clinikoTasks, setClinikoTasks] = useState<MappedNoteTask[]>([]);
-  const [selected, setSelected] = useState<TaskItem | null>(demoTasks[0] ?? null);
+  const clinikoTasks = useMemo(
+    () =>
+      isLive
+        ? mapped.filter((b) => b.isToday).map(mapClinikoBookingToNoteTask)
+        : [],
+    [isLive, mapped]
+  );
+
+  const allTasks: TaskItem[] = isLive ? clinikoTasks : demoTasks;
+  const [selected, setSelected] = useState<TaskItem | null>(allTasks[0] ?? null);
   const [templateId, setTemplateId] = useState(noteTemplates[0].id);
   const [transcript, setTranscript] = useState("");
   const [structured, setStructured] = useState<Record<string, string> | null>(null);
@@ -50,20 +53,25 @@ export function NotesAssistant() {
   const [saving, setSaving] = useState(false);
   const [dictating, setDictating] = useState(false);
 
-  const allTasks: TaskItem[] = [...clinikoTasks, ...demoTasks];
+  useEffect(() => {
+    fetch("/api/cliniko/status", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((json: { writesEnabled?: boolean }) => setWritesEnabled(Boolean(json.writesEnabled)))
+      .catch(() => setWritesEnabled(false));
+  }, []);
+
+  const firstTaskId = allTasks[0]?.id;
+
+  useEffect(() => {
+    setSelected(allTasks[0] ?? null);
+  }, [isLive, firstTaskId, allTasks]);
+
   const template = noteTemplates.find((t) => t.id === templateId)!;
   const selectedCliniko =
     selected && "clinikoId" in selected ? (selected as MappedNoteTask) : null;
 
-  async function handleLoadClinikoToday() {
-    const result = await loadToday();
-    if (result?.mapped) {
-      const tasks = result.mapped
-        .filter((b) => b.isToday)
-        .map(mapClinikoBookingToNoteTask);
-      setClinikoTasks(tasks);
-      if (tasks[0]) setSelected(tasks[0]);
-    }
+  async function handleRefreshToday() {
+    await loadToday();
   }
 
   function handleStructure() {
@@ -130,19 +138,29 @@ export function NotesAssistant() {
 
   return (
     <div>
-      <div className="mt-4">
-        <button
-          type="button"
-          onClick={() => void handleLoadClinikoToday()}
-          disabled={loading}
-          className="min-h-10 rounded-lg bg-green px-4 py-2 text-sm font-semibold text-white hover:bg-green-light disabled:opacity-50"
-        >
-          {loading ? "Loading Cliniko sandbox data…" : "Load today's Cliniko sandbox appointments"}
-        </button>
-        {clinikoTasks.length > 0 && (
-          <span className="ml-3 text-sm text-slate">
-            {clinikoTasks.length} Cliniko task(s) · <DataSourceBadge source={source} />
-          </span>
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        {isLive ? (
+          <>
+            <DataSourceBadge source={source} />
+            <span className="text-sm text-slate">{clinikoTasks.length} appointment(s) today</span>
+            <button
+              type="button"
+              onClick={() => void handleRefreshToday()}
+              disabled={loading}
+              className="min-h-10 rounded-lg border border-cream-dark px-4 py-2 text-sm font-semibold text-navy hover:bg-cream disabled:opacity-50"
+            >
+              {loading ? "Refreshing…" : "Refresh today"}
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={() => void reload()}
+            disabled={loading}
+            className="min-h-10 rounded-lg bg-green px-4 py-2 text-sm font-semibold text-white hover:bg-green-light disabled:opacity-50"
+          >
+            {loading ? "Loading…" : "Load from Cliniko"}
+          </button>
         )}
       </div>
 

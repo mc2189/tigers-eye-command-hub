@@ -57,6 +57,7 @@ const protectedRoutes = [
   "/admin",
   "/admin/demo-walkthrough",
   "/admin/cliniko",
+  "/admin/cliniko/test-lab",
   "/admin/calendar",
   "/admin/calendar/george",
   "/admin/calendar/practitioner-2",
@@ -113,11 +114,17 @@ const contentChecks = {
     if (!/system of record|source of truth/i.test(body)) {
       return "missing system-of-record wording";
     }
-    if (!/location|migration|Aviemore|test lab/i.test(body)) {
-      return "missing migration/location/test lab wording";
+    if (!/test lab|proof tools/i.test(body)) {
+      return "missing test lab link on Cliniko integration page";
     }
+    return null;
+  },
+  "/admin/cliniko/test-lab": (body) => {
     if (!/Cliniko appointment discovery|Run appointment discovery|Appointment source diagnostics|Live Cliniko DEMO appointments/i.test(body)) {
-      return "missing Cliniko appointment discovery sections";
+      return "missing Cliniko test lab discovery sections";
+    }
+    if (!/test lab|proof/i.test(body)) {
+      return "missing test lab wording";
     }
     return null;
   },

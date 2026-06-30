@@ -1,12 +1,10 @@
+import Link from "next/link";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { ClinikoPanelErrorBoundary } from "@/components/admin/ClinikoPanelErrorBoundary";
 import { AviemoreClinikoPanel } from "@/components/admin/AviemoreClinikoPanel";
-import { ClinikoTestLabPanel } from "@/components/admin/ClinikoTestLabPanel";
 import { ConfigureDemoButton } from "@/components/admin/ConfigureDemoButton";
 import { ClinikoConnectionPanel } from "@/components/admin/ClinikoConnectionPanel";
-import { ClinikoLiveDataPanels } from "@/components/admin/ClinikoLiveDataPanels";
 import { ClinikoHealthSummary } from "@/components/admin/ClinikoHealthSummary";
-import { ClinikoMappingHealthPanel } from "@/components/admin/ClinikoMappingHealthPanel";
 import { DataHandlingPanel } from "@/components/admin/DataHandlingPanel";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { clinikoHealthCheck } from "@/lib/demo-data";
@@ -33,31 +31,32 @@ export default function ClinikoPage() {
   return (
     <>
       <AdminPageHeader
-        title="Cliniko health check"
-        subtitle="See what Cliniko already supports and how Command Hub helps you use those features more fully."
+        title="Cliniko integration"
+        subtitle="Connection status and roadmap. Cliniko is the system of record — Command Hub reads live appointments into your daily workflow."
       />
 
-      <p className="sr-only">
-        Cliniko test lab — Live Cliniko DEMO appointments. Cliniko appointment discovery.
-        Run appointment discovery. Appointment source diagnostics. Clear local proof state.
-        Check for DEMO appointments. Appointment proof diagnostics. Cliniko is the system of record.
-      </p>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-cream-dark bg-white p-4">
+        <div>
+          <p className="font-semibold text-navy">Need proof tools or test data?</p>
+          <p className="mt-1 text-sm text-slate">
+            DEMO patient CRUD, appointment discovery, mapping diagnostics and proof state
+            live in the dedicated test lab.
+          </p>
+        </div>
+        <Link
+          href="/admin/cliniko/test-lab"
+          className="inline-flex min-h-10 items-center rounded-lg border border-cream-dark bg-cream px-4 py-2 text-sm font-semibold text-navy hover:bg-cream-dark"
+        >
+          Open test lab & proof tools
+        </Link>
+      </div>
 
       <div className="mb-6 space-y-6">
         <ClinikoPanelErrorBoundary title="Cliniko connection">
           <ClinikoConnectionPanel />
         </ClinikoPanelErrorBoundary>
         <AviemoreClinikoPanel />
-        <ClinikoPanelErrorBoundary title="Cliniko test lab">
-          <ClinikoTestLabPanel />
-        </ClinikoPanelErrorBoundary>
         <ClinikoHealthSummary />
-        <ClinikoPanelErrorBoundary title="Live Cliniko data">
-          <ClinikoLiveDataPanels />
-        </ClinikoPanelErrorBoundary>
-        <ClinikoPanelErrorBoundary title="Mapping health">
-          <ClinikoMappingHealthPanel />
-        </ClinikoPanelErrorBoundary>
         <DataHandlingPanel />
       </div>
 

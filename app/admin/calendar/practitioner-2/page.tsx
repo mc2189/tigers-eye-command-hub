@@ -18,8 +18,6 @@ export default function Practitioner2CalendarPage() {
         <WeeklyCalendar
           practitionerFilter="jamie-lee"
           practitionerNameMatcher="jamie|thomson"
-          enableClinikoLoad
-          loadButtonLabel="Load Cliniko sandbox bookings"
         />
       </div>
     </>
