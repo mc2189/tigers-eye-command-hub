@@ -2,17 +2,23 @@
 
 | Field | Value |
 |-------|-------|
-| **Last updated** | 2026-06-29 (appointment discovery — commits `826d68d`, patient_id fix pending deploy) |
-| **Local smoke** | **25/25 PASS** (production build on port 3010) |
-| **Production smoke** | **25/25 PASS** (2026-06-29, post `826d68d` deploy) |
+| **Last updated** | 2026-06-30 (Command Hub refactor — commit `ac3a1d1`) |
+| **Local smoke** | **26/26 PASS** |
+| **Production smoke** | **26/26 PASS** (2026-06-30, post `ac3a1d1` deploy) |
 | **Base URL (prod)** | https://tigers-eye-command-hub.vercel.app |
 
 ## Latest run summary
 
 | Environment | Result | Passed | Failed | Notes |
 |-------------|--------|--------|--------|-------|
-| Local (`localhost:3010`) | **PASS** | 25 | 0 | Discovery UI + diagnostics strings present |
-| Production (Vercel) | **PASS** | 25 | 0 | Post `826d68d` — discovery panel live |
+| Local (fresh build) | **PASS** | 26 | 0 | Includes `/admin/cliniko/test-lab` |
+| Production (Vercel) | **PASS** | 26 | 0 | Post `ac3a1d1` — shared live Cliniko appointments |
+
+## Command Hub daily workflow (`ac3a1d1`)
+
+- Shared `CommandHubAppointmentsProvider` auto-loads Cliniko appointments when connected
+- Dashboard, calendar, bookings and notes use live Cliniko as primary source
+- `/admin/cliniko` — daily integration page; `/admin/cliniko/test-lab` — proof tools and discovery
 
 ## Cliniko appointment discovery (`826d68d`)
 
