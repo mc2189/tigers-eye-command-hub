@@ -2,17 +2,29 @@
 
 | Field | Value |
 |-------|-------|
-| **Last updated** | 2026-06-30 (Insurance session tracking — commit `fa031d5`) |
+| **Last updated** | 2026-06-30 (Cliniko live feed fix — commit `bbb1094`) |
 | **Local smoke** | **28/28 PASS** |
-| **Production smoke** | **28/28 PASS** (2026-06-30, post `fa031d5` deploy) |
+| **Production smoke** | **28/28 PASS** (2026-06-30, post `bbb1094` deploy) |
 | **Base URL (prod)** | https://tigers-eye-command-hub.vercel.app |
 
 ## Latest run summary
 
 | Environment | Result | Passed | Failed | Notes |
 |-------------|--------|--------|--------|-------|
-| Local (fresh build) | **PASS** | 28 | 0 | Insurance session tracking smoke checks |
-| Production (Vercel) | **PASS** | 28 | 0 | Post `fa031d5` — insurance case tracker |
+| Local (dev server) | **PASS** | 28 | 0 | Cliniko live feed fix — shard auto-correct, wider date window |
+| Production (Vercel) | **PASS** | 28 | 0 | Post `bbb1094` — live appointment feed fix |
+
+## Cliniko live feed fix (`bbb1094`)
+
+- Auto-correct `CLINIKO_SHARD` from API key suffix when mismatched
+- Widen appointment load window to 14 days back / 90 days forward
+- Split `isLive` vs `hasLiveAppointments` — clearer empty states on Today, Bookings, Cliniko overview
+
+| Route | Content check | Result |
+|-------|---------------|--------|
+| `/admin/bookings` | Bookings purpose line | PASS |
+| `/admin` | Today command list | PASS |
+| `/api/cliniko/status` | Cliniko status JSON | PASS |
 
 ## Insurance session tracking workflow (`fa031d5`)
 
