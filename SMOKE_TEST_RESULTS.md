@@ -2,9 +2,9 @@
 
 | Field | Value |
 |-------|-------|
-| **Last updated** | 2026-06-30 (Cliniko live feed fix — commit `bbb1094`) |
+| **Last updated** | 2026-06-30 (Cliniko connection empty state — commit `f606408`) |
 | **Local smoke** | **28/28 PASS** |
-| **Production smoke** | **28/28 PASS** (2026-06-30, post `bbb1094` deploy) |
+| **Production smoke** | **28/28 PASS** (2026-06-30, post `f606408` deploy) |
 | **Base URL (prod)** | https://tigers-eye-command-hub.vercel.app |
 
 ## Latest run summary
@@ -12,7 +12,12 @@
 | Environment | Result | Passed | Failed | Notes |
 |-------------|--------|--------|--------|-------|
 | Local (dev server) | **PASS** | 28 | 0 | Cliniko live feed fix — shard auto-correct, wider date window |
-| Production (Vercel) | **PASS** | 28 | 0 | Post `bbb1094` — live appointment feed fix |
+| Production (Vercel) | **PASS** | 28 | 0 | Post `f606408` — Cliniko connection empty state |
+
+## Cliniko connection empty state (`f606408`)
+
+- Bookings page distinguishes server not configured vs connection error vs missing appointments
+- Guidance points to Vercel environment variables when `CLINIKO_API_KEY` is absent on production
 
 ## Cliniko live feed fix (`bbb1094`)
 
