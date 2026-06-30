@@ -2,13 +2,13 @@
 
 | Field | Value |
 |-------|-------|
-| **Last updated** | 2026-06-30 (Appointment records + patient matching — commit `2854dce`) |
-| **Feature commit** | `2854dce` — Add appointment records and patient matching workflow |
+| **Last updated** | 2026-06-30 (Cliniko record completeness — commit `8a18395`) |
+| **Feature commit** | `8a18395` — Improve Cliniko record completeness and follow-up booking |
 | **Smoke record commit** | `cca288f` |
 | **Local lint** | **PASS** |
 | **Local build** | **PASS** |
-| **Local smoke** | **37/37 PASS** (production build on port 3012) |
-| **Production smoke** | **37/37 PASS** (2026-06-30, post `2854dce` deploy) |
+| **Local smoke** | **38/38 PASS** (production build on port 3013) |
+| **Production smoke** | **38/38 PASS** (2026-06-30, post `8a18395` deploy) |
 | **Base URL (prod)** | https://tigers-eye-command-hub.vercel.app |
 
 ## Latest run summary
@@ -17,8 +17,27 @@
 |-------------|--------|--------|--------|-------|
 | Local lint | **PASS** | — | 0 | `npm run lint` |
 | Local build | **PASS** | — | 0 | `npm run build` |
-| Local smoke | **PASS** | 37 | 0 | `BASE_URL=http://127.0.0.1:3012 node scripts/smoke-check.mjs` |
-| Production (Vercel) | **PASS** | 37 | 0 | Appointment records + patient matching checks |
+| Local smoke | **PASS** | 38 | 0 | `BASE_URL=http://127.0.0.1:3013 node scripts/smoke-check.mjs` |
+| Production (Vercel) | **PASS** | 38 | 0 | Record completeness + follow-up booking checks |
+
+## Cliniko patient record completeness and follow-up booking (`8a18395`)
+
+- Patient field write audit in `lib/cliniko-patient-field-map.ts`
+- Expanded DEMO patient create with phone, DOB, address, emergency contact, referral, occupation, notes
+- Read-back verification after patient create (`lib/demo-patient-create.ts`)
+- Record completeness panels on appointment and client detail pages
+- Inline follow-up booking via `POST /api/cliniko/create-demo-followup` with duplicate detection
+- Calendar **Open record** links on appointment cards
+- Test lab **Patient record write proof** section
+- Smoke expanded to 38 checks (includes `/admin/clients/demo-alex-wilson`)
+
+| Route | Content check | Result |
+|-------|---------------|--------|
+| `/admin/intake` | Saved/Prepared/Blocked field behaviour | PASS |
+| `/admin/appointments/dcw-001` | Record completeness, follow-up booking | PASS |
+| `/admin/clients/demo-alex-wilson` | Record completeness, Future integration | PASS |
+| `/admin/calendar` | Open record or appointment detail link | PASS |
+| `/admin/cliniko/test-lab` | Patient record write proof | PASS |
 
 ## Appointment actions and patient matching (`2854dce`)
 
@@ -241,7 +260,7 @@ Production probe run (read-only, uk3 shard):
 
 ## Failed routes (if any)
 
-_None — all routes passed on production (2026-06-30, post `2854dce`)._
+_None — all routes passed on production (2026-06-30, post `8a18395`)._
 
 ## How to run
 
