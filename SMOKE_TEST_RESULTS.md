@@ -4,7 +4,7 @@
 |-------|-------|
 | **Last updated** | 2026-06-30 (Cliniko record completeness — commit `8a18395`) |
 | **Feature commit** | `8a18395` — Improve Cliniko record completeness and follow-up booking |
-| **Smoke record commit** | `cca288f` |
+| **Smoke record commit** | `42ead4c` |
 | **Local lint** | **PASS** |
 | **Local build** | **PASS** |
 | **Local smoke** | **38/38 PASS** (production build on port 3013) |
