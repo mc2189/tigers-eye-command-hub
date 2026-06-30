@@ -1,12 +1,18 @@
+"use client";
+
 import Link from "next/link";
-import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { useMemo } from "react";
+import { WorkflowPageHeader } from "@/components/admin/WorkflowPageHeader";
+import { ActionQueue } from "@/components/admin/ActionQueue";
 import { CalloutBox } from "@/components/admin/AdminUI";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { StatusBadge } from "@/components/admin/StatusBadge";
+import { useCommandHubAppointments } from "@/components/admin/CommandHubAppointmentsProvider";
+import { mappedBookingToWorkflowView } from "@/lib/admin-workflow";
 import { paymentRules, paymentActionQueue } from "@/lib/demo-data";
 
 const setupCards = [
-  { label: "Stripe in Cliniko", value: "Demo ready", hint: "Sandbox connected" },
+  { label: "Stripe in Cliniko", value: "Demo ready", hint: "Test account connected" },
   { label: "Online payments", value: "Recommended", hint: "Deposits & full pay" },
   { label: "Deposits", value: "Configurable", hint: "By appointment type" },
   { label: "Cash", value: "Agreement required", hint: "Admin approval flag" },
@@ -15,14 +21,30 @@ const setupCards = [
 ];
 
 export default function PaymentsPage() {
+  const { mapped, isLive } = useCommandHubAppointments();
+
+  const paymentAppointments = useMemo(() => {
+    const filtered = mapped.filter(
+      (b) => b.paymentStatus === "unpaid" || b.paymentStatus === "cash-approval-required"
+    );
+    return filtered.map(mappedBookingToWorkflowView);
+  }, [mapped]);
+
   return (
     <>
-      <AdminPageHeader
+      <WorkflowPageHeader
         title="Payments"
-        subtitle="Payment rules, readiness and action queue — Cliniko/Stripe remains the payment engine."
+        purpose="See which appointments need a payment check and how each payment rule applies."
       />
 
-      <section>
+      <ActionQueue
+        title="Live Cliniko payment checks"
+        appointments={isLive ? paymentAppointments : []}
+        emptyTitle="No payment checks needed from live appointments."
+        emptyDescription="When Cliniko appointments need a payment status check, they will appear here with the actions each one needs."
+      />
+
+      <section className="mt-8">
         <h2 className="mb-4 text-lg font-bold text-navy">Setup status</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {setupCards.map((c) => (
@@ -65,7 +87,10 @@ export default function PaymentsPage() {
       </section>
 
       <section className="mt-8">
-        <h2 className="mb-4 text-lg font-bold text-navy">Payment action queue</h2>
+        <h2 className="mb-4 text-lg font-bold text-navy">Demo payment action queue</h2>
+        <p className="mb-4 text-sm text-slate">
+          Demo examples below. Live Cliniko appointments needing payment checks are listed above.
+        </p>
         <div className="grid gap-4 sm:grid-cols-2">
           {paymentActionQueue.map((item) => (
             <Link
@@ -75,7 +100,9 @@ export default function PaymentsPage() {
             >
               <div>
                 <p className="font-medium text-navy">{item.description}</p>
-                <p className="text-sm text-slate">{item.count} item{item.count !== 1 ? "s" : ""}</p>
+                <p className="text-sm text-slate">
+                  {item.count} item{item.count !== 1 ? "s" : ""}
+                </p>
               </div>
               <StatusBadge label="Review" variant="warning" />
             </Link>

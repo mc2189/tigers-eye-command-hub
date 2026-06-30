@@ -97,9 +97,21 @@ It must **not** appear as the active Aviemore booking provider on `/book`.
 ## Command Hub daily workflow
 
 - `CommandHubAppointmentsProvider` auto-loads live Cliniko appointments when connected and shares them across dashboard, calendar, bookings and notes
-- `/admin/cliniko` — daily integration (connection, Aviemore, roadmap); link to test lab for proof tools
-- `/admin/cliniko/test-lab` — DEMO CRUD, discovery probes, mapping health, diagnostics
+- `/admin` — **Today** command screen: summary cards, action list, clinic status, quick actions
+- `/admin/cliniko` — clean integration overview (connection, live feed, businesses, practitioners, types)
+- `/admin/cliniko/test-lab` — DEMO CRUD, discovery probes, mapping health, diagnostics (technical proof only)
 - Calendar keeps demo external-work/admin overlays alongside live Cliniko appointments
+
+## Admin UX and workflow refactor
+
+- Sidebar simplified into workflow groups: **Daily Work**, **Money**, **Operations**, **Setup & Proof**
+- `/admin` visually labelled **Today** — main daily command screen for George
+- Shared workflow UI: `WorkflowPageHeader`, `WorkflowSummaryCard`, `AppointmentWorkflowCard`, `ActionQueue`, `ActionChip`, `DataSourcePill`, `PlainEmptyState`, `WorkflowHelpPanel`, `SectionTabs`
+- Live Cliniko appointments power workflow cards and action chips across Today, bookings, payments, invoices, insurance and stock
+- Demo examples remain separate from live data with clear source pills
+- Technical API language (`patient_id`, `q[]`, raw payloads) hidden from normal clinic workflow pages — only on `/admin/cliniko/test-lab`
+- Normal Cliniko page uses plain clinic language: “Cliniko test account”, not “sandbox”
+- Each admin page has a plain-English purpose line answering “what do I need to do next?”
 
 ## Cliniko appointment proof update
 

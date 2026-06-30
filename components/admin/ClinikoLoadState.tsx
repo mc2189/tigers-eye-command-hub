@@ -12,13 +12,13 @@ export function ClinikoLoadState({
   loading,
   error,
   empty,
-  emptyMessage = "No Cliniko individual appointments loaded yet. Create a DEMO appointment on /admin/cliniko or load sandbox data here.",
+  emptyMessage = "No live Cliniko appointments found. Create a DEMO appointment in Cliniko, then refresh the live feed.",
   children,
 }: ClinikoLoadStateProps) {
   if (loading) {
     return (
       <p className="rounded-lg border border-cream-dark bg-white px-4 py-6 text-center text-sm text-slate">
-        Loading Cliniko sandbox data…
+        Loading live Cliniko appointments…
       </p>
     );
   }

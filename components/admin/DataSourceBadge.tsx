@@ -14,7 +14,7 @@ interface DataSourceBadgeProps {
 }
 
 const labels: Record<BadgeSource, string> = {
-  cliniko: "Cliniko sandbox",
+  cliniko: "Cliniko test account",
   "cliniko-test": "Cliniko test account",
   demo: "Demo data",
   inferred: "Inferred",

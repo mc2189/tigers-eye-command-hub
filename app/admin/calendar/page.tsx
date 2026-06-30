@@ -1,4 +1,4 @@
-import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { WorkflowPageHeader } from "@/components/admin/WorkflowPageHeader";
 import { CalloutBox } from "@/components/admin/AdminUI";
 import { WeeklyCalendar } from "@/components/admin/WeeklyCalendar";
 import Link from "next/link";
@@ -6,9 +6,9 @@ import Link from "next/link";
 export default function CalendarPage() {
   return (
     <>
-      <AdminPageHeader
+      <WorkflowPageHeader
         title="Calendar"
-        subtitle="Combined weekly view across practitioners, locations and commitments."
+        purpose="See the week ahead — live Cliniko appointments plus clinic commitments that need planning."
       >
         <div className="flex flex-wrap gap-3">
           <Link href="/admin/calendar/george" className="text-sm font-medium text-green hover:underline">
@@ -18,7 +18,7 @@ export default function CalendarPage() {
             Practitioner 2 calendar →
           </Link>
         </div>
-      </AdminPageHeader>
+      </WorkflowPageHeader>
 
       <CalloutBox title="Cliniko remains the booking record">
         Appointments booked through Cliniko appear alongside external work, admin

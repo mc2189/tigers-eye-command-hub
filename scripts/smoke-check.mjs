@@ -108,23 +108,63 @@ const contentChecks = {
     }
     return null;
   },
+  "/admin": (body) => {
+    if (!/Today'?s command list/i.test(body)) return "missing Today's command list";
+    if (!/Cliniko connected/i.test(body)) return "missing Cliniko connected status";
+    return null;
+  },
+  "/admin/bookings": (body) => {
+    if (!/Review appointments coming from Cliniko/i.test(body)) {
+      return "missing bookings purpose line";
+    }
+    return null;
+  },
+  "/admin/notes": (body) => {
+    if (!/Cliniko remains the clinical record/i.test(body)) {
+      return "missing notes purpose line";
+    }
+    return null;
+  },
+  "/admin/finance": (body) => {
+    if (!/not accounting software/i.test(body)) {
+      return "missing finance disclaimer";
+    }
+    return null;
+  },
+  "/admin/invoices": (body) => {
+    if (!/invoice or payment check/i.test(body)) {
+      return "missing invoices purpose line";
+    }
+    return null;
+  },
+  "/admin/insurance": (body) => {
+    if (!/authorised sessions/i.test(body)) {
+      return "missing insurance purpose line";
+    }
+    return null;
+  },
+  "/admin/stock": (body) => {
+    if (!/consumables/i.test(body)) {
+      return "missing stock purpose line";
+    }
+    return null;
+  },
   "/admin/cliniko": (body) => {
     if (!body.includes("Cliniko")) return 'missing "Cliniko"';
-    if (!body.includes("Aviemore")) return 'missing "Aviemore"';
-    if (!/system of record|source of truth/i.test(body)) {
+    if (!/system of record|diary and clinical record/i.test(body)) {
       return "missing system-of-record wording";
     }
-    if (!/test lab|proof tools/i.test(body)) {
-      return "missing test lab link on Cliniko integration page";
+    if (!/Open technical test lab/i.test(body)) {
+      return "missing Open technical test lab link";
     }
     return null;
   },
   "/admin/cliniko/test-lab": (body) => {
-    if (!/Cliniko appointment discovery|Run appointment discovery|Appointment source diagnostics|Live Cliniko DEMO appointments/i.test(body)) {
-      return "missing Cliniko test lab discovery sections";
+    if (!/Technical test lab/i.test(body)) {
+      return "missing Technical test lab banner";
     }
-    if (!/test lab|proof/i.test(body)) {
-      return "missing test lab wording";
+    if (!/Cliniko appointment discovery|Run appointment discovery|Live Cliniko DEMO appointments/i.test(body)) {
+      return "missing Cliniko test lab discovery sections";
     }
     return null;
   },

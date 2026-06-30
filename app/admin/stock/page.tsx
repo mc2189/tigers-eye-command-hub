@@ -1,4 +1,4 @@
-import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { WorkflowPageHeader } from "@/components/admin/WorkflowPageHeader";
 import { ClinikoStockPanel } from "@/components/admin/ClinikoStockPanel";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { stockItems, stockUsageRules } from "@/lib/demo-data";
@@ -18,9 +18,9 @@ const statusLabel = {
 export default function StockPage() {
   return (
     <>
-      <AdminPageHeader
-        title="Stock & consumables"
-        subtitle="Lightweight inventory linked to appointment types and external work."
+      <WorkflowPageHeader
+        title="Stock"
+        purpose="Estimate consumables needed from upcoming appointment types."
       />
 
       <ClinikoStockPanel />

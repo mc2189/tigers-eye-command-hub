@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { WorkflowPageHeader } from "@/components/admin/WorkflowPageHeader";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { followUpTasks } from "@/lib/demo-data";
 
@@ -26,9 +26,9 @@ export default function FollowupsPage() {
 
   return (
     <>
-      <AdminPageHeader
+      <WorkflowPageHeader
         title="Follow-ups"
-        subtitle="Injury check-ins, rebook prompts, insurance reminders and review requests."
+        purpose="Send injury check-ins, rebook prompts and review requests after appointments."
       />
 
       <div className="space-y-4">

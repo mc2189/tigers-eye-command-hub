@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { WorkflowPageHeader } from "@/components/admin/WorkflowPageHeader";
 import { ClinikoPanelErrorBoundary } from "@/components/admin/ClinikoPanelErrorBoundary";
 import { ClinikoTestLabPanel } from "@/components/admin/ClinikoTestLabPanel";
 import { ClinikoLiveDataPanels } from "@/components/admin/ClinikoLiveDataPanels";
@@ -9,30 +9,29 @@ import { DataHandlingPanel } from "@/components/admin/DataHandlingPanel";
 export default function ClinikoTestLabPage() {
   return (
     <>
-      <AdminPageHeader
-        title="Cliniko test lab & proof"
-        subtitle="Developer diagnostics, DEMO record CRUD, appointment discovery, and integration proof tools. Daily staff workflows use the main Command Hub pages."
+      <WorkflowPageHeader
+        title="Cliniko test lab"
+        purpose="Technical proof area for the sterile Cliniko test account. Not part of George's daily clinic workflow."
       >
         <Link
           href="/admin/cliniko"
           className="text-sm font-medium text-green hover:underline"
         >
-          ← Back to Cliniko integration
+          ← Back to Cliniko overview
         </Link>
-      </AdminPageHeader>
+      </WorkflowPageHeader>
 
       <p className="sr-only">
-        Cliniko test lab — Live Cliniko DEMO appointments. Cliniko appointment discovery.
+        Technical test lab. Cliniko test lab — Live Cliniko DEMO appointments. Cliniko appointment discovery.
         Run appointment discovery. Appointment source diagnostics. Clear local proof state.
         Check for DEMO appointments. Appointment proof diagnostics.
       </p>
 
-      <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50/60 p-4 text-sm text-slate">
-        <p className="font-medium text-navy">Technical proof area</p>
-        <p className="mt-1">
-          This page is for sterile test-account verification only. Live appointment data
-          for calendar, bookings, notes and the dashboard loads automatically from Cliniko
-          when connected.
+      <div className="mb-6 rounded-xl border border-amber-300 bg-amber-50 p-5">
+        <p className="font-semibold text-navy">Technical test lab</p>
+        <p className="mt-2 text-sm leading-relaxed text-slate">
+          This page is for proving the Cliniko connection in the sterile test account. It is not
+          part of the daily clinic workflow.
         </p>
       </div>
 

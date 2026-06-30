@@ -1,4 +1,4 @@
-import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { WorkflowPageHeader } from "@/components/admin/WorkflowPageHeader";
 import { DataHandlingPanel } from "@/components/admin/DataHandlingPanel";
 import { NotesAssistant } from "@/components/admin/NotesAssistant";
 import { SafeNotesPanel } from "@/components/admin/SafeNotesPanel";
@@ -6,9 +6,9 @@ import { SafeNotesPanel } from "@/components/admin/SafeNotesPanel";
 export default function NotesPage() {
   return (
     <>
-      <AdminPageHeader
-        title="Clinical notes assistant"
-        subtitle="Dictate or paste rough notes, structure them, review, then save a draft to Cliniko — nothing stored locally."
+      <WorkflowPageHeader
+        title="Notes"
+        purpose="Prepare treatment-note drafts safely. Cliniko remains the clinical record."
       />
       <div className="mb-6 space-y-6">
         <SafeNotesPanel />

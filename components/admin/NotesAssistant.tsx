@@ -11,6 +11,7 @@ import { mapClinikoBookingToNoteTask, type MappedNoteTask } from "@/lib/cliniko-
 import { structureNote } from "@/lib/structure-note";
 import { useCommandHubAppointments } from "./CommandHubAppointmentsProvider";
 import { ClinikoLoadState } from "./ClinikoLoadState";
+import { PlainEmptyState } from "./PlainEmptyState";
 import { DataSourceBadge } from "./DataSourceBadge";
 import { CalloutBox } from "./AdminUI";
 import { StatusBadge } from "./StatusBadge";
@@ -208,6 +209,14 @@ export function NotesAssistant() {
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
         <div className="rounded-xl border border-cream-dark bg-white p-4">
           <h3 className="font-semibold text-navy">Appointments needing notes</h3>
+          {allTasks.length === 0 ? (
+            <div className="mt-3">
+              <PlainEmptyState
+                title="No notes due."
+                description="Appointments needing treatment notes will appear here when live Cliniko appointments are loaded."
+              />
+            </div>
+          ) : (
           <ul className="mt-3 space-y-2">
             {allTasks.map((appt) => (
               <li key={appt.id}>
@@ -246,6 +255,7 @@ export function NotesAssistant() {
               </li>
             ))}
           </ul>
+          )}
         </div>
 
         <div className="lg:col-span-2 space-y-4">
@@ -356,7 +366,7 @@ export function NotesAssistant() {
                       disabled={saving}
                       className="min-h-10 rounded-lg bg-green px-4 py-2 text-sm font-semibold text-white hover:bg-green-light disabled:opacity-50"
                     >
-                      {saving ? "Saving…" : "Save draft to Cliniko sandbox"}
+                      {saving ? "Saving…" : "Save draft to Cliniko test account"}
                     </button>
                     <DataSourceBadge source={writesEnabled ? "cliniko" : "dry-run"} />
                     <DataSourceBadge source="safety-gated" />

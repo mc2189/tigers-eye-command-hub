@@ -1,4 +1,4 @@
-import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { WorkflowPageHeader } from "@/components/admin/WorkflowPageHeader";
 import { CalloutBox } from "@/components/admin/AdminUI";
 import { ClinikoFinancePanel } from "@/components/admin/ClinikoFinancePanel";
 import { MetricCard } from "@/components/admin/MetricCard";
@@ -10,14 +10,14 @@ export default function FinancePage() {
 
   return (
     <>
-      <AdminPageHeader
+      <WorkflowPageHeader
         title="Finance"
-        subtitle="Estimated income and workflow view — not a replacement for your accountant or Xero."
+        purpose="Operational estimates only. This is not accounting software."
       />
 
-      <CalloutBox title="Demo finance only" variant="info">
+      <CalloutBox title="Workflow estimates" variant="info">
         <p>
-          Figures here are estimated from demo and Cliniko sandbox data. This is a
+          Figures here are estimated from demo and Cliniko test account data. This is a
           workflow dashboard — not accounting software. Use Cliniko reports and your
           accountant for official records.
         </p>

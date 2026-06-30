@@ -22,41 +22,38 @@ interface NavSection {
 
 const navSections: NavSection[] = [
   {
-    title: "Main",
+    title: "Daily Work",
     items: [
-      { href: "/admin", label: "Dashboard" },
+      { href: "/admin", label: "Today" },
       { href: "/admin/calendar", label: "Calendar" },
       { href: "/admin/bookings", label: "Bookings" },
       { href: "/admin/notes", label: "Notes" },
-      { href: "/admin/demo-walkthrough", label: "Demo walkthrough" },
+      { href: "/admin/followups", label: "Follow-ups" },
     ],
   },
   {
     title: "Money",
     items: [
       { href: "/admin/payments", label: "Payments" },
-      { href: "/admin/finance", label: "Finance" },
       { href: "/admin/invoices", label: "Invoices" },
       { href: "/admin/insurance", label: "Insurance" },
-      { href: "/admin/banking", label: "Banking" },
-      { href: "/admin/expenses", label: "Expenses" },
+      { href: "/admin/finance", label: "Finance" },
     ],
   },
   {
     title: "Operations",
     items: [
+      { href: "/admin/waitlist", label: "Waitlist" },
       { href: "/admin/external-work", label: "External Work" },
       { href: "/admin/stock", label: "Stock" },
-      { href: "/admin/followups", label: "Follow-ups" },
-      { href: "/admin/waitlist", label: "Waitlist" },
     ],
   },
   {
-    title: "Integrations",
+    title: "Setup & Proof",
     items: [
       { href: "/admin/cliniko", label: "Cliniko" },
-      { href: "/admin/cliniko/test-lab", label: "Cliniko test lab" },
       { href: "/admin/healthcode", label: "Healthcode" },
+      { href: "/admin/cliniko/test-lab", label: "Demo Proof" },
       { href: "/admin/settings", label: "Settings" },
     ],
   },
@@ -68,8 +65,8 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <nav aria-label="Admin navigation">
       {navSections.map((section) => (
-        <div key={section.title} className="mb-5">
-          <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-slate">
+        <div key={section.title} className="mb-4">
+          <p className="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-widest text-slate/80">
             {section.title}
           </p>
           <ul className="space-y-0.5">
@@ -77,15 +74,15 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
               const active =
                 item.href === "/admin"
                   ? pathname === "/admin"
-                  : pathname.startsWith(item.href);
+                  : pathname === item.href || pathname.startsWith(`${item.href}/`);
               return (
                 <li key={item.href}>
                   <Link
                     href={item.href}
                     onClick={onNavigate}
-                    className={`block rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                    className={`block rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                       active
-                        ? "bg-green-muted text-green"
+                        ? "bg-green text-white shadow-sm"
                         : "text-navy hover:bg-cream-dark"
                     }`}
                   >

@@ -64,33 +64,40 @@ Use this before showing George. Tick each item after verifying in the browser.
 
 ## Admin Command Hub
 
-### Dashboard (`/admin`)
-- [ ] Demo banner visible
-- [ ] “Start demo walkthrough” card prominent
-- [ ] Today’s actions and metrics load
+### Today (`/admin`)
+- [ ] Page title reads **Today** with a clear purpose line
+- [ ] Summary cards: appointments, notes, payments, invoices
+- [ ] Today's command list shows live Cliniko appointments with actions needed
+- [ ] Clinic status panel: Cliniko connected, demo mode, no real patient data
+- [ ] Quick actions include calendar, bookings, notes, invoices, insurance
+- [ ] Cliniko test lab link labelled as technical/demo proof
 
 ### Walkthrough (`/admin/demo-walkthrough`)
 - [ ] All 11 steps present with Open page buttons
 - [ ] Location-first booking step mentions Dundee, Aviemore, Cliniko
 
 ### Cliniko (`/admin/cliniko`)
-- [ ] Connection panel shows status (connected or demo fallback)
-- [ ] Aviemore Cliniko migration panel visible
-- [ ] Mapping health and data handling panels present
-- [ ] Configure buttons show demo feedback (not dead)
+- [ ] Clean integration overview — not a developer console
+- [ ] Connection status, live appointment feed, businesses, practitioners, types
+- [ ] “Cliniko remains the diary and clinical record” messaging
+- [ ] **Open technical test lab** link visible
+- [ ] No endpoint diagnostics or raw test actions on this page
+
+### Cliniko test lab (`/admin/cliniko/test-lab`)
+- [ ] **Technical test lab** banner at top
+- [ ] DEMO patient/appointment CRUD and discovery probes still work
+- [ ] Mapping health and diagnostics present
 - [ ] **Live Cliniko DEMO appointments** section shows only real Cliniko rows (numeric id)
 - [ ] No phantom rows like `DEMO 0.` or `DEMO (.`
 - [ ] **Appointment source diagnostics** panel visible after refresh
 - [ ] **Clear local proof state** clears badges only (does not change Cliniko)
-- [ ] **Demo examples** section clearly separated from live test lab data
-- [ ] **Cliniko appointment discovery** — run probes when Cliniko UI shows appointments but Command Hub does not
 - [ ] **Run appointment discovery** button returns probe cards with counts
 - [ ] **Lookup appointment by ID** works for a Cliniko appointment ID copied from Cliniko
 
 ### Bookings (`/admin/bookings`)
-- [ ] Load sandbox bookings works or shows friendly error
-- [ ] Demo bookings table/cards on mobile
-- [ ] Action buttons show demo toasts
+- [ ] Purpose line: review appointments from Cliniko
+- [ ] Live Cliniko appointments use consistent workflow cards
+- [ ] Helpful empty state when no live appointments
 
 ### Calendar (`/admin/calendar`)
 - [ ] Weekly view readable on mobile

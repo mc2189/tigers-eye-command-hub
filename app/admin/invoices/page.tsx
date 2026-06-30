@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { WorkflowPageHeader } from "@/components/admin/WorkflowPageHeader";
 import { InvoiceGenerator } from "@/components/admin/InvoiceGenerator";
 import { ClinikoInvoiceQueuePanel } from "@/components/admin/ClinikoInvoiceQueuePanel";
 import { StatusBadge } from "@/components/admin/StatusBadge";
@@ -28,12 +28,12 @@ export default function InvoicesPage() {
 
   return (
     <>
-      <AdminPageHeader
+      <WorkflowPageHeader
         title="Invoices"
-        subtitle="Draft, submit and track invoices — Cliniko remains the billing record."
+        purpose="See which appointments may need an invoice or payment check."
       >
         <InvoiceGenerator />
-      </AdminPageHeader>
+      </WorkflowPageHeader>
 
       <ClinikoInvoiceQueuePanel />
 
