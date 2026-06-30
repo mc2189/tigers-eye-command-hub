@@ -2,13 +2,13 @@
 
 | Field | Value |
 |-------|-------|
-| **Last updated** | 2026-06-30 (Treatment note hardening — pending prod smoke) |
-| **Feature commit** | _(pending push)_ |
-| **Smoke record commit** | _(pending prod smoke)_ |
+| **Last updated** | 2026-06-30 (Treatment note hardening — commit `0404809`) |
+| **Feature commit** | `0404809` — Harden treatment notes and audit insurance storage |
+| **Smoke record commit** | _(this commit)_ |
 | **Local lint** | **PASS** |
 | **Local build** | **PASS** |
 | **Local smoke** | **38/38 PASS** (production build on port 3013) |
-| **Production smoke** | _(pending deploy)_ |
+| **Production smoke** | **38/38 PASS** (2026-06-30, post `0404809` deploy) |
 | **Base URL (prod)** | https://tigers-eye-command-hub.vercel.app |
 
 ## Latest run summary
@@ -18,7 +18,7 @@
 | Local lint | **PASS** | — | 0 | `npm run lint` |
 | Local build | **PASS** | — | 0 | `npm run build` |
 | Local smoke | **PASS** | 38 | 0 | `BASE_URL=http://127.0.0.1:3013 node scripts/smoke-check.mjs` |
-| Production (Vercel) | _(pending)_ | — | — | After feature deploy |
+| Production (Vercel) | **PASS** | 38 | 0 | Treatment note hardening + insurance audit checks |
 
 ## Treatment note hardening and insurance storage audit
 
@@ -38,6 +38,8 @@
 | `/admin/notes` | DEMO-linked save safety, Open record | PASS |
 | `/admin/insurance` | Insurance storage audit, Healthcode/Xero future | PASS |
 | `/admin/cliniko/test-lab` | Treatment note safety proof, Insurance field audit | PASS |
+
+Production smoke: **38/38 PASS** on 2026-06-30 after deploy of `0404809`.
 
 ## Cliniko patient record completeness and follow-up booking (`8a18395`)
 
