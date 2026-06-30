@@ -2,17 +2,33 @@
 
 | Field | Value |
 |-------|-------|
-| **Last updated** | 2026-06-30 (Workflow intelligence — commit `0e6ea69`) |
+| **Last updated** | 2026-06-30 (Insurance session tracking — commit `fa031d5`) |
 | **Local smoke** | **28/28 PASS** |
-| **Production smoke** | **28/28 PASS** (2026-06-30, post `0e6ea69` deploy) |
+| **Production smoke** | **28/28 PASS** (2026-06-30, post `fa031d5` deploy) |
 | **Base URL (prod)** | https://tigers-eye-command-hub.vercel.app |
 
 ## Latest run summary
 
 | Environment | Result | Passed | Failed | Notes |
 |-------------|--------|--------|--------|-------|
-| Local (fresh build) | **PASS** | 28 | 0 | Workflow intelligence content checks |
-| Production (Vercel) | **PASS** | 28 | 0 | Post `0e6ea69` — workflow bundles across admin |
+| Local (fresh build) | **PASS** | 28 | 0 | Insurance session tracking smoke checks |
+| Production (Vercel) | **PASS** | 28 | 0 | Post `fa031d5` — insurance case tracker |
+
+## Insurance session tracking workflow (`fa031d5`)
+
+- `lib/insurance-session-workflow.ts` — case/session types, approved/used/remaining counting, next actions
+- `lib/demo-insurance-cases.ts` — DEMO-only case details with browser `localStorage` controls
+- `/admin/insurance` rebuilt as case tracker with summary cards, tabs, session history, missing checklist
+- Insurance invoice queue on `/admin/invoices` — Healthcode remains future integration
+- Today and bookings enriched with insurance-specific workflow chips when cases exist
+- Proof page updated with insurance session tracking status
+
+| Route | Content check | Result |
+|-------|---------------|--------|
+| `/admin/insurance` | Insurance cases, approved sessions, Demo case controls, Ready to invoice | PASS |
+| `/admin/invoices` | Insurance invoice queue | PASS |
+| `/admin/proof` | Insurance session tracking | PASS |
+| `/admin` | Insurance items | PASS |
 
 ## Workflow intelligence layer (`0e6ea69`)
 
@@ -116,7 +132,7 @@ Production probe run (read-only, uk3 shard):
 
 ## Failed routes (if any)
 
-_None — all routes passed locally and on production (2026-06-30, post `0e6ea69`)._
+_None — all routes passed locally and on production (2026-06-30, post `fa031d5`)._
 
 ## How to run
 
