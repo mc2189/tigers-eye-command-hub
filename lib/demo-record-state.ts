@@ -20,7 +20,12 @@ export interface AppointmentRecordState {
   invoicePrepared?: boolean;
   followUpPrepared?: boolean;
   followUpBookedInCliniko?: boolean;
+  followUpClinikoAppointmentId?: string;
   matchStatus?: string;
+  lastPatientCreateResult?: {
+    savedFieldLabels?: string[];
+    verified?: boolean;
+  };
 }
 
 export interface DemoRecordStore {

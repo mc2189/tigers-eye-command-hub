@@ -70,6 +70,7 @@ const protectedRoutes = [
   "/admin/stock",
   "/admin/followups",
   "/admin/clients",
+  "/admin/clients/demo-alex-wilson",
   "/admin/intake",
   "/admin/appointments/dcw-001",
   "/admin/proof",
@@ -225,6 +226,14 @@ const contentChecks = {
   },
   "/admin/intake": (body) => {
     if (!/Booking intake/i.test(body)) return "missing Booking intake title";
+    if (!/Saved to Cliniko test account/i.test(body)) {
+      return "missing Saved to Cliniko test account wording";
+    }
+    if (!/Prepared for Cliniko/i.test(body)) return "missing Prepared for Cliniko wording";
+    if (!/Blocked from writing/i.test(body)) return "missing Blocked from writing wording";
+    if (!/field not currently written/i.test(body)) {
+      return "missing field not currently written wording";
+    }
     if (!/Suggested Cliniko match/i.test(body)) return "missing Suggested Cliniko match";
     if (!/Create new DEMO Cliniko patient/i.test(body)) {
       return "missing Create new DEMO Cliniko patient";
@@ -236,14 +245,26 @@ const contentChecks = {
     return null;
   },
   "/admin/appointments/dcw-001": (body) => {
-    if (!/Appointment record/i.test(body) && !/Treatment note/i.test(body)) {
-      return "missing Appointment record content";
+    if (!/Record completeness/i.test(body)) return "missing Record completeness section";
+    if (!/Saved fields/i.test(body) && !/Saved to Cliniko test account/i.test(body)) {
+      return "missing Saved fields section";
+    }
+    if (!/Prepared-only fields/i.test(body) && !/Prepared for Cliniko/i.test(body)) {
+      return "missing Prepared-only fields section";
+    }
+    if (
+      !/Book DEMO follow-up in Cliniko test account/i.test(body) &&
+      !/Prepared follow-up appointment/i.test(body)
+    ) {
+      return "missing follow-up booking action";
     }
     if (!/Treatment note/i.test(body)) return "missing Treatment note section";
-    if (!/Prepared invoice draft/i.test(body) && !/Prepare invoice draft/i.test(body)) {
-      return "missing Prepared invoice draft section";
-    }
     if (!/Patient match status/i.test(body)) return "missing Patient match status";
+    return null;
+  },
+  "/admin/clients/demo-alex-wilson": (body) => {
+    if (!/Record completeness/i.test(body)) return "missing Record completeness section";
+    if (!/Future integration/i.test(body)) return "missing Future integration section";
     return null;
   },
   "/admin/proof": (body) => {
@@ -257,6 +278,9 @@ const contentChecks = {
   },
   "/admin/calendar": (body) => {
     if (!/Note needed/i.test(body)) return "missing Note needed calendar wording";
+    if (!/Open record/i.test(body) && !/\/admin\/appointments\//i.test(body)) {
+      return "missing Open record or appointment detail link";
+    }
     return null;
   },
   "/admin/cliniko": (body) => {
@@ -292,6 +316,9 @@ const contentChecks = {
     if (!/Demo Clinic Week/i.test(body)) return "missing Demo Clinic Week section";
     if (!/Seed demo clinic week/i.test(body)) {
       return "missing Seed demo clinic week control";
+    }
+    if (!/Patient record write proof/i.test(body)) {
+      return "missing Patient record write proof section";
     }
     if (!/Cliniko appointment discovery|Run appointment discovery|Live Cliniko DEMO appointments/i.test(body)) {
       return "missing Cliniko test lab discovery sections";

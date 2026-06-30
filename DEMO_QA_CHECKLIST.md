@@ -258,6 +258,21 @@ Use this before showing George. Tick each item after verifying in the browser.
 
 ---
 
+## Cliniko patient record completeness and follow-up booking
+
+- [ ] `/admin/intake` shows saved vs prepared field behaviour after patient create
+- [ ] New DEMO patient creation writes phone, DOB, address when provided
+- [ ] Non-DEMO patient creation blocked with clear message
+- [ ] Read-back verification message is honest (verified vs not completed)
+- [ ] `/admin/appointments/dcw-001` shows Record completeness panel
+- [ ] Follow-up booking button works when DEMO-linked and writes enabled, or shows prepared-only
+- [ ] Duplicate follow-up is detected and not recreated
+- [ ] `/admin/clients/demo-alex-wilson` shows Record completeness
+- [ ] Calendar has Open record on appointment cards
+- [ ] Test lab shows Patient record write proof
+
+---
+
 ## Automated smoke tests
 
 ```bash

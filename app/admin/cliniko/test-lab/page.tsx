@@ -6,6 +6,7 @@ import { ClinikoLiveDataPanels } from "@/components/admin/ClinikoLiveDataPanels"
 import { ClinikoMappingHealthPanel } from "@/components/admin/ClinikoMappingHealthPanel";
 import { DataHandlingPanel } from "@/components/admin/DataHandlingPanel";
 import { DemoClinicWeekPanel } from "@/components/admin/DemoClinicWeekPanel";
+import { PatientRecordWriteProofPanel } from "@/components/admin/PatientRecordWriteProofPanel";
 
 export default function ClinikoTestLabPage() {
   return (
@@ -52,6 +53,7 @@ export default function ClinikoTestLabPage() {
           <ClinikoMappingHealthPanel />
         </ClinikoPanelErrorBoundary>
         <DataHandlingPanel />
+        <PatientRecordWriteProofPanel />
       </div>
     </>
   );

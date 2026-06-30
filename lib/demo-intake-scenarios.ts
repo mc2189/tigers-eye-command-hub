@@ -1,11 +1,48 @@
 import type { BookingIntakeInput } from "@/lib/cliniko-patient-matching";
+import { DEMO_CLINIC_WEEK_SCENARIOS } from "@/lib/demo-clinic-week";
 
 export interface DemoIntakeScenario {
   id: string;
   title: string;
   description: string;
-  input: BookingIntakeInput;
+  input: BookingIntakeInput & {
+    address?: string;
+    emergencyContact?: string;
+    gpOrReferrer?: string;
+    occupationOrActivity?: string;
+  };
   expectedStatus: "exact" | "possible" | "none" | "unsafe";
+}
+
+export function buildIntakeMatchCandidates() {
+  const seen = new Set<string>();
+  const candidates: Array<{
+    id: string;
+    firstName: string;
+    lastName: string;
+    email?: string;
+    phone?: string;
+    dateOfBirth?: string;
+    postcode?: string;
+    policyNumber?: string;
+  }> = [];
+
+  for (const s of DEMO_CLINIC_WEEK_SCENARIOS) {
+    if (seen.has(s.patientLabel)) continue;
+    seen.add(s.patientLabel);
+    const parts = s.patientLabel.replace(/^DEMO\s+/i, "").split(/\s+/);
+    candidates.push({
+      id: `demo-week-${s.id}`,
+      firstName: `DEMO ${parts[0] ?? "Patient"}`,
+      lastName: parts.slice(1).join(" ") || "Week",
+      email: s.clientProfile.email,
+      phone: s.clientProfile.phone,
+      dateOfBirth: s.clientProfile.dateOfBirth,
+      postcode: s.clientProfile.address.match(/\b([A-Z]{1,2}\d[\dA-Z]?\s*\d[A-Z]{2})\b/i)?.[1],
+      policyNumber: s.clientProfile.policyNumber,
+    });
+  }
+  return candidates;
 }
 
 export const DEMO_INTAKE_SCENARIOS: DemoIntakeScenario[] = [
@@ -22,6 +59,7 @@ export const DEMO_INTAKE_SCENARIOS: DemoIntakeScenario[] = [
       appointmentType: "Private physiotherapy initial assessment",
       location: "Dundee",
       reasonForVisit: "Runner with calf pain",
+      address: "12 Demo Street, Dundee DD1 1AA",
     },
     expectedStatus: "exact",
   },
@@ -51,9 +89,11 @@ export const DEMO_INTAKE_SCENARIOS: DemoIntakeScenario[] = [
       email: "new.patient@demo.tigerseye.test",
       phone: "07700 900123",
       dateOfBirth: "1990-01-01",
+      address: "99 Demo Lane, Dundee DD2 2BB",
+      emergencyContact: "DEMO Contact — 07700 900999",
+      reasonForVisit: "Demo intake — new client",
       appointmentType: "Sports massage",
       location: "Dundee",
-      reasonForVisit: "Demo intake — new client",
     },
     expectedStatus: "none",
   },

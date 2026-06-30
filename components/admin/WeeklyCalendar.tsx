@@ -429,7 +429,15 @@ function CalendarCard({
       )}
       {!isGap && (
         <div className="mt-2 flex flex-wrap gap-1">
-          <ActionLink href="/admin/bookings" label="Open" />
+          {(booking?.id ?? item.id) && (
+            <Link
+              href={`/admin/appointments/${booking?.id ?? item.id}`}
+              className="rounded bg-green px-1.5 py-0.5 text-[10px] font-semibold text-white hover:bg-green-light"
+            >
+              Open record
+            </Link>
+          )}
+          <ActionLink href="/admin/bookings" label="Bookings" />
           <ActionLink href="/admin/notes" label="Note" />
           <ActionLink href="/admin/invoices" label="Invoice" />
         </div>

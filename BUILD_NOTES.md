@@ -164,6 +164,17 @@ It must **not** appear as the active Aviemore booking provider on `/book`.
 - Invoice drafts and follow-up booking remain prepared/demo-only unless Cliniko write path exists
 - Smoke expanded for Open record, intake, and appointment detail routes
 
+## Cliniko patient record completeness and inline follow-up booking
+
+- `lib/cliniko-patient-field-map.ts` — audited field capability map (writable vs prepared-only)
+- `lib/demo-patient-create.ts` — maximum safe Cliniko patient create with read-back verification
+- `lib/demo-followup-booking.ts` + `POST /api/cliniko/create-demo-followup` — inline DEMO follow-up booking with duplicate detection
+- `lib/record-completeness.ts` + `RecordCompletenessPanel` on appointment and client detail pages
+- Patient create API returns `savedFields`, `preparedOnlyFields`, `verified`, and honest status labels
+- Intake page shows saved-vs-prepared field behaviour and blocked non-DEMO writes
+- Calendar cards include **Open record** linking to appointment detail
+- Test lab: **Patient record write proof** section with field map summary
+
 ## Command Hub GUI polish and live data display fix
 
 - **Root cause:** `toPatientLabel()` in `lib/cliniko.ts` abbreviated full DEMO names (e.g. `DEMO Test Patient 001` → `DEMO 0.`)

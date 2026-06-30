@@ -25,7 +25,7 @@ export default function CalendarPage() {
         blocks and stock tasks added in the Command Hub.
       </CalloutBox>
 
-      <p className="sr-only">Note needed</p>
+      <p className="sr-only">Note needed · Open record · /admin/appointments/</p>
 
       <div className="mt-6">
         <WeeklyCalendar />

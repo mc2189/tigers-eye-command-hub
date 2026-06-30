@@ -3,9 +3,11 @@
 import { useState } from "react";
 import type { BookingIntakeInput, PatientMatchResult } from "@/lib/cliniko-patient-matching";
 import { updateAppointmentState } from "@/lib/demo-record-state";
+import { PatientFieldResultPanel } from "@/components/admin/RecordCompletenessPanel";
+import type { CreateDemoPatientInput } from "@/lib/demo-patient-create";
 
 interface PatientMatchPanelProps {
-  intake: BookingIntakeInput;
+  intake: BookingIntakeInput & Partial<CreateDemoPatientInput>;
   appointmentId: string;
   onLinked?: (patientId: string, label: string) => void;
 }
@@ -19,10 +21,18 @@ export function PatientMatchPanel({
   const [loading, setLoading] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [createResult, setCreateResult] = useState<{
+    savedFields: Array<{ label: string; value: string }>;
+    preparedOnlyFields: Array<{ label: string; value: string; reason: string }>;
+    verified?: boolean;
+    verificationMessage?: string;
+    blocked?: boolean;
+  } | null>(null);
 
   async function runMatch() {
     setLoading(true);
     setActionMessage(null);
+    setCreateResult(null);
     try {
       const res = await fetch("/api/cliniko/patient-match", {
         method: "POST",
@@ -57,6 +67,7 @@ export function PatientMatchPanel({
   async function createNewPatient() {
     setLoading(true);
     setActionMessage(null);
+    setCreateResult(null);
     try {
       const res = await fetch("/api/cliniko/create-demo-patient-intake", {
         method: "POST",
@@ -64,15 +75,41 @@ export function PatientMatchPanel({
         body: JSON.stringify(intake),
       });
       const json = await res.json();
+      if (json.status === "blocked") {
+        setCreateResult({
+          savedFields: [],
+          preparedOnlyFields: json.preparedOnlyFields ?? [],
+          blocked: true,
+        });
+        setActionMessage("Blocked from writing");
+        return;
+      }
       if (json.ok && json.patientId) {
         updateAppointmentState(appointmentId, {
           linkedPatientId: json.patientId,
           linkedPatientLabel: `${intake.firstName} ${intake.lastName}`,
           matchStatus: "Saved to Cliniko test account",
+          lastPatientCreateResult: {
+            savedFieldLabels: (json.savedFields ?? []).map(
+              (f: { label: string }) => f.label
+            ),
+            verified: json.verified,
+          },
         });
         onLinked?.(json.patientId, `${intake.firstName} ${intake.lastName}`);
-        setActionMessage(`Patient created in Cliniko test account · ID ${json.patientId}`);
+        setCreateResult({
+          savedFields: json.savedFields ?? [],
+          preparedOnlyFields: json.preparedOnlyFields ?? [],
+          verified: json.verified,
+          verificationMessage: json.verificationMessage,
+        });
+        setActionMessage(json.verificationMessage ?? json.message);
       } else {
+        setCreateResult({
+          savedFields: [],
+          preparedOnlyFields: json.preparedOnlyFields ?? [],
+          verificationMessage: json.message,
+        });
         setActionMessage(json.message ?? "Prepared for Cliniko");
       }
     } catch {
@@ -155,7 +192,19 @@ export function PatientMatchPanel({
         </div>
       )}
 
-      {actionMessage && <p className="mt-2 text-sm font-medium text-navy">{actionMessage}</p>}
+      {createResult && (
+        <PatientFieldResultPanel
+          savedFields={createResult.savedFields}
+          preparedOnlyFields={createResult.preparedOnlyFields}
+          verified={createResult.verified}
+          verificationMessage={createResult.verificationMessage}
+          blocked={createResult.blocked}
+        />
+      )}
+
+      {actionMessage && !createResult && (
+        <p className="mt-2 text-sm font-medium text-navy">{actionMessage}</p>
+      )}
     </section>
   );
 }

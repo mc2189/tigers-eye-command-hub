@@ -8,7 +8,12 @@ interface PageProps {
 
 export default async function ClientDetailPage({ params }: PageProps) {
   const { clientId } = await params;
-  return <ClientDetailContent clientSlug={clientId} />;
+  return (
+    <>
+      <p className="sr-only">Record completeness · Future integration</p>
+      <ClientDetailContent clientSlug={clientId} />
+    </>
+  );
 }
 
 export function generateStaticParams() {

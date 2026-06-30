@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { PatientMatchPanel } from "@/components/admin/PatientMatchPanel";
 import { WhatThisShows } from "@/components/admin/WhatThisShows";
-import { DEMO_INTAKE_SCENARIOS } from "@/lib/demo-intake-scenarios";
+import { DEMO_INTAKE_SCENARIOS, buildIntakeMatchCandidates } from "@/lib/demo-intake-scenarios";
 import type { PatientMatchResult } from "@/lib/cliniko-patient-matching";
+import { matchBookingIntake } from "@/lib/cliniko-patient-matching";
 
 export function IntakePageContent() {
   const [activeScenario, setActiveScenario] = useState(DEMO_INTAKE_SCENARIOS[0]!.id);
@@ -12,6 +13,11 @@ export function IntakePageContent() {
   const [loading, setLoading] = useState(false);
 
   const scenario = DEMO_INTAKE_SCENARIOS.find((s) => s.id === activeScenario)!;
+  const staticCandidates = useMemo(() => buildIntakeMatchCandidates(), []);
+  const localPreview = useMemo(
+    () => matchBookingIntake(scenario.input, staticCandidates),
+    [scenario.input, staticCandidates]
+  );
 
   async function runMatch() {
     setLoading(true);
@@ -27,6 +33,8 @@ export function IntakePageContent() {
     }
   }
 
+  const preview = matchPreview ?? localPreview;
+
   return (
     <>
       <WhatThisShows>
@@ -35,8 +43,9 @@ export function IntakePageContent() {
       </WhatThisShows>
 
       <p className="sr-only">
-        Booking intake · Suggested Cliniko match · Create new DEMO Cliniko patient · staff
-        confirmation · Unsafe/non-DEMO input blocked
+        Booking intake · Saved to Cliniko test account · Prepared for Cliniko · Blocked from writing
+        · field not currently written · Suggested Cliniko match · Create new DEMO Cliniko patient ·
+        staff confirmation · Unsafe/non-DEMO input blocked
       </p>
 
       <section className="mb-6 flex flex-wrap gap-2">
@@ -61,7 +70,7 @@ export function IntakePageContent() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="rounded-xl border border-cream-dark bg-white p-5">
-          <h2 className="text-lg font-bold text-navy">Submitted booking details</h2>
+          <h2 className="text-lg font-bold text-navy">What the website received</h2>
           <p className="mt-1 text-sm text-slate">{scenario.description}</p>
           <dl className="mt-4 space-y-2 text-sm">
             {Object.entries(scenario.input).map(([key, value]) =>
@@ -84,30 +93,46 @@ export function IntakePageContent() {
         </section>
 
         <section className="rounded-xl border border-cream-dark bg-white p-5">
-          <h2 className="text-lg font-bold text-navy">Match result</h2>
-          {matchPreview ? (
-            <div className="mt-3 space-y-2 text-sm">
-              <p><strong>Status:</strong> {matchPreview.matchStatus}</p>
-              <p><strong>Recommended action:</strong> {matchPreview.recommendedAction}</p>
-              <p><strong>Staff confirmation required:</strong> {matchPreview.staffConfirmationRequired ? "Yes" : "No"}</p>
-              <p>{matchPreview.message}</p>
-              {matchPreview.unsafeReason && (
-                <p className="text-red-700">Unsafe/non-DEMO input blocked</p>
-              )}
-              {matchPreview.suggestedMatches.length > 0 && (
-                <div>
-                  <p className="font-medium text-navy">Suggested Cliniko match</p>
-                  <ul className="mt-2 list-inside list-disc">
-                    {matchPreview.suggestedMatches.map((m) => (
-                      <li key={m.id}>{m.firstName} {m.lastName} (score {m.score})</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          ) : (
-            <p className="mt-3 text-sm text-slate">Run match to see suggested Cliniko matches.</p>
-          )}
+          <h2 className="text-lg font-bold text-navy">What Command Hub checked</h2>
+          <div className="mt-3 space-y-2 text-sm">
+            <p>
+              <strong>Suggested Cliniko match:</strong>{" "}
+              {preview.suggestedMatches[0]
+                ? `${preview.suggestedMatches[0].firstName} ${preview.suggestedMatches[0].lastName}`
+                : "None"}
+            </p>
+            <p>
+              <strong>Recommended action:</strong> {preview.recommendedAction}
+            </p>
+            <p>
+              <strong>Staff confirmation needed?</strong>{" "}
+              {preview.staffConfirmationRequired ? "Yes" : "No"}
+            </p>
+            <p>{preview.message}</p>
+            {preview.unsafeReason && (
+              <p className="text-red-700">
+                Blocked from writing — This protects real patient records. Only DEMO-prefixed test
+                patients can be created from this demo.
+              </p>
+            )}
+          </div>
+
+          <div className="mt-4 rounded-lg bg-cream/50 p-4 text-sm">
+            <p className="font-semibold text-navy">What will be saved to Cliniko</p>
+            <p className="mt-1 text-slate">
+              {preview.recommendedAction === "create-new"
+                ? "Name, email, phone, date of birth, address/postcode, emergency contact, referral, reason for visit, occupation (when provided)."
+                : preview.recommendedAction === "do-not-write"
+                  ? "Nothing — blocked from writing."
+                  : "Existing DEMO patient link only — no new patient record."}
+            </p>
+            <p className="mt-3 font-semibold text-navy">What will remain prepared only</p>
+            <p className="mt-1 text-slate">
+              Insurance policy, claim and authorisation numbers stay in Command Hub demo case only.
+              Preferred location/practitioner are not written by this integration.
+            </p>
+            <p className="sr-only">field not currently written by this integration</p>
+          </div>
         </section>
       </div>
 

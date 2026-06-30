@@ -1,119 +1,57 @@
 import { NextRequest, NextResponse } from "next/server";
-import { clinikoFetch, getClinikoConfig } from "@/lib/cliniko";
-import { validateDemoWriteInput } from "@/lib/demo-write-safety";
-import { DEMO_EMAIL_DOMAIN } from "@/lib/cliniko-test-lab";
+import {
+  createDemoPatientWithVerification,
+  type CreateDemoPatientInput,
+} from "@/lib/demo-patient-create";
 
 export const dynamic = "force-dynamic";
 
-interface CreatePatientBody {
-  firstName: string;
-  lastName: string;
-  email?: string;
-  phone?: string;
-  dateOfBirth?: string;
-  address?: string;
-  emergencyContact?: string;
-  reasonForVisit?: string;
-}
-
 export async function POST(request: NextRequest) {
-  let body: CreatePatientBody;
+  let body: CreateDemoPatientInput;
   try {
-    body = (await request.json()) as CreatePatientBody;
+    body = (await request.json()) as CreateDemoPatientInput;
   } catch {
     return NextResponse.json({ ok: false, message: "Invalid JSON." }, { status: 400 });
   }
 
-  const safety = validateDemoWriteInput({
-    firstName: body.firstName,
-    lastName: body.lastName,
-  });
-  if (!safety.ok) {
+  const result = await createDemoPatientWithVerification(body);
+
+  if (result.status === "blocked") {
     return NextResponse.json(
       {
         ok: false,
-        message: safety.reason,
-        label: "Unsafe/non-DEMO input blocked",
+        status: result.status,
+        message: result.message,
+        label: "Blocked from writing",
+        savedFields: result.savedFields,
+        preparedOnlyFields: result.preparedOnlyFields,
+        warnings: result.warnings,
+        verified: false,
       },
       { status: 403 }
     );
   }
 
-  const config = getClinikoConfig();
-  if (!config.apiKey) {
-    return NextResponse.json({
-      ok: false,
-      mode: "prepared",
-      message: "Cliniko not configured — patient prepared only.",
-      label: "Prepared for Cliniko",
-    });
-  }
+  const httpStatus =
+    result.status === "created" ? 200 : result.status === "prepared-only" ? 200 : 502;
 
-  if (!config.writesEnabled) {
-    return NextResponse.json({
-      ok: false,
-      mode: "prepared",
-      message: "Cliniko writes disabled — patient prepared only.",
-      label: "Prepared for Cliniko",
-    });
-  }
-
-  const email =
-    body.email?.trim() ||
-    `${body.firstName}.${body.lastName}@${DEMO_EMAIL_DOMAIN}`.toLowerCase().replace(/\s+/g, ".");
-
-  try {
-    const created = await clinikoFetch<{ patient?: { id?: string; first_name?: string; last_name?: string } }>(
-      "/patients",
-      {
-        method: "POST",
-        body: JSON.stringify({
-          patient: {
-            first_name: body.firstName.trim(),
-            last_name: body.lastName.trim(),
-            email,
-          },
-        }),
-      }
-    );
-
-    const patientId = created.patient?.id ? String(created.patient.id) : undefined;
-    if (!patientId) {
-      return NextResponse.json(
-        { ok: false, message: "Cliniko did not return a patient ID." },
-        { status: 502 }
-      );
-    }
-
-    return NextResponse.json({
-      ok: true,
-      mode: "created",
-      message: "Patient created in Cliniko test account",
-      label: "Saved to Cliniko test account",
-      patientId,
-      patient: {
-        id: patientId,
-        firstName: created.patient?.first_name,
-        lastName: created.patient?.last_name,
-        email,
-      },
-      preparedOnly: {
-        phone: body.phone,
-        dateOfBirth: body.dateOfBirth,
-        address: body.address,
-        emergencyContact: body.emergencyContact,
-        reasonForVisit: body.reasonForVisit,
-        note: "Prepared for Cliniko — field not currently written by API",
-      },
-    });
-  } catch (err) {
-    return NextResponse.json(
-      {
-        ok: false,
-        message: err instanceof Error ? err.message : "Patient creation failed.",
-        label: "Prepared for Cliniko",
-      },
-      { status: 502 }
-    );
-  }
+  return NextResponse.json(
+    {
+      ok: result.ok,
+      status: result.status,
+      mode: result.status === "created" ? "created" : "prepared",
+      message: result.message,
+      label: result.label,
+      patientId: result.patientId,
+      patient: result.patientId
+        ? { id: result.patientId, firstName: body.firstName, lastName: body.lastName }
+        : undefined,
+      savedFields: result.savedFields,
+      preparedOnlyFields: result.preparedOnlyFields,
+      warnings: result.warnings,
+      verified: result.verified,
+      verificationMessage: result.verificationMessage,
+    },
+    { status: httpStatus }
+  );
 }

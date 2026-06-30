@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import { useCommandHubAppointments } from "@/components/admin/CommandHubAppointmentsProvider";
 import { DataSourcePill } from "@/components/admin/DataSourcePill";
 import { OpenRecordButton } from "@/components/admin/OpenRecordButton";
+import { RecordCompletenessPanel } from "@/components/admin/RecordCompletenessPanel";
 import { WhatThisShows } from "@/components/admin/WhatThisShows";
 import {
   findScenarioBySlug,
@@ -12,6 +13,8 @@ import {
   patientLabelToSlug,
 } from "@/lib/appointment-records";
 import { buildClientJourneys } from "@/lib/demo-client-journey";
+import { getAppointmentState } from "@/lib/demo-record-state";
+import { buildClientCompleteness } from "@/lib/record-completeness";
 import { DEMO_CLINIC_WEEK_SCENARIOS } from "@/lib/demo-clinic-week";
 
 interface ClientDetailContentProps {
@@ -41,7 +44,19 @@ export function ClientDetailContent({ clientSlug }: ClientDetailContentProps) {
     );
   }, [patientLabel, dataSource]);
 
-  const appointments = patientLabel ? getScenariosForPatient(patientLabel) : [];
+  const appointments = useMemo(
+    () => (patientLabel ? getScenariosForPatient(patientLabel) : []),
+    [patientLabel]
+  );
+
+  const linkedPatientId = appointments[0]
+    ? getAppointmentState(appointments[0].id).linkedPatientId
+    : undefined;
+
+  const completeness = useMemo(() => {
+    if (!journey) return null;
+    return buildClientCompleteness(journey, appointments, linkedPatientId);
+  }, [journey, appointments, linkedPatientId]);
 
   if (!patientLabel || !journey) {
     return (
@@ -116,6 +131,8 @@ export function ClientDetailContent({ clientSlug }: ClientDetailContentProps) {
           )}
         </dl>
       </section>
+
+      {completeness && <RecordCompletenessPanel summary={completeness} />}
 
       <section className="rounded-xl border border-cream-dark bg-cream/30 p-5 text-sm">
         <h2 className="font-semibold text-navy">What is saved vs prepared</h2>

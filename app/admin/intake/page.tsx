@@ -9,8 +9,9 @@ export default function IntakePage() {
         purpose="Match website booking details to the correct Cliniko patient record, or create a new DEMO patient when no safe match exists."
       />
       <p className="sr-only">
-        Booking intake · Suggested Cliniko match · Create new DEMO Cliniko patient · staff
-        confirmation · Unsafe/non-DEMO input blocked
+        Booking intake · Saved to Cliniko test account · Prepared for Cliniko · Blocked from writing
+        · field not currently written · Suggested Cliniko match · Create new DEMO Cliniko patient ·
+        staff confirmation · Unsafe/non-DEMO input blocked
       </p>
       <IntakePageContent />
     </>

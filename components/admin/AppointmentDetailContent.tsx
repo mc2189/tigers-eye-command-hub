@@ -6,6 +6,7 @@ import { useCommandHubAppointments } from "@/components/admin/CommandHubAppointm
 import { DataSourcePill } from "@/components/admin/DataSourcePill";
 import { OpenClientButton } from "@/components/admin/OpenRecordButton";
 import { PatientMatchPanel } from "@/components/admin/PatientMatchPanel";
+import { RecordCompletenessPanel } from "@/components/admin/RecordCompletenessPanel";
 import { WhatThisShows } from "@/components/admin/WhatThisShows";
 import { resolveAppointmentRecord } from "@/lib/appointment-records";
 import { DEMO_NOTE_SAFETY_COPY } from "@/lib/demo-clinic-week";
@@ -14,6 +15,7 @@ import {
   updateAppointmentState,
 } from "@/lib/demo-record-state";
 import type { BookingIntakeInput } from "@/lib/cliniko-patient-matching";
+import { buildAppointmentCompleteness } from "@/lib/record-completeness";
 
 interface AppointmentDetailContentProps {
   appointmentId: string;
@@ -37,6 +39,8 @@ export function AppointmentDetailContent({ appointmentId }: AppointmentDetailCon
   const [noteSaving, setNoteSaving] = useState(false);
   const [noteMessage, setNoteMessage] = useState<string | null>(null);
   const [followUpMessage, setFollowUpMessage] = useState<string | null>(null);
+  const [followUpBooking, setFollowUpBooking] = useState(false);
+  const [writesEnabled, setWritesEnabled] = useState(false);
 
   const record = useMemo(
     () => resolveAppointmentRecord(appointmentId, mapped, { isPreview: demoWeekPreview }),
@@ -48,6 +52,13 @@ export function AppointmentDetailContent({ appointmentId }: AppointmentDetailCon
     window.addEventListener("demo-record-state-changed", refresh);
     return () => window.removeEventListener("demo-record-state-changed", refresh);
   }, [appointmentId]);
+
+  useEffect(() => {
+    fetch("/api/cliniko/status")
+      .then((r) => r.json())
+      .then((json: { writesEnabled?: boolean }) => setWritesEnabled(Boolean(json.writesEnabled)))
+      .catch(() => setWritesEnabled(false));
+  }, []);
 
   const scenario = record?.scenario;
   const profile = scenario?.clientProfile;
@@ -73,6 +84,15 @@ export function AppointmentDetailContent({ appointmentId }: AppointmentDetailCon
           claimNumber: profile.claimNumber,
           authorisationNumber: profile.authorisationNumber,
           reasonForVisit: profile.reasonForVisit,
+          postcode: profile.address.match(/\b([A-Z]{1,2}\d[\dA-Z]?\s*\d[A-Z]{2})\b/i)?.[1],
+          address: profile.address,
+          emergencyContact: profile.emergencyContact,
+          gpOrReferrer: profile.gpOrReferrer,
+          occupationOrActivity: profile.occupationOrSport,
+          medicalWarning: profile.medicalWarning,
+          marketingSource: profile.marketingSource,
+          preferredLocation: profile.preferredLocation,
+          preferredPractitioner: profile.preferredPractitioner,
         };
       })()
     : null;
@@ -143,6 +163,49 @@ export function AppointmentDetailContent({ appointmentId }: AppointmentDetailCon
     setFollowUpMessage("Invoice details copied");
   }, [scenario]);
 
+  const linkedPatientId = recordState.linkedPatientId ?? record?.clinikoPatientId ?? undefined;
+
+  const bookFollowUpInCliniko = useCallback(async () => {
+    if (!scenario || !linkedPatientId) {
+      setFollowUpMessage("Prepared follow-up appointment — not yet booked in Cliniko");
+      return;
+    }
+    setFollowUpBooking(true);
+    setFollowUpMessage(null);
+    try {
+      const res = await fetch("/api/cliniko/create-demo-followup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          patientId: linkedPatientId,
+          patientFirstName: intakeInput?.firstName,
+          suggestedInDays: scenario.followUpScenario?.suggestedInDays ?? 7,
+          durationMinutes: scenario.durationMinutes,
+          appointmentTypeName: scenario.appointmentType,
+        }),
+      });
+      const json = await res.json();
+      if (json.status === "created" || json.status === "duplicate") {
+        updateAppointmentState(appointmentId, {
+          followUpBookedInCliniko: true,
+          followUpClinikoAppointmentId: json.appointmentId ?? json.duplicateOf,
+        });
+        setFollowUpMessage(json.message ?? json.label);
+      } else {
+        setFollowUpMessage(json.message ?? "Prepared for Cliniko — booking was not created");
+      }
+    } catch {
+      setFollowUpMessage("Prepared for Cliniko — booking was not created");
+    } finally {
+      setFollowUpBooking(false);
+    }
+  }, [scenario, linkedPatientId, intakeInput, appointmentId]);
+
+  const completeness = useMemo(() => {
+    if (!record) return null;
+    return buildAppointmentCompleteness(record, recordState, { writesEnabled });
+  }, [record, recordState, writesEnabled]);
+
   if (!record) {
     return (
       <div className="rounded-xl border border-cream-dark bg-white p-6">
@@ -171,7 +234,9 @@ export function AppointmentDetailContent({ appointmentId }: AppointmentDetailCon
   return (
     <div className="space-y-6">
       <p className="sr-only">
-        Appointment record · Treatment note · Prepared invoice draft · Patient match status
+        Appointment record · Treatment note · Prepared invoice draft · Patient match status ·
+        Record completeness · Saved fields · Prepared-only fields · Book DEMO follow-up in Cliniko
+        test account
       </p>
 
       <header className="rounded-xl border border-cream-dark bg-white p-5">
@@ -250,6 +315,8 @@ export function AppointmentDetailContent({ appointmentId }: AppointmentDetailCon
         )}
       </section>
 
+      {completeness && <RecordCompletenessPanel summary={completeness} />}
+
       {intakeInput && !recordState.linkedPatientId && record.isDemoWeekPreview && (
         <PatientMatchPanel
           intake={intakeInput}
@@ -298,9 +365,9 @@ export function AppointmentDetailContent({ appointmentId }: AppointmentDetailCon
               <>
                 <p className="text-sm text-navy">{scenario.followUpScenario.summary}</p>
                 <p className="mt-1 text-sm text-slate">
-                  {scenario.followUpScenario.bookedInCliniko
+                  {recordState.followUpBookedInCliniko || scenario.followUpScenario.bookedInCliniko
                     ? "Saved to Cliniko test account"
-                    : "Not yet booked in Cliniko"}
+                    : "Prepared follow-up appointment — not yet booked in Cliniko"}
                 </p>
                 {scenario.followUpScenario.checkInMessage && (
                   <blockquote className="mt-3 rounded-lg bg-cream p-3 text-sm italic text-navy">
@@ -312,14 +379,42 @@ export function AppointmentDetailContent({ appointmentId }: AppointmentDetailCon
               <p className="text-sm text-slate">No follow-up suggested for this scenario.</p>
             )}
             <div className="mt-4 flex flex-wrap gap-2">
-              <button type="button" onClick={() => setFollowUpMessage("Prepared follow-up appointment — Prepared for Cliniko")} className="min-h-10 rounded-lg border border-cream-dark px-4 py-2 text-sm font-medium text-navy hover:bg-cream">
+              <button
+                type="button"
+                disabled={
+                  followUpBooking ||
+                  !writesEnabled ||
+                  !linkedPatientId ||
+                  recordState.followUpBookedInCliniko
+                }
+                onClick={() => void bookFollowUpInCliniko()}
+                className="min-h-10 rounded-lg bg-green px-4 py-2 text-sm font-semibold text-white hover:bg-green-light disabled:opacity-50"
+              >
+                {followUpBooking
+                  ? "Booking…"
+                  : "Book DEMO follow-up in Cliniko test account"}
+              </button>
+              <button type="button" onClick={() => {
+                updateAppointmentState(appointmentId, { followUpPrepared: true });
+                setFollowUpMessage("Prepared follow-up appointment — Prepared for Cliniko");
+              }} className="min-h-10 rounded-lg border border-cream-dark px-4 py-2 text-sm font-medium text-navy hover:bg-cream">
                 Prepare follow-up
               </button>
               <button type="button" onClick={() => void navigator.clipboard.writeText(scenario.followUpScenario?.checkInMessage ?? scenario.followUpScenario?.summary ?? "")} className="min-h-10 rounded-lg border border-cream-dark px-4 py-2 text-sm font-medium text-navy hover:bg-cream">
                 Copy follow-up message
               </button>
             </div>
-            <p className="mt-2 text-xs text-slate">Book follow-up in Cliniko test account — use technical test lab when writes are enabled.</p>
+            {!linkedPatientId && (
+              <p className="mt-2 text-xs text-amber-800">
+                Link a DEMO patient before booking a follow-up in Cliniko.
+              </p>
+            )}
+            {!writesEnabled && (
+              <p className="mt-2 text-xs text-slate">
+                Cliniko writes disabled — follow-up remains prepared only.
+              </p>
+            )}
+            {followUpMessage && <p className="mt-2 text-sm text-navy">{followUpMessage}</p>}
           </section>
 
           <section id="invoice-payment" className="rounded-xl border border-cream-dark bg-white p-5">

@@ -40,3 +40,23 @@ export function blockNonDemoPatientRecord(patient: {
   if (!patient.firstName) return true;
   return !isDemoSafeFirstName(patient.firstName);
 }
+
+export function validateDemoLinkedWrite(input: {
+  patientId?: string;
+  patientFirstName?: string;
+  patientLabel?: string;
+}): { ok: true } | { ok: false; reason: string } {
+  if (input.patientLabel) {
+    return validateDemoWriteInput({ patientLabel: input.patientLabel });
+  }
+  if (input.patientFirstName && !isDemoSafeFirstName(input.patientFirstName)) {
+    return {
+      ok: false,
+      reason: "Unsafe/non-DEMO input blocked — patient must be DEMO-linked.",
+    };
+  }
+  if (!input.patientId?.trim()) {
+    return { ok: false, reason: "Patient must be linked to Cliniko before writing." };
+  }
+  return { ok: true };
+}
