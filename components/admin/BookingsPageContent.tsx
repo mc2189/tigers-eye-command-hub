@@ -9,8 +9,15 @@ import { useCommandHubAppointments } from "@/components/admin/CommandHubAppointm
 import { useInsuranceSessionCases } from "@/components/admin/useInsuranceSessionCases";
 
 export function BookingsPageContent() {
-  const { loading, lastChecked, error, isLive, connected, reload } =
-    useCommandHubAppointments();
+  const {
+    loading,
+    lastChecked,
+    error,
+    isLive,
+    connected,
+    hasLiveAppointments,
+    reload,
+  } = useCommandHubAppointments();
   const { enrichedBundles } = useInsuranceSessionCases();
 
   const bundles = enrichedBundles;
@@ -45,13 +52,27 @@ export function BookingsPageContent() {
         </div>
       )}
 
-      {isLive ? (
-        <WorkflowBundleList bundles={bundles} />
-      ) : (
-        <PlainEmptyState
-          title="No live Cliniko appointments found."
-          description="Connect the Cliniko test account and create DEMO appointments to see your live booking list here."
-        />
+      {!loading && !error && (
+        <>
+          {!connected ? (
+            <PlainEmptyState
+              title="Cliniko not connected."
+              description="Add your Cliniko test API key and matching shard, then refresh this page."
+            />
+          ) : isLive && !hasLiveAppointments ? (
+            <PlainEmptyState
+              title="No live Cliniko appointments found in the current date window."
+              description="Create a DEMO appointment in Cliniko (within the next 90 days), then refresh. If appointments exist in Cliniko but not here, open the Cliniko test lab to probe the feed."
+            />
+          ) : isLive ? (
+            <WorkflowBundleList bundles={bundles} />
+          ) : (
+            <PlainEmptyState
+              title="Could not load live Cliniko appointments."
+              description="Check the Cliniko connection in the test lab, confirm your API key shard matches CLINIKO_SHARD, then refresh."
+            />
+          )}
+        </>
       )}
     </>
   );

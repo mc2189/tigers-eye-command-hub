@@ -25,7 +25,7 @@ const quickActions = [
 ];
 
 export function CommandHubDashboard() {
-  const { mapped, loading, error, isLive, connected, lastChecked, reload } =
+  const { mapped, loading, error, isLive, connected, hasLiveAppointments, lastChecked, reload } =
     useCommandHubAppointments();
   const { enrichedBundles, summary: insuranceSummary } = useInsuranceSessionCases();
 
@@ -121,21 +121,27 @@ export function CommandHubDashboard() {
           <h2 id="command-list-heading" className="text-lg font-bold text-navy">
             {command.title}
           </h2>
-          {!isLive ? (
+          {!connected && !loading ? (
             <PlainEmptyState
-              title="No live Cliniko appointments found."
-              description="Create a DEMO appointment in Cliniko, then refresh the live feed."
+              title="Cliniko not connected."
+              description="Connect the Cliniko test account to see today's live command list here."
             />
-          ) : command.bundles.length === 0 ? (
+          ) : isLive && command.bundles.length === 0 ? (
             <PlainEmptyState
               title={
-                command.isToday
-                  ? "No appointments scheduled for today."
-                  : "No upcoming appointments found."
+                hasLiveAppointments
+                  ? command.isToday
+                    ? "No appointments scheduled for today."
+                    : "No upcoming appointments found."
+                  : "No live Cliniko appointments found in the current date window."
               }
-              description="When appointments appear in Cliniko, they will show here with the actions each one needs."
+              description={
+                hasLiveAppointments
+                  ? "When appointments appear in Cliniko, they will show here with the actions each one needs."
+                  : "Create a DEMO appointment in Cliniko (within the next 90 days), then refresh the live feed."
+              }
             />
-          ) : (
+          ) : isLive ? (
             <ul className="space-y-3">
               {command.bundles.map((bundle) => (
                 <li key={bundle.appointmentId}>
@@ -143,6 +149,11 @@ export function CommandHubDashboard() {
                 </li>
               ))}
             </ul>
+          ) : (
+            <PlainEmptyState
+              title="Could not load live Cliniko appointments."
+              description="Check the Cliniko connection in the test lab, then refresh the live feed."
+            />
           )}
         </section>
 

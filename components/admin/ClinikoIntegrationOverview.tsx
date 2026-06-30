@@ -13,7 +13,7 @@ export function ClinikoIntegrationOverview() {
   const [businesses, setBusinesses] = useState<string[]>([]);
   const [practitioners, setPractitioners] = useState<string[]>([]);
   const [appointmentTypes, setAppointmentTypes] = useState<string[]>([]);
-  const { mapped, isLive, lastChecked, loading } = useCommandHubAppointments();
+  const { mapped, isLive, hasLiveAppointments, lastChecked, loading } = useCommandHubAppointments();
 
   const load = useCallback(async () => {
     try {
@@ -70,14 +70,26 @@ export function ClinikoIntegrationOverview() {
           </div>
           <p className="mt-2 text-sm text-slate">
             {isLive
-              ? `${mapped.length} appointment(s) loaded for your daily workflow.`
-              : "No live appointments found yet."}
+              ? hasLiveAppointments
+                ? `${mapped.length} appointment(s) loaded for your daily workflow.`
+                : "Cliniko connected — no DEMO appointments found in the current date window (14 days back, 90 days forward)."
+              : connected
+                ? "Cliniko connected but the live feed could not be loaded."
+                : "No live appointments found yet."}
           </p>
-          {!isLive && !loading && (
+          {isLive && !hasLiveAppointments && !loading && (
             <div className="mt-4">
               <PlainEmptyState
-                title="No live Cliniko appointments found."
+                title="No live Cliniko appointments found in the current date window."
                 description="Create a DEMO appointment in Cliniko, then open Today or Bookings and refresh the live feed."
+              />
+            </div>
+          )}
+          {!connected && !loading && (
+            <div className="mt-4">
+              <PlainEmptyState
+                title="Cliniko not connected."
+                description="Add your Cliniko test API key and matching shard to load the live appointment feed."
               />
             </div>
           )}

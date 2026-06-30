@@ -202,21 +202,18 @@ export function getClinikoConfig(): ClinikoConfig {
   let shard = envShard || "uk1";
   let warning: string | undefined;
 
-  if (apiKey && !envShard) {
-    const inferred = inferClinikoShard(apiKey);
-    if (inferred) {
-      shard = inferred;
-    } else {
-      warning =
-        "CLINIKO_SHARD not set and could not be inferred from API key suffix. Defaulting to uk1.";
-    }
-  }
+  const inferred = apiKey ? inferClinikoShard(apiKey) : null;
 
-  if (apiKey && envShard) {
-    const inferred = inferClinikoShard(apiKey);
-    if (inferred && inferred !== envShard.toLowerCase()) {
-      warning = `Shard mismatch likely — key suffix suggests ${inferred} but CLINIKO_SHARD is ${envShard}.`;
+  if (apiKey && inferred) {
+    if (envShard && inferred !== envShard.toLowerCase()) {
+      shard = inferred;
+      warning = `CLINIKO_SHARD was ${envShard} but the API key suffix indicates ${inferred}. Using ${inferred}.`;
+    } else if (!envShard) {
+      shard = inferred;
     }
+  } else if (apiKey && !envShard) {
+    warning =
+      "CLINIKO_SHARD not set and could not be inferred from API key suffix. Defaulting to uk1.";
   }
 
   return {

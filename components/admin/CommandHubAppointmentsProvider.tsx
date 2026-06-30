@@ -9,10 +9,21 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { weekDays } from "@/lib/demo-data";
 import type { MappedBooking, MappedCalendarItem, DataSource } from "@/lib/cliniko-mappers";
 import { useMappedClinikoBookings } from "./useMappedClinikoBookings";
 import type { ClinikoStatusData } from "./ClinikoConnectionPanel";
+
+/** Load window for daily workflow — wider than Mon–Fri demo week. */
+function workflowLoadRange(): { from: string; to: string } {
+  const from = new Date();
+  from.setDate(from.getDate() - 14);
+  const to = new Date();
+  to.setDate(to.getDate() + 90);
+  return {
+    from: from.toISOString().split("T")[0],
+    to: to.toISOString().split("T")[0],
+  };
+}
 
 interface CommandHubAppointmentsContextValue {
   mapped: MappedBooking[];
@@ -26,6 +37,7 @@ interface CommandHubAppointmentsContextValue {
   reload: () => Promise<void>;
   loadToday: () => Promise<void>;
   loadRange: (from: string, to: string) => Promise<void>;
+  hasLiveAppointments: boolean;
 }
 
 const CommandHubAppointmentsContext =
@@ -53,14 +65,16 @@ export function CommandHubAppointmentsProvider({ children }: { children: ReactNo
   const isLive = useMemo(
     () =>
       connected &&
-      (cliniko.source === "cliniko-test" || cliniko.source === "cliniko") &&
-      cliniko.mapped.length > 0,
-    [connected, cliniko.source, cliniko.mapped.length]
+      initialized &&
+      !cliniko.error &&
+      (cliniko.source === "cliniko-test" || cliniko.source === "cliniko"),
+    [connected, cliniko.source, cliniko.error, initialized]
   );
 
+  const hasLiveAppointments = isLive && cliniko.mapped.length > 0;
+
   const loadCurrentWeek = useCallback(async () => {
-    const from = weekDays[0];
-    const to = weekDays[weekDays.length - 1];
+    const { from, to } = workflowLoadRange();
     await cliniko.load({ from, to });
   }, [cliniko]);
 
@@ -100,6 +114,7 @@ export function CommandHubAppointmentsProvider({ children }: { children: ReactNo
       error: cliniko.error,
       connected,
       isLive,
+      hasLiveAppointments,
       reload: async () => {
         await loadCurrentWeek();
       },
@@ -115,6 +130,7 @@ export function CommandHubAppointmentsProvider({ children }: { children: ReactNo
       connected,
       initialized,
       isLive,
+      hasLiveAppointments,
       loadCurrentWeek,
     ]
   );
