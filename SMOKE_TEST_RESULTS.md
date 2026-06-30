@@ -2,13 +2,13 @@
 
 | Field | Value |
 |-------|-------|
-| **Last updated** | 2026-06-30 (Command Hub GUI polish — commit `8ee9cf2`) |
-| **Feature commit** | `4515ab0` — Polish Command Hub GUI and fix live appointment labels |
-| **Smoke fix commit** | `8ee9cf2` — Fix bookings smoke checks for SSR and live appointment labels |
+| **Last updated** | 2026-06-30 (Demo Clinic Week — commit `581a7b6`) |
+| **Feature commit** | `581a7b6` — Add demo clinic week and full client journey |
+| **Smoke record commit** | pending |
 | **Local lint** | **PASS** |
 | **Local build** | **PASS** |
-| **Local smoke** | Not re-run this session (production smoke used as gate) |
-| **Production smoke** | **34/34 PASS** (2026-06-30, post `8ee9cf2` deploy) |
+| **Local smoke** | **35/35 PASS** (production build on port 3011) |
+| **Production smoke** | **35/35 PASS** (2026-06-30, post `581a7b6` deploy) |
 | **Base URL (prod)** | https://tigers-eye-command-hub.vercel.app |
 
 ## Latest run summary
@@ -17,7 +17,27 @@
 |-------------|--------|--------|--------|-------|
 | Local lint | **PASS** | — | 0 | `npm run lint` |
 | Local build | **PASS** | — | 0 | `npm run build` |
-| Production (Vercel) | **PASS** | 34 | 0 | Strengthened auth + GUI polish checks |
+| Local smoke | **PASS** | 35 | 0 | `BASE_URL=http://localhost:3011 node scripts/smoke-check.mjs` |
+| Production (Vercel) | **PASS** | 35 | 0 | Demo clinic week + client journey checks |
+
+## Demo Clinic Week and client journey (`581a7b6`)
+
+- 12 DEMO clients with full fake profiles and appointment scenarios
+- Demo week preview mode with honest source labels
+- `/admin/clients` client journey page
+- Cliniko test-lab seeding (DEMO patients/appointments only)
+- Today/Bookings/Insurance/Invoices/Notes/Follow-ups enriched
+- WhatThisShows helper on key pages
+- Smoke expanded to 35 checks (includes `/admin/clients`)
+
+| Route | Content check | Result |
+|-------|---------------|--------|
+| `/admin` | Today at a glance, Urgent / needs action, Client journey | PASS |
+| `/admin/clients` | Client journeys, Notes/Invoice/Follow-up status | PASS |
+| `/admin/cliniko/test-lab` | Demo Clinic Week, Seed demo clinic week | PASS |
+| `/admin/bookings` | Note needed, Follow-up suggested, day grouping | PASS |
+| `/admin/insurance` | Sessions remaining, Patient liability agreement | PASS |
+| `/admin/invoices` | Insurance invoice draft, Prepared invoice draft | PASS |
 
 ## Unauthenticated auth smoke (production)
 
@@ -203,7 +223,7 @@ Production probe run (read-only, uk3 shard):
 
 ## Failed routes (if any)
 
-_None — all routes passed on production (2026-06-30, post `8ee9cf2`)._
+_None — all routes passed on production (2026-06-30, post `581a7b6`)._
 
 ## How to run
 
