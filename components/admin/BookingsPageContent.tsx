@@ -1,22 +1,19 @@
 "use client";
 
-import { useMemo } from "react";
 import { WorkflowPageHeader } from "@/components/admin/WorkflowPageHeader";
 import { WorkflowBundleList } from "@/components/admin/WorkflowBundleList";
 import { ClinikoLoadState } from "@/components/admin/ClinikoLoadState";
 import { DataSourcePill } from "@/components/admin/DataSourcePill";
 import { PlainEmptyState } from "@/components/admin/PlainEmptyState";
 import { useCommandHubAppointments } from "@/components/admin/CommandHubAppointmentsProvider";
-import { buildWorkflowActionsForAppointments } from "@/lib/admin-workflow";
+import { useInsuranceSessionCases } from "@/components/admin/useInsuranceSessionCases";
 
 export function BookingsPageContent() {
-  const { mapped, loading, lastChecked, error, isLive, connected, reload } =
+  const { loading, lastChecked, error, isLive, connected, reload } =
     useCommandHubAppointments();
+  const { enrichedBundles } = useInsuranceSessionCases();
 
-  const bundles = useMemo(
-    () => buildWorkflowActionsForAppointments(mapped),
-    [mapped]
-  );
+  const bundles = enrichedBundles;
 
   return (
     <>

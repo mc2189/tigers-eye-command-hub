@@ -8,6 +8,10 @@ const workingNow = [
   "Workflow actions generated from live appointments",
   "Today command list",
   "Notes, payment, invoice, insurance and stock queues",
+  "Insurance session tracking from live/demo appointment data",
+  "Approved-session counting",
+  "Missing insurance detail checklist",
+  "Insurance invoice readiness queue",
 ];
 
 const inferredWorkflow = [
@@ -20,7 +24,9 @@ const inferredWorkflow = [
 const futureIntegrations = [
   "Real payment status",
   "Xero",
-  "Healthcode",
+  "Healthcode submission",
+  "Insurer portal automation",
+  "Real insurer eligibility checks",
   "Production staff auth",
   "Audit log",
 ];
@@ -32,6 +38,8 @@ export default function ProofPage() {
         title="Proof"
         purpose="What is working now versus what is inferred or planned — honest demo status for George."
       />
+
+      <p className="sr-only">Insurance session tracking</p>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <WorkflowHelpPanel title="Working now" items={workingNow} />

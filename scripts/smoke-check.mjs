@@ -113,6 +113,7 @@ const contentChecks = {
   "/admin": (body) => {
     if (!/Today'?s command/i.test(body)) return "missing Today's command";
     if (!/Notes to complete/i.test(body)) return "missing Notes to complete";
+    if (!/Insurance items/i.test(body)) return "missing Insurance items";
     if (!/Cliniko connected/i.test(body)) return "missing Cliniko connected status";
     return null;
   },
@@ -148,12 +149,16 @@ const contentChecks = {
     if (!/invoice or payment check|invoice check/i.test(body)) {
       return "missing invoices purpose/check wording";
     }
+    if (!/Insurance invoice queue/i.test(body)) {
+      return "missing Insurance invoice queue section";
+    }
     return null;
   },
   "/admin/insurance": (body) => {
-    if (!/authorised sessions/i.test(body)) {
-      return "missing insurance purpose line";
-    }
+    if (!/Insurance cases/i.test(body)) return "missing Insurance cases title";
+    if (!/approved sessions/i.test(body)) return "missing approved sessions wording";
+    if (!/Demo case controls/i.test(body)) return "missing Demo case controls";
+    if (!/Ready to invoice/i.test(body)) return "missing Ready to invoice tab";
     return null;
   },
   "/admin/stock": (body) => {
@@ -164,6 +169,12 @@ const contentChecks = {
   },
   "/admin/followups": (body) => {
     if (!/follow-up/i.test(body)) return "missing follow-up wording";
+    return null;
+  },
+  "/admin/proof": (body) => {
+    if (!/Insurance session tracking/i.test(body)) {
+      return "missing Insurance session tracking on proof page";
+    }
     return null;
   },
   "/admin/calendar": (body) => {

@@ -124,6 +124,17 @@ It must **not** appear as the active Aviemore booking provider on `/book`.
 - No real payment, accounting or clinical-note status is claimed unless integrated
 - Cliniko remains the system of record
 
+## Insurance session tracking workflow
+
+- Insurance cases inferred from appointment types plus **demo case details** (browser `localStorage` only)
+- Approved sessions, sessions used and sessions remaining calculated per case
+- Missing claim, authorisation, liability and invoice details surfaced via checklist
+- `/admin/insurance` rebuilt as case tracker with tabs: All cases, Needs details, Ready to invoice, Sessions used
+- Demo case controls collapsed by default — DEMO patient labels only, no Cliniko writes
+- Insurance invoice readiness queue on `/admin/invoices` — Healthcode remains future integration
+- Today, bookings and workflow bundles enriched with insurance-specific action chips when cases exist
+- No real patient insurance data should be entered
+
 ## Cliniko appointment proof update
 
 - Manual Cliniko appointments are read from `/individual_appointments`

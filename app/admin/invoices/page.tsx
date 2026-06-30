@@ -4,6 +4,7 @@ import { useState } from "react";
 import { WorkflowPageHeader } from "@/components/admin/WorkflowPageHeader";
 import { InvoiceGenerator } from "@/components/admin/InvoiceGenerator";
 import { ClinikoInvoiceQueuePanel } from "@/components/admin/ClinikoInvoiceQueuePanel";
+import { InsuranceInvoiceQueue } from "@/components/admin/InsuranceInvoiceQueue";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { invoices, invoiceStatusLabels, type InvoiceStatus } from "@/lib/demo-data";
 
@@ -36,6 +37,8 @@ export default function InvoicesPage() {
       </WorkflowPageHeader>
 
       <ClinikoInvoiceQueuePanel />
+
+      <InsuranceInvoiceQueue />
 
       <h2 className="mb-4 text-lg font-bold text-navy">Command Hub demo invoices</h2>
 

@@ -9,8 +9,9 @@ import { WorkflowBundleCard } from "@/components/admin/WorkflowBundleCard";
 import { WorkflowHelpPanel } from "@/components/admin/WorkflowHelpPanel";
 import { WorkflowPageHeader } from "@/components/admin/WorkflowPageHeader";
 import { WorkflowSummaryCard } from "@/components/admin/WorkflowSummaryCard";
+import { useInsuranceSessionCases } from "@/components/admin/useInsuranceSessionCases";
 import {
-  getTodayCommandItems,
+  getCommandListContext,
   summariseWorkflowActions,
 } from "@/lib/admin-workflow";
 
@@ -26,16 +27,25 @@ const quickActions = [
 export function CommandHubDashboard() {
   const { mapped, loading, error, isLive, connected, lastChecked, reload } =
     useCommandHubAppointments();
+  const { enrichedBundles, summary: insuranceSummary } = useInsuranceSessionCases();
 
   const todayIso = new Date().toISOString().split("T")[0];
-  const command = useMemo(
-    () => getTodayCommandItems(mapped, todayIso),
-    [mapped, todayIso]
-  );
-  const metrics = useMemo(
-    () => summariseWorkflowActions(command.bundles),
-    [command.bundles]
-  );
+  const command = useMemo(() => {
+    const ctx = getCommandListContext(mapped, todayIso);
+    const ids = new Set(ctx.appointments.map((a) => a.id));
+    return {
+      ...ctx,
+      bundles: enrichedBundles.filter((b) => ids.has(b.appointmentId)),
+    };
+  }, [mapped, todayIso, enrichedBundles]);
+
+  const metrics = useMemo(() => {
+    const base = summariseWorkflowActions(command.bundles);
+    return {
+      ...base,
+      insuranceItems: insuranceSummary.openCases > 0 ? insuranceSummary.openCases : base.insuranceItems,
+    };
+  }, [command.bundles, insuranceSummary.openCases]);
 
   return (
     <>

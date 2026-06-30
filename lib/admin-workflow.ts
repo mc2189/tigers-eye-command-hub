@@ -9,6 +9,12 @@ import {
   type AppointmentCategory,
 } from "@/lib/appointment-rules";
 import { getCommercialContext } from "@/lib/clinic-commercial-rules";
+import {
+  findInsuranceCaseForAppointment,
+  findInsuranceCaseForPatient,
+  getInsuranceWorkflowChipsForCase,
+  type InsuranceCase,
+} from "@/lib/insurance-session-workflow";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -577,6 +583,52 @@ export function bundleIsReady(bundle: AppointmentWorkflowBundle): boolean {
 
 export function bundleMissingSetup(bundle: AppointmentWorkflowBundle): boolean {
   return bundle.summary.missingSetup.length > 0;
+}
+
+export function enrichBundleWithInsuranceCases(
+  bundle: AppointmentWorkflowBundle,
+  cases: InsuranceCase[]
+): AppointmentWorkflowBundle {
+  if (!bundle.summary.insuranceLikely || cases.length === 0) return bundle;
+
+  const insuranceCase =
+    findInsuranceCaseForAppointment(cases, bundle.appointmentId) ??
+    findInsuranceCaseForPatient(cases, bundle.patientLabel);
+
+  const chips = getInsuranceWorkflowChipsForCase(insuranceCase);
+  if (chips.length === 0) return bundle;
+
+  const insuranceActions: WorkflowAction[] = chips.map((chip, index) => ({
+    type: "insurance",
+    priority: index === 0 ? "high" : "medium",
+    status: "needs-attention",
+    label: chip.label,
+    whyItMatters: "Insurer-funded work needs accurate session and claim tracking.",
+    suggestedNextStep: chip.suggestedNextStep,
+    source: "inferred",
+  }));
+
+  const withoutGenericInsurance = bundle.actions.filter(
+    (a) => !(a.type === "insurance" && a.label === "Insurance details missing")
+  );
+
+  const merged = [...insuranceActions, ...withoutGenericInsurance.filter((a) => a.type !== "insurance")];
+  const primary = insuranceActions[0] ?? bundle.primaryAction;
+  const secondary = [...insuranceActions.slice(1), ...bundle.secondaryActions].slice(0, 4);
+
+  return {
+    ...bundle,
+    actions: merged,
+    primaryAction: primary,
+    secondaryActions: secondary,
+  };
+}
+
+export function enrichBundlesWithInsuranceCases(
+  bundles: AppointmentWorkflowBundle[],
+  cases: InsuranceCase[]
+): AppointmentWorkflowBundle[] {
+  return bundles.map((b) => enrichBundleWithInsuranceCases(b, cases));
 }
 
 // ─── Legacy adapters ───────────────────────────────────────────────────────────

@@ -86,6 +86,14 @@ Use this before showing George. Tick each item after verifying in the browser.
 
 ### Proof (`/admin/proof`)
 - [ ] Working now / Inferred workflow / Future integrations sections
+- [ ] Insurance session tracking listed under Working now
+
+### Insurance cases (`/admin/insurance`)
+- [ ] Page reads as insurance case tracker with session progress
+- [ ] Summary cards: open cases, sessions remaining, missing details, ready to invoice
+- [ ] Demo case controls (collapsed) — save Aviva demo case for DEMO patient
+- [ ] Sessions used / remaining display correctly after demo case saved
+- [ ] Tabs: All cases, Needs details, Ready to invoice, Sessions used
 
 ### Walkthrough (`/admin/demo-walkthrough`)
 - [ ] All 11 steps present with Open page buttons
