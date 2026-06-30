@@ -14,6 +14,7 @@ import {
   getCommandListContext,
   summariseWorkflowActions,
 } from "@/lib/admin-workflow";
+import { getClinikoConnectionEmptyState } from "@/lib/cliniko-connection-copy";
 
 const quickActions = [
   { href: "/admin/calendar", label: "Open calendar" },
@@ -25,9 +26,20 @@ const quickActions = [
 ];
 
 export function CommandHubDashboard() {
-  const { mapped, loading, error, isLive, connected, hasLiveAppointments, lastChecked, reload } =
-    useCommandHubAppointments();
+  const {
+    mapped,
+    loading,
+    error,
+    isLive,
+    connected,
+    configured,
+    hasLiveAppointments,
+    clinikoStatus,
+    lastChecked,
+    reload,
+  } = useCommandHubAppointments();
   const { enrichedBundles, summary: insuranceSummary } = useInsuranceSessionCases();
+  const connectionEmpty = getClinikoConnectionEmptyState(clinikoStatus);
 
   const todayIso = new Date().toISOString().split("T")[0];
   const command = useMemo(() => {
@@ -53,7 +65,7 @@ export function CommandHubDashboard() {
         title="Today"
         purpose="Here is what needs attention today, what each appointment needs, and what to do next."
       >
-        {connected && (
+        {(connected || configured) && (
           <button
             type="button"
             onClick={() => void reload()}
@@ -80,7 +92,13 @@ export function CommandHubDashboard() {
         <WorkflowSummaryCard
           label={command.isToday ? "Appointments today" : "Upcoming appointments"}
           value={isLive ? metrics.appointments : "—"}
-          hint={isLive ? "From Cliniko test account" : "Connect Cliniko to see live appointments"}
+          hint={
+            isLive
+              ? "From Cliniko test account"
+              : configured
+                ? "Cliniko test account configured"
+                : "Configure Cliniko to see live appointments"
+          }
           href="/admin/bookings"
           status={metrics.appointments > 0 ? "ready" : "default"}
         />
@@ -121,10 +139,15 @@ export function CommandHubDashboard() {
           <h2 id="command-list-heading" className="text-lg font-bold text-navy">
             {command.title}
           </h2>
-          {!connected && !loading ? (
+          {!configured && !loading ? (
             <PlainEmptyState
-              title="Cliniko not connected."
-              description="Connect the Cliniko test account to see today's live command list here."
+              title={connectionEmpty.title}
+              description={connectionEmpty.description}
+            />
+          ) : error && !hasLiveAppointments && !loading ? (
+            <PlainEmptyState
+              title="Cliniko appointments could not be loaded."
+              description={error}
             />
           ) : isLive && command.bundles.length === 0 ? (
             <PlainEmptyState
@@ -151,8 +174,8 @@ export function CommandHubDashboard() {
             </ul>
           ) : (
             <PlainEmptyState
-              title="Could not load live Cliniko appointments."
-              description="Check the Cliniko connection in the test lab, then refresh the live feed."
+              title={connectionEmpty.title}
+              description={connectionEmpty.description}
             />
           )}
         </section>
@@ -161,13 +184,18 @@ export function CommandHubDashboard() {
           <WorkflowHelpPanel
             title="Clinic status"
             items={[
-              connected ? "Cliniko connected" : "Cliniko not connected — showing demo examples",
+              connected
+                ? "Cliniko test account connected"
+                : configured
+                  ? "Cliniko test account configured — checking connection"
+                  : "Cliniko test account not configured on this server",
               isLive
-                ? `Live appointments found (${mapped.length} loaded)`
-                : "No live appointments found",
+                ? `${mapped.length} live appointment(s) loaded from Cliniko`
+                : hasLiveAppointments
+                  ? `${mapped.length} appointment(s) loaded`
+                  : "No live appointments loaded yet",
               lastChecked ? `Last checked ${lastChecked}` : "Not checked yet",
-              "Demo mode active",
-              "No real patient data stored",
+              "Sterile Cliniko test account — safe to book and manage DEMO patients",
             ]}
           />
 

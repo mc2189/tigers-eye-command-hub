@@ -56,9 +56,19 @@ export function useCommandHubAppointments(): CommandHubAppointmentsContextValue 
 }
 
 export function CommandHubAppointmentsProvider({ children }: { children: ReactNode }) {
-  const cliniko = useMappedClinikoBookings();
+  const {
+    mapped,
+    calendarItems,
+    source,
+    loading: appointmentsLoading,
+    lastChecked,
+    error,
+    load,
+    loadToday,
+  } = useMappedClinikoBookings();
   const [status, setStatus] = useState<ClinikoStatusData | null>(null);
   const [initialized, setInitialized] = useState(false);
+  const [statusLoading, setStatusLoading] = useState(false);
 
   const connected = Boolean(
     status?.status === "connected" && status.source === "cliniko"
@@ -68,37 +78,44 @@ export function CommandHubAppointmentsProvider({ children }: { children: ReactNo
 
   const isLive = useMemo(
     () =>
-      connected &&
+      configured &&
       initialized &&
-      !cliniko.error &&
-      (cliniko.source === "cliniko-test" || cliniko.source === "cliniko"),
-    [connected, cliniko.source, cliniko.error, initialized]
+      !error &&
+      (source === "cliniko-test" || source === "cliniko"),
+    [configured, error, initialized, source]
   );
 
-  const hasLiveAppointments = isLive && cliniko.mapped.length > 0;
+  const hasLiveAppointments = isLive && mapped.length > 0;
+
+  const refreshStatus = useCallback(async () => {
+    setStatusLoading(true);
+    try {
+      const res = await fetch("/api/cliniko/status", { cache: "no-store" });
+      const json = (await res.json()) as ClinikoStatusData;
+      setStatus(json);
+      return json;
+    } catch {
+      setStatus(null);
+      return null;
+    } finally {
+      setStatusLoading(false);
+    }
+  }, []);
 
   const loadCurrentWeek = useCallback(async () => {
     const { from, to } = workflowLoadRange();
-    await cliniko.load({ from, to });
-  }, [cliniko]);
+    await load({ from, to });
+  }, [load]);
 
   useEffect(() => {
     let cancelled = false;
 
     async function bootstrap() {
-      try {
-        const res = await fetch("/api/cliniko/status", { cache: "no-store" });
-        const json = (await res.json()) as ClinikoStatusData;
-        if (cancelled) return;
-        setStatus(json);
-
-        if (json.configured) {
-          await loadCurrentWeek();
-        }
-      } catch {
-        if (!cancelled) setStatus(null);
-      } finally {
-        if (!cancelled) setInitialized(true);
+      const json = await refreshStatus();
+      if (cancelled) return;
+      setInitialized(true);
+      if (json?.configured) {
+        void loadCurrentWeek();
       }
     }
 
@@ -106,40 +123,52 @@ export function CommandHubAppointmentsProvider({ children }: { children: ReactNo
     return () => {
       cancelled = true;
     };
-  }, [loadCurrentWeek]);
+  }, [loadCurrentWeek, refreshStatus]);
 
   const value = useMemo<CommandHubAppointmentsContextValue>(
     () => ({
-      mapped: cliniko.mapped,
-      calendarItems: cliniko.calendarItems,
-      source: cliniko.source,
-      loading: cliniko.loading || !initialized,
-      lastChecked: cliniko.lastChecked,
-      error: cliniko.error,
+      mapped,
+      calendarItems,
+      source,
+      loading: appointmentsLoading || statusLoading || !initialized,
+      lastChecked,
+      error,
       connected,
       configured,
       isLive,
       hasLiveAppointments,
       clinikoStatus: status,
       reload: async () => {
-        await loadCurrentWeek();
+        const json = await refreshStatus();
+        if (json?.configured) {
+          await loadCurrentWeek();
+        }
       },
       loadToday: async () => {
-        await cliniko.loadToday();
+        await loadToday();
       },
       loadRange: async (from, to) => {
-        await cliniko.load({ from, to });
+        await load({ from, to });
       },
     }),
     [
-      cliniko,
+      mapped,
+      calendarItems,
+      source,
+      appointmentsLoading,
+      statusLoading,
+      initialized,
+      lastChecked,
+      error,
       connected,
       configured,
-      initialized,
       isLive,
       hasLiveAppointments,
       status,
+      refreshStatus,
       loadCurrentWeek,
+      loadToday,
+      load,
     ]
   );
 

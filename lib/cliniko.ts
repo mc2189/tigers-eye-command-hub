@@ -256,13 +256,9 @@ function retryDelayMs(response: Response, attempt: number): number {
   const retryAfter = response.headers.get("retry-after");
   if (retryAfter) {
     const seconds = Number.parseInt(retryAfter, 10);
-    if (!Number.isNaN(seconds) && seconds > 0) return seconds * 1000;
+    if (!Number.isNaN(seconds) && seconds > 0) return Math.min(seconds * 1000, 3000);
   }
-  return Math.min(1000 * 2 ** attempt, 8000);
-}
-
-function isRateLimitError(err: unknown): boolean {
-  return err instanceof ClinikoApiError && err.status === 429;
+  return Math.min(750 * 2 ** attempt, 2000);
 }
 
 function isRateLimitMessage(error?: string): boolean {
@@ -292,7 +288,8 @@ export async function clinikoFetch<T>(
     headers["Content-Type"] = "application/json";
   }
 
-  const maxAttempts = 4;
+  const maxAttempts = 2;
+  const timeoutMs = 15000;
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const response = await fetch(url, {
@@ -300,6 +297,7 @@ export async function clinikoFetch<T>(
       method,
       headers: { ...headers, ...(options.headers as Record<string, string>) },
       cache: "no-store",
+      signal: AbortSignal.timeout(timeoutMs),
     });
 
     if (response.status === 429 && attempt < maxAttempts - 1) {
@@ -1196,26 +1194,7 @@ export async function getClinikoStatus(): Promise<ClinikoStatusResponse> {
     const userResult = await getAuthenticatedUser();
     const connected = userResult.status === "connected";
 
-    let businessesResult: ClinikoResult<ClinikoBusiness[]> | null = null;
-    let practitionersResult: ClinikoResult<ClinikoPractitioner[]> | null = null;
-    let typesResult: ClinikoResult<ClinikoAppointmentType[]> | null = null;
-    let bookingsResult: ClinikoResult<ClinikoIndividualAppointmentsResponse> | null = null;
-
-    if (connected) {
-      await sleep(150);
-      businessesResult = await getBusinesses();
-      await sleep(150);
-      practitionersResult = await getPractitioners();
-      await sleep(150);
-      typesResult = await getAppointmentTypes();
-      await sleep(150);
-      bookingsResult = await getIndividualAppointments({ perPage: 10 });
-    }
-
-    const rateLimited =
-      !connected &&
-      (isRateLimitMessage(userResult.error) ||
-        isRateLimitMessage(businessesResult?.warning));
+    const rateLimited = !connected && isRateLimitMessage(userResult.error);
 
     return {
       ok: connected,
@@ -1228,20 +1207,17 @@ export async function getClinikoStatus(): Promise<ClinikoStatusResponse> {
       writesEnabled: config.writesEnabled,
       authenticatedUser: userResult.data,
       counts: {
-        businesses: businessesResult?.data?.length ?? 0,
-        practitioners: practitionersResult?.data?.length ?? 0,
-        appointmentTypes: typesResult?.data?.length ?? 0,
-        bookings:
-          bookingsResult?.data?.totalEntries ??
-          bookingsResult?.data?.appointments.length ??
-          0,
+        businesses: 0,
+        practitioners: 0,
+        appointmentTypes: 0,
+        bookings: 0,
       },
       error: connected
         ? undefined
         : rateLimited
           ? "Cliniko rate limit reached — wait a few seconds and refresh."
           : userResult.error ?? "Cliniko authentication failed",
-      warning: config.warning ?? userResult.warning ?? businessesResult?.warning,
+      warning: config.warning ?? userResult.warning,
     };
   } catch (err) {
     return {

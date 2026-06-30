@@ -37,21 +37,38 @@ export function useMappedClinikoBookings() {
       if (params?.from) query.set("from", params.from);
       if (params?.to) query.set("to", params.to);
 
-      const [appointmentsRes, typesRes] = await Promise.all([
-        fetch(`/api/cliniko/individual-appointments?${query}`, { cache: "no-store" }),
-        fetch("/api/cliniko/appointment-types", { cache: "no-store" }),
-      ]);
-
+      const appointmentsRes = await fetch(
+        `/api/cliniko/individual-appointments?${query}`,
+        { cache: "no-store" }
+      );
       const appointmentsJson = (await appointmentsRes.json()) as {
+        ok?: boolean;
         appointments: ClinikoIndividualAppointmentInput[];
         source: DataSource;
+        error?: string;
+        warning?: string;
       };
+
+      if (!appointmentsRes.ok || appointmentsJson.ok === false) {
+        const message =
+          appointmentsJson.error ??
+          appointmentsJson.warning ??
+          "Cliniko appointments could not be loaded.";
+        setError(message);
+        return null;
+      }
+
+      const typesRes = await fetch("/api/cliniko/appointment-types", { cache: "no-store" });
       const typesJson = (await typesRes.json()) as {
         appointmentTypes: ClinikoAppointmentTypeInput[];
       };
 
-      const appointments = asArray<ClinikoIndividualAppointmentInput>(appointmentsJson.appointments);
-      const appointmentTypes = asArray<ClinikoAppointmentTypeInput>(typesJson.appointmentTypes);
+      const appointments = asArray<ClinikoIndividualAppointmentInput>(
+        appointmentsJson.appointments
+      );
+      const appointmentTypes = asArray<ClinikoAppointmentTypeInput>(
+        typesJson.appointmentTypes
+      );
 
       const mappedBookings = mapClinikoIndividualAppointments(appointments, {
         appointmentTypes,
@@ -63,7 +80,9 @@ export function useMappedClinikoBookings() {
       );
 
       const resolvedSource =
-        appointmentsJson.source === "cliniko" ? "cliniko-test" : appointmentsJson.source ?? "demo";
+        appointmentsJson.source === "cliniko"
+          ? "cliniko-test"
+          : appointmentsJson.source ?? "demo";
 
       setMapped(mappedBookings);
       setCalendarItems(calItems);
@@ -79,10 +98,7 @@ export function useMappedClinikoBookings() {
         individualAppointmentCount: appointments.length,
       } satisfies LoadResult;
     } catch {
-      setError("Cliniko could not be reached. Demo data is still available.");
-      setMapped([]);
-      setCalendarItems([]);
-      setIndividualAppointmentCount(0);
+      setError("Cliniko could not be reached. Try refresh again in a few seconds.");
       return null;
     } finally {
       setLoading(false);

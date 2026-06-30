@@ -58,10 +58,15 @@ export function BookingsPageContent() {
 
       {!loading && !error && (
         <>
-          {!connected && !hasLiveAppointments ? (
+          {!configured && !loading && !error ? (
             <PlainEmptyState
               title={connectionEmpty.title}
               description={connectionEmpty.description}
+            />
+          ) : error && !hasLiveAppointments && !loading ? (
+            <PlainEmptyState
+              title="Cliniko appointments could not be loaded."
+              description={error}
             />
           ) : isLive && !hasLiveAppointments ? (
             <PlainEmptyState
@@ -70,12 +75,12 @@ export function BookingsPageContent() {
             />
           ) : isLive ? (
             <WorkflowBundleList bundles={bundles} />
-          ) : (
+          ) : !loading ? (
             <PlainEmptyState
-              title="Could not load live Cliniko appointments."
-              description="Check the Cliniko connection in the test lab, confirm your API key shard matches CLINIKO_SHARD, then refresh."
+              title={connectionEmpty.title}
+              description={connectionEmpty.description}
             />
-          )}
+          ) : null}
         </>
       )}
     </>
