@@ -72,6 +72,7 @@ const protectedRoutes = [
   "/admin/proof",
   "/admin/settings",
   "/api/cliniko/status",
+  "/api/cliniko/individual-appointments?perPage=10",
   "/api/cliniko/test-data",
 ];
 
@@ -238,6 +239,32 @@ const contentChecks = {
     }
     if (typeof json.status !== "string") return "missing status field";
     if (typeof json.source !== "string") return "missing source field";
+    return null;
+  },
+  "/api/cliniko/individual-appointments": (body) => {
+    let json;
+    try {
+      json = JSON.parse(body);
+    } catch {
+      return "response is not valid JSON";
+    }
+    if (!Array.isArray(json.appointments)) return "missing appointments array";
+    const serialized = JSON.stringify(json.appointments);
+    if (serialized.includes("DEMO 0.")) return "contains broken label DEMO 0.";
+    if (serialized.includes("DEMO (.")) return "contains broken label DEMO (.";
+    return null;
+  },
+  "/api/cliniko/individual-appointments?perPage=10": (body) => {
+    let json;
+    try {
+      json = JSON.parse(body);
+    } catch {
+      return "response is not valid JSON";
+    }
+    if (!Array.isArray(json.appointments)) return "missing appointments array";
+    const serialized = JSON.stringify(json.appointments);
+    if (serialized.includes("DEMO 0.")) return "contains broken label DEMO 0.";
+    if (serialized.includes("DEMO (.")) return "contains broken label DEMO (.";
     return null;
   },
   "/api/cliniko/test-data": (body) => {
