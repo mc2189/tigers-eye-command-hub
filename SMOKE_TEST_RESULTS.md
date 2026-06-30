@@ -2,17 +2,40 @@
 
 | Field | Value |
 |-------|-------|
-| **Last updated** | 2026-06-30 (Command Hub refactor — commit `ac3a1d1`) |
+| **Last updated** | 2026-06-29 (Admin UX workflow refactor — commit `2306aa0`) |
 | **Local smoke** | **26/26 PASS** |
-| **Production smoke** | **26/26 PASS** (2026-06-30, post `ac3a1d1` deploy) |
+| **Production smoke** | **26/26 PASS** (2026-06-29, post `2306aa0` deploy) |
 | **Base URL (prod)** | https://tigers-eye-command-hub.vercel.app |
 
 ## Latest run summary
 
 | Environment | Result | Passed | Failed | Notes |
 |-------------|--------|--------|--------|-------|
-| Local (fresh build) | **PASS** | 26 | 0 | Includes `/admin/cliniko/test-lab` |
-| Production (Vercel) | **PASS** | 26 | 0 | Post `ac3a1d1` — shared live Cliniko appointments |
+| Local (fresh build) | **PASS** | 26 | 0 | New workflow content checks on admin pages |
+| Production (Vercel) | **PASS** | 26 | 0 | Post `2306aa0` — Today command screen + test lab separation |
+
+## Admin UX and workflow refactor (`2306aa0`)
+
+- Sidebar simplified into workflow groups: Daily Work, Money, Operations, Setup & Proof
+- `/admin` now acts as **Today** command screen with summary cards, action list, clinic status, quick actions
+- `/admin/cliniko` is now clean integration overview (connection, live feed, businesses, practitioners, types)
+- `/admin/cliniko/test-lab` contains technical proof tools with **Technical test lab** banner
+- Live Cliniko appointments power shared `AppointmentWorkflowCard` / `ActionQueue` across workflow pages
+- Demo examples remain separate from live data with source pills
+- Technical API language hidden from normal clinic workflow pages
+- New smoke content checks: Today command list, page purpose lines, test lab separation
+
+| Route | Content check | Result |
+|-------|---------------|--------|
+| `/admin` | Today's command list, Cliniko connected | PASS |
+| `/admin/cliniko` | Open technical test lab | PASS |
+| `/admin/cliniko/test-lab` | Technical test lab banner | PASS |
+| `/admin/bookings` | Review appointments from Cliniko | PASS |
+| `/admin/notes` | Cliniko remains the clinical record | PASS |
+| `/admin/finance` | Not accounting software | PASS |
+| `/admin/invoices` | Invoice or payment check | PASS |
+| `/admin/insurance` | Authorised sessions | PASS |
+| `/admin/stock` | Consumables | PASS |
 
 ## Command Hub daily workflow (`ac3a1d1`)
 
@@ -84,7 +107,7 @@ Production probe run (read-only, uk3 shard):
 
 ## Failed routes (if any)
 
-_None — all routes passed locally and on production (2026-06-29)._
+_None — all routes passed locally and on production (2026-06-29, post `2306aa0`)._
 
 ## How to run
 
