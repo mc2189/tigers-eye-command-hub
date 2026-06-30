@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import type { AppointmentWorkflowBundle } from "@/lib/admin-workflow";
 import { ActionChip } from "./ActionChip";
 import { DataSourcePill } from "./DataSourcePill";
+import { OpenRecordButton } from "./OpenRecordButton";
 
 interface WorkflowBundleCardProps {
   bundle: AppointmentWorkflowBundle;
@@ -75,6 +77,42 @@ export function WorkflowBundleCard({
       {journeySummary && (
         <p className="mt-2 text-xs font-medium text-slate">{journeySummary}</p>
       )}
+
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <OpenRecordButton appointmentId={bundle.appointmentId} />
+        {bundle.summary.needsNote && (
+          <Link
+            href={`/admin/appointments/${bundle.appointmentId}#treatment-note`}
+            className="inline-flex min-h-9 items-center rounded-lg border border-cream-dark px-3 py-1.5 text-sm font-medium text-navy hover:bg-cream"
+          >
+            Add note
+          </Link>
+        )}
+        {(bundle.summary.needsInvoiceCheck || bundle.summary.needsPaymentCheck) && (
+          <Link
+            href={`/admin/appointments/${bundle.appointmentId}#invoice-payment`}
+            className="inline-flex min-h-9 items-center rounded-lg border border-cream-dark px-3 py-1.5 text-sm font-medium text-navy hover:bg-cream"
+          >
+            Prepare invoice
+          </Link>
+        )}
+        {bundle.summary.insuranceLikely && (
+          <Link
+            href={`/admin/appointments/${bundle.appointmentId}#invoice-payment`}
+            className="inline-flex min-h-9 items-center rounded-lg border border-cream-dark px-3 py-1.5 text-sm font-medium text-navy hover:bg-cream"
+          >
+            Review insurance case
+          </Link>
+        )}
+        {bundle.summary.followUpSuggested && (
+          <Link
+            href={`/admin/appointments/${bundle.appointmentId}#follow-up`}
+            className="inline-flex min-h-9 items-center rounded-lg border border-cream-dark px-3 py-1.5 text-sm font-medium text-navy hover:bg-cream"
+          >
+            Review follow-up
+          </Link>
+        )}
+      </div>
 
       {bundle.primaryAction && (
         <div className="mt-4 rounded-lg border border-green/20 bg-green-muted/20 p-3">

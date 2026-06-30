@@ -6,6 +6,7 @@ import { useCommandHubAppointments } from "@/components/admin/CommandHubAppointm
 import { useInsuranceSessionCases } from "@/components/admin/useInsuranceSessionCases";
 import { WhatThisShows } from "@/components/admin/WhatThisShows";
 import { DataSourcePill } from "@/components/admin/DataSourcePill";
+import { OpenClientButton, OpenRecordButton } from "@/components/admin/OpenRecordButton";
 import { buildClientJourneys, getClientJourneySummary } from "@/lib/demo-client-journey";
 import { DEMO_CLINIC_WEEK_SCENARIOS } from "@/lib/demo-clinic-week";
 
@@ -122,15 +123,16 @@ export function ClientsPageContent() {
                 Next action: {bundle?.primaryAction?.label ?? journey.nextAction}
               </p>
 
-              {scenario && (
-                <p className="mt-2 text-xs text-slate">
-                  Journey summary: {getClientJourneySummary(journey)}
-                </p>
-              )}
+              <div className="mt-3 flex flex-wrap gap-2">
+                <OpenClientButton patientLabel={journey.patientLabel} variant="secondary" />
+                {scenario && (
+                  <OpenRecordButton appointmentId={scenario.id} variant="secondary" label="Review appointment" />
+                )}
+              </div>
 
               <Link
                 href="/admin/bookings"
-                className="mt-3 inline-block text-sm font-medium text-green hover:underline"
+                className="mt-2 inline-block text-sm font-medium text-green hover:underline"
               >
                 View in bookings →
               </Link>

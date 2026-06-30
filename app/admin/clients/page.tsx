@@ -9,7 +9,7 @@ export default function ClientsPage() {
         title="Clients"
         purpose="See each DEMO client's full journey — appointment, notes, follow-up, payment and insurance status."
       />
-      <p className="sr-only">Client journeys</p>
+      <p className="sr-only">Client journeys · Open client record</p>
       <ClientsPageContent />
       <DemoWeekReferenceStrip variant="clients" />
     </>

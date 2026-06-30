@@ -241,6 +241,23 @@ Use this before showing George. Tick each item after verifying in the browser.
 
 ---
 
+## Appointment actions and patient matching
+
+- [ ] Today cards have **Open record** button
+- [ ] Booking cards have **Open record** button
+- [ ] `/admin/appointments/[id]` opens appointment detail with client, note, follow-up, invoice sections
+- [ ] `/admin/clients` cards have **Open client record**
+- [ ] `/admin/clients/[id]` shows full client journey
+- [ ] `/admin/intake` shows exact/possible/no/unsafe match scenarios
+- [ ] Unsafe/non-DEMO input cannot write (403 / blocked label)
+- [ ] New DEMO patient creation gated and honest (Saved vs Prepared for Cliniko)
+- [ ] Possible match requires staff confirmation unless exact DEMO match
+- [ ] Treatment note save does not fake Cliniko success
+- [ ] Invoice draft does not claim Xero/Healthcode integration
+- [ ] Mobile layout usable on appointment and client detail pages
+
+---
+
 ## Automated smoke tests
 
 ```bash
@@ -249,5 +266,5 @@ npm run lint
 npm run build
 npm run dev          # terminal 1
 npm run smoke:local  # terminal 2 — includes unauthenticated auth checks
-npm run smoke:prod   # after Vercel deploy (35 checks)
+npm run smoke:prod   # after Vercel deploy (47 checks)
 ```

@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { useCommandHubAppointments } from "./CommandHubAppointmentsProvider";
 import { PlainEmptyState } from "./PlainEmptyState";
 import { DataSourcePill } from "./DataSourcePill";
+import { OpenRecordButton } from "./OpenRecordButton";
 import { getFollowUpQueue } from "@/lib/admin-workflow";
 import { DEMO_CLINIC_WEEK_SCENARIOS } from "@/lib/demo-clinic-week";
 
@@ -64,6 +65,9 @@ export function FollowUpWorkflowQueue() {
               <blockquote className="mt-3 rounded-lg bg-cream p-3 text-sm text-navy italic">
                 {item.message}
               </blockquote>
+              <div className="mt-3">
+                <OpenRecordButton appointmentId={item.id} variant="secondary" label="Review follow-up" />
+              </div>
             </li>
           ))}
         </ul>

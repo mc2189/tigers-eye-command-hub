@@ -1,8 +1,9 @@
 "use client";
 
 import { PlainEmptyState } from "./PlainEmptyState";
-import { InsuranceCaseCard } from "./InsuranceCaseCard";
+import { OpenRecordButton } from "./OpenRecordButton";
 import { useInsuranceSessionCases } from "./useInsuranceSessionCases";
+import { DEMO_CLINIC_WEEK_SCENARIOS } from "@/lib/demo-clinic-week";
 
 export function InsuranceInvoiceQueue() {
   const { cases } = useInsuranceSessionCases();
@@ -54,6 +55,18 @@ export function InsuranceInvoiceQueue() {
                   <p className="mt-2 text-sm text-green">Ready for insurer invoice preparation</p>
                 )}
                 <p className="mt-2 text-sm text-navy">{insuranceCase.nextAction}</p>
+                {(() => {
+                  const scenario = DEMO_CLINIC_WEEK_SCENARIOS.find(
+                    (s) => s.patientLabel === insuranceCase.patientLabel
+                  );
+                  const appointmentId =
+                    insuranceCase.sessions[0]?.appointmentId ?? scenario?.id;
+                  return appointmentId ? (
+                    <div className="mt-3">
+                      <OpenRecordButton appointmentId={appointmentId} variant="secondary" />
+                    </div>
+                  ) : null;
+                })()}
               </article>
             </li>
           ))}

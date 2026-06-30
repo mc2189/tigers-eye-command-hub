@@ -70,6 +70,8 @@ const protectedRoutes = [
   "/admin/stock",
   "/admin/followups",
   "/admin/clients",
+  "/admin/intake",
+  "/admin/appointments/dcw-001",
   "/admin/proof",
   "/admin/settings",
   "/api/cliniko/status",
@@ -117,6 +119,7 @@ const contentChecks = {
     if (!/Urgent \/ needs action/i.test(body)) return "missing Urgent / needs action section";
     if (!/What this shows/i.test(body)) return "missing What this shows helper";
     if (!/Client journey/i.test(body)) return "missing Client journey section";
+    if (!/Open record/i.test(body)) return "missing Open record action";
     return null;
   },
   "/admin/bookings": (body) => {
@@ -134,6 +137,7 @@ const contentChecks = {
     }
     if (!/Note needed/i.test(body)) return "missing Note needed wording";
     if (!/Follow-up suggested/i.test(body)) return "missing Follow-up suggested wording";
+    if (!/Open record/i.test(body)) return "missing Open record action";
     return null;
   },
   "/admin/notes": (body) => {
@@ -216,6 +220,30 @@ const contentChecks = {
     if (!/Invoice status/i.test(body)) return "missing Invoice status";
     if (!/Follow-up status/i.test(body)) return "missing Follow-up status";
     if (!/What this shows/i.test(body)) return "missing What this shows helper";
+    if (!/Open client record/i.test(body)) return "missing Open client record action";
+    return null;
+  },
+  "/admin/intake": (body) => {
+    if (!/Booking intake/i.test(body)) return "missing Booking intake title";
+    if (!/Suggested Cliniko match/i.test(body)) return "missing Suggested Cliniko match";
+    if (!/Create new DEMO Cliniko patient/i.test(body)) {
+      return "missing Create new DEMO Cliniko patient";
+    }
+    if (!/staff confirmation/i.test(body)) return "missing staff confirmation wording";
+    if (!/Unsafe\/non-DEMO input blocked/i.test(body)) {
+      return "missing Unsafe/non-DEMO input blocked scenario";
+    }
+    return null;
+  },
+  "/admin/appointments/dcw-001": (body) => {
+    if (!/Appointment record/i.test(body) && !/Treatment note/i.test(body)) {
+      return "missing Appointment record content";
+    }
+    if (!/Treatment note/i.test(body)) return "missing Treatment note section";
+    if (!/Prepared invoice draft/i.test(body) && !/Prepare invoice draft/i.test(body)) {
+      return "missing Prepared invoice draft section";
+    }
+    if (!/Patient match status/i.test(body)) return "missing Patient match status";
     return null;
   },
   "/admin/proof": (body) => {

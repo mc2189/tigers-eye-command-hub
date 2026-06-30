@@ -1,0 +1,17 @@
+import { ClientDetailContent } from "@/components/admin/ClientDetailContent";
+import { patientLabelToSlug } from "@/lib/appointment-records";
+import { DEMO_CLINIC_WEEK_SCENARIOS } from "@/lib/demo-clinic-week";
+
+interface PageProps {
+  params: Promise<{ clientId: string }>;
+}
+
+export default async function ClientDetailPage({ params }: PageProps) {
+  const { clientId } = await params;
+  return <ClientDetailContent clientSlug={clientId} />;
+}
+
+export function generateStaticParams() {
+  const labels = [...new Set(DEMO_CLINIC_WEEK_SCENARIOS.map((s) => s.patientLabel))];
+  return labels.map((label) => ({ clientId: patientLabelToSlug(label) }));
+}

@@ -150,6 +150,20 @@ It must **not** appear as the active Aviemore booking provider on `/book`.
 - Entity audit: patients/appointments writable to Cliniko; notes/invoices/follow-ups prepared only
 - Smoke expanded to 35 checks including `/admin/clients`
 
+## Appointment actions and patient matching
+
+- Appointment cards on Today, Bookings, Insurance invoice queue, Notes and Follow-ups include **Open record** (primary) and secondary actions (Add note, Prepare invoice, Review follow-up)
+- `/admin/appointments/[appointmentId]` — appointment detail: client profile, Cliniko record status, treatment note, follow-up, invoice/payment, insurance, source summary
+- `/admin/clients/[clientId]` — client detail journey at person level
+- `/admin/intake` — booking intake demo with exact/possible/none/unsafe match scenarios
+- `lib/cliniko-patient-matching.ts` — scoring rules (email, phone, name+DOB, policy number)
+- `lib/demo-write-safety.ts` — server-side DEMO prefix validation; blocks non-DEMO writes
+- API: `POST /api/cliniko/patient-match`, `POST /api/cliniko/create-demo-patient-intake`
+- `PatientMatchPanel` — run match, staff confirm, create DEMO patient (honest labels)
+- Treatment note save reuses `/api/cliniko/treatment-note-draft` — only claims success when API returns `mode: created`
+- Invoice drafts and follow-up booking remain prepared/demo-only unless Cliniko write path exists
+- Smoke expanded for Open record, intake, and appointment detail routes
+
 ## Command Hub GUI polish and live data display fix
 
 - **Root cause:** `toPatientLabel()` in `lib/cliniko.ts` abbreviated full DEMO names (e.g. `DEMO Test Patient 001` → `DEMO 0.`)

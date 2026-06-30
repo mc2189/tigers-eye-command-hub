@@ -1,0 +1,376 @@
+"use client";
+
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCommandHubAppointments } from "@/components/admin/CommandHubAppointmentsProvider";
+import { DataSourcePill } from "@/components/admin/DataSourcePill";
+import { OpenClientButton } from "@/components/admin/OpenRecordButton";
+import { PatientMatchPanel } from "@/components/admin/PatientMatchPanel";
+import { WhatThisShows } from "@/components/admin/WhatThisShows";
+import { resolveAppointmentRecord } from "@/lib/appointment-records";
+import { DEMO_NOTE_SAFETY_COPY } from "@/lib/demo-clinic-week";
+import {
+  getAppointmentState,
+  updateAppointmentState,
+} from "@/lib/demo-record-state";
+import type { BookingIntakeInput } from "@/lib/cliniko-patient-matching";
+
+interface AppointmentDetailContentProps {
+  appointmentId: string;
+}
+
+function formatDay(date: string): string {
+  try {
+    return new Date(`${date}T12:00:00`).toLocaleDateString("en-GB", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+    });
+  } catch {
+    return date;
+  }
+}
+
+export function AppointmentDetailContent({ appointmentId }: AppointmentDetailContentProps) {
+  const { mapped, demoWeekPreview, configured } = useCommandHubAppointments();
+  const [recordState, setRecordState] = useState(getAppointmentState(appointmentId));
+  const [noteSaving, setNoteSaving] = useState(false);
+  const [noteMessage, setNoteMessage] = useState<string | null>(null);
+  const [followUpMessage, setFollowUpMessage] = useState<string | null>(null);
+
+  const record = useMemo(
+    () => resolveAppointmentRecord(appointmentId, mapped, { isPreview: demoWeekPreview }),
+    [appointmentId, mapped, demoWeekPreview]
+  );
+
+  useEffect(() => {
+    const refresh = () => setRecordState(getAppointmentState(appointmentId));
+    window.addEventListener("demo-record-state-changed", refresh);
+    return () => window.removeEventListener("demo-record-state-changed", refresh);
+  }, [appointmentId]);
+
+  const scenario = record?.scenario;
+  const profile = scenario?.clientProfile;
+
+  const sourceLabel = record?.isDemoWeekPreview
+    ? "Demo week preview"
+    : record?.isLiveCliniko
+      ? "Cliniko test account"
+      : "Demo week preview";
+
+  const intakeInput: BookingIntakeInput | null = profile
+    ? (() => {
+        const withoutPrefix = profile.patientLabel.replace(/^DEMO\s+/i, "").trim();
+        const nameParts = withoutPrefix.split(/\s+/);
+        return {
+          firstName: `DEMO ${nameParts[0] ?? "Patient"}`,
+          lastName: nameParts.slice(1).join(" ") || "Patient",
+          email: profile.email,
+          phone: profile.phone,
+          dateOfBirth: profile.dateOfBirth,
+          insuranceProvider: profile.insurer,
+          policyNumber: profile.policyNumber,
+          claimNumber: profile.claimNumber,
+          authorisationNumber: profile.authorisationNumber,
+          reasonForVisit: profile.reasonForVisit,
+        };
+      })()
+    : null;
+
+  const saveNoteToCliniko = useCallback(async () => {
+    if (!scenario) return;
+    setNoteSaving(true);
+    setNoteMessage(null);
+    try {
+      const res = await fetch("/api/cliniko/treatment-note-draft", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bookingId: record?.clinikoAppointmentId ?? undefined,
+          patientId: recordState.linkedPatientId ?? undefined,
+          title: scenario.noteDraft.templateName,
+          templateName: scenario.noteDraft.templateName,
+          sections: scenario.noteDraft.sections,
+        }),
+      });
+      const json = await res.json();
+      if (json.mode === "created" && json.ok) {
+        updateAppointmentState(appointmentId, {
+          noteSavedToCliniko: true,
+          noteClinikoId: json.noteId,
+        });
+        setNoteMessage("Saved to Cliniko test account");
+      } else if (json.mode === "dry_run") {
+        updateAppointmentState(appointmentId, { noteSavedToCliniko: false });
+        setNoteMessage("Prepared for Cliniko — not saved yet");
+      } else {
+        setNoteMessage(json.message ?? "Could not save note.");
+      }
+    } catch {
+      setNoteMessage("Prepared for Cliniko — not saved yet");
+    } finally {
+      setNoteSaving(false);
+    }
+  }, [scenario, record, recordState.linkedPatientId, appointmentId]);
+
+  const copyNoteDraft = useCallback(async () => {
+    if (!scenario) return;
+    const text = Object.entries(scenario.noteDraft.sections)
+      .map(([k, v]) => `${k}\n${v}`)
+      .join("\n\n");
+    await navigator.clipboard.writeText(text);
+    setNoteMessage("Note draft copied");
+  }, [scenario]);
+
+  const prepareInvoice = useCallback(() => {
+    updateAppointmentState(appointmentId, { invoicePrepared: true });
+    setFollowUpMessage("Prepared invoice draft — demo-only browser state");
+  }, [appointmentId]);
+
+  const copyInvoice = useCallback(async () => {
+    if (!scenario) return;
+    const draft = scenario.invoiceDraft;
+    const lines = [
+      `Patient: ${scenario.patientLabel}`,
+      `Amount: £${draft.amount}`,
+      draft.insurer ? `Insurer: ${draft.insurer}` : "",
+      draft.policyNumber ? `Policy: ${draft.policyNumber}` : "",
+      draft.claimNumber ? `Claim: ${draft.claimNumber}` : "",
+      draft.authorisationNumber ? `Auth: ${draft.authorisationNumber}` : "",
+      draft.suggestedNextStep,
+    ].filter(Boolean);
+    await navigator.clipboard.writeText(lines.join("\n"));
+    setFollowUpMessage("Invoice details copied");
+  }, [scenario]);
+
+  if (!record) {
+    return (
+      <div className="rounded-xl border border-cream-dark bg-white p-6">
+        <p className="font-semibold text-navy">Appointment not found</p>
+        <Link href="/admin/bookings" className="mt-3 inline-block text-green hover:underline">
+          Back to bookings
+        </Link>
+      </div>
+    );
+  }
+
+  const noteStatusLabel = recordState.noteSavedToCliniko
+    ? "Saved to Cliniko test account"
+    : scenario?.noteDraft.status === "prepared-for-cliniko"
+      ? "Prepared for Cliniko"
+      : "Suggested by Command Hub";
+
+  const matchStatusLabel = recordState.linkedPatientId
+    ? "Linked to Cliniko patient record"
+    : record.isDemoWeekPreview
+      ? "Demo week preview — not linked to Cliniko unless seeded"
+      : record.isLiveCliniko
+        ? "Linked to Cliniko test account"
+        : "No match — create new DEMO patient";
+
+  return (
+    <div className="space-y-6">
+      <p className="sr-only">
+        Appointment record · Treatment note · Prepared invoice draft · Patient match status
+      </p>
+
+      <header className="rounded-xl border border-cream-dark bg-white p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold text-navy">{record.patientLabel}</h1>
+            <p className="mt-1 text-lg font-medium text-navy">{record.appointmentType}</p>
+            <p className="mt-1 text-sm text-slate">
+              {formatDay(record.date)} · {record.time}–{record.endTime}
+            </p>
+          </div>
+          <DataSourcePill
+            kind={record.isDemoWeekPreview ? "demo" : "cliniko-test"}
+            label={sourceLabel}
+          />
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link
+            href="/admin/bookings"
+            className="min-h-9 rounded-lg border border-cream-dark px-3 py-1.5 text-sm font-medium text-navy hover:bg-cream"
+          >
+            Back to bookings
+          </Link>
+          <OpenClientButton patientLabel={record.patientLabel} variant="secondary" />
+        </div>
+      </header>
+
+      <WhatThisShows>
+        Review this appointment&apos;s client journey, confirm the Cliniko patient match, prepare
+        notes and invoice drafts, and see what is saved vs prepared only.
+      </WhatThisShows>
+
+      {profile && (
+        <section className="rounded-xl border border-cream-dark bg-white p-5">
+          <h2 className="text-lg font-bold text-navy">Client record</h2>
+          <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+            <div><dt className="text-slate">Name</dt><dd className="font-medium text-navy">{profile.patientLabel}</dd></div>
+            <div><dt className="text-slate">DOB</dt><dd>{profile.dateOfBirth}</dd></div>
+            <div><dt className="text-slate">Email</dt><dd>{profile.email}</dd></div>
+            <div><dt className="text-slate">Phone</dt><dd>{profile.phone}</dd></div>
+            <div className="sm:col-span-2"><dt className="text-slate">Address</dt><dd>{profile.address}</dd></div>
+            <div className="sm:col-span-2"><dt className="text-slate">Emergency contact</dt><dd>{profile.emergencyContact}</dd></div>
+            <div><dt className="text-slate">GP / referral</dt><dd>{profile.gpOrReferrer}</dd></div>
+            <div><dt className="text-slate">Occupation / activity</dt><dd>{profile.occupationOrSport}</dd></div>
+            <div className="sm:col-span-2"><dt className="text-slate">Reason for visit</dt><dd>{profile.reasonForVisit}</dd></div>
+            {profile.medicalWarning && (
+              <div className="sm:col-span-2"><dt className="text-slate">Medical flags</dt><dd>{profile.medicalWarning}</dd></div>
+            )}
+            {profile.insurer && (
+              <>
+                <div><dt className="text-slate">Insurer</dt><dd>{profile.insurer}</dd></div>
+                <div><dt className="text-slate">Policy number</dt><dd>{profile.policyNumber ?? "—"}</dd></div>
+                <div><dt className="text-slate">Claim number</dt><dd>{profile.claimNumber ?? "—"}</dd></div>
+                <div><dt className="text-slate">Authorisation</dt><dd>{profile.authorisationNumber ?? "—"}</dd></div>
+              </>
+            )}
+          </dl>
+        </section>
+      )}
+
+      <section className="rounded-xl border border-cream-dark bg-white p-5">
+        <h2 className="text-lg font-bold text-navy">Cliniko record status</h2>
+        <p className="mt-1 text-sm text-slate">Patient match status: {matchStatusLabel}</p>
+        <ul className="mt-3 space-y-2 text-sm">
+          <li>Appointment: {record.isLiveCliniko ? "Saved to Cliniko test account" : "Prepared for Cliniko"}</li>
+          <li>Treatment note: {noteStatusLabel}</li>
+          <li>Follow-up: {scenario?.followUpScenario?.bookedInCliniko ? "Saved to Cliniko test account" : "Suggested by Command Hub"}</li>
+          <li>Invoice: {recordState.invoicePrepared ? "Demo-only browser state" : "Prepared for Cliniko"}</li>
+          <li>Payment: Future integration</li>
+          {scenario?.insuranceScenario && (
+            <li>Insurance: {scenario.insuranceScenario}</li>
+          )}
+        </ul>
+        {record.clinikoAppointmentId && (
+          <p className="mt-2 text-xs text-slate">Cliniko record ID available in test account</p>
+        )}
+      </section>
+
+      {intakeInput && !recordState.linkedPatientId && record.isDemoWeekPreview && (
+        <PatientMatchPanel
+          intake={intakeInput}
+          appointmentId={appointmentId}
+          onLinked={(patientId, label) => {
+            updateAppointmentState(appointmentId, {
+              linkedPatientId: patientId,
+              linkedPatientLabel: label,
+              matchStatus: "Linked to Cliniko patient record",
+            });
+          }}
+        />
+      )}
+
+      {scenario && (
+        <>
+          <section id="treatment-note" className="rounded-xl border border-cream-dark bg-white p-5">
+            <h2 className="text-lg font-bold text-navy">Treatment note</h2>
+            <p className="mt-1 text-sm text-slate">{DEMO_NOTE_SAFETY_COPY.join(" ")}</p>
+            <p className="mt-2 text-sm font-medium text-navy">{scenario.noteDraft.templateName}</p>
+            <dl className="mt-4 space-y-3 text-sm">
+              {Object.entries(scenario.noteDraft.sections).map(([key, value]) => (
+                <div key={key}>
+                  <dt className="font-medium text-navy">{key}</dt>
+                  <dd className="text-slate">{value}</dd>
+                </div>
+              ))}
+            </dl>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button type="button" onClick={() => setNoteMessage("Prepared for Cliniko")} className="min-h-10 rounded-lg border border-cream-dark px-4 py-2 text-sm font-medium text-navy hover:bg-cream">
+                Prepare note
+              </button>
+              <button type="button" disabled={noteSaving || !configured} onClick={() => void saveNoteToCliniko()} className="min-h-10 rounded-lg bg-green px-4 py-2 text-sm font-semibold text-white hover:bg-green-light disabled:opacity-50">
+                {noteSaving ? "Saving…" : "Save DEMO draft note to Cliniko"}
+              </button>
+              <button type="button" onClick={() => void copyNoteDraft()} className="min-h-10 rounded-lg border border-cream-dark px-4 py-2 text-sm font-medium text-navy hover:bg-cream">
+                Copy note draft
+              </button>
+            </div>
+            {noteMessage && <p className="mt-2 text-sm text-navy">{noteMessage}</p>}
+          </section>
+
+          <section id="follow-up" className="rounded-xl border border-cream-dark bg-white p-5">
+            <h2 className="text-lg font-bold text-navy">Follow-up</h2>
+            {scenario.followUpScenario ? (
+              <>
+                <p className="text-sm text-navy">{scenario.followUpScenario.summary}</p>
+                <p className="mt-1 text-sm text-slate">
+                  {scenario.followUpScenario.bookedInCliniko
+                    ? "Saved to Cliniko test account"
+                    : "Not yet booked in Cliniko"}
+                </p>
+                {scenario.followUpScenario.checkInMessage && (
+                  <blockquote className="mt-3 rounded-lg bg-cream p-3 text-sm italic text-navy">
+                    {scenario.followUpScenario.checkInMessage}
+                  </blockquote>
+                )}
+              </>
+            ) : (
+              <p className="text-sm text-slate">No follow-up suggested for this scenario.</p>
+            )}
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button type="button" onClick={() => setFollowUpMessage("Prepared follow-up appointment — Prepared for Cliniko")} className="min-h-10 rounded-lg border border-cream-dark px-4 py-2 text-sm font-medium text-navy hover:bg-cream">
+                Prepare follow-up
+              </button>
+              <button type="button" onClick={() => void navigator.clipboard.writeText(scenario.followUpScenario?.checkInMessage ?? scenario.followUpScenario?.summary ?? "")} className="min-h-10 rounded-lg border border-cream-dark px-4 py-2 text-sm font-medium text-navy hover:bg-cream">
+                Copy follow-up message
+              </button>
+            </div>
+            <p className="mt-2 text-xs text-slate">Book follow-up in Cliniko test account — use technical test lab when writes are enabled.</p>
+          </section>
+
+          <section id="invoice-payment" className="rounded-xl border border-cream-dark bg-white p-5">
+            <h2 className="text-lg font-bold text-navy">Invoice / payment</h2>
+            <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+              <div><dt className="text-slate">Expected fee</dt><dd>£{scenario.expectedFee}</dd></div>
+              <div><dt className="text-slate">Payment status</dt><dd>Future integration — payment check suggested</dd></div>
+              <div><dt className="text-slate">Invoice readiness</dt><dd>{scenario.invoiceDraft.suggestedNextStep}</dd></div>
+            </dl>
+            {scenario.invoiceDraft.insurer && (
+              <div className="mt-4 rounded-lg bg-cream/50 p-4 text-sm">
+                <p className="font-semibold text-navy">Insurance invoice draft</p>
+                <p>Insurer: {scenario.invoiceDraft.insurer}</p>
+                <p>Policy: {scenario.invoiceDraft.policyNumber ?? "—"}</p>
+                <p>Claim: {scenario.invoiceDraft.claimNumber ?? "—"}</p>
+                <p>Auth: {scenario.invoiceDraft.authorisationNumber ?? "—"}</p>
+                <p>Approved: {scenario.invoiceDraft.approvedSessions ?? "—"} · Used: {scenario.invoiceDraft.sessionsUsed ?? "—"}</p>
+                <p>Sessions to invoice: {scenario.invoiceDraft.sessionsToInvoice ?? "—"}</p>
+                <p>Patient liability agreement: {profile?.liabilityAccepted ? "Yes" : "Needs confirmation"}</p>
+              </div>
+            )}
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button type="button" onClick={prepareInvoice} className="min-h-10 rounded-lg bg-green px-4 py-2 text-sm font-semibold text-white hover:bg-green-light">
+                Prepare invoice draft
+              </button>
+              <button type="button" onClick={() => void copyInvoice()} className="min-h-10 rounded-lg border border-cream-dark px-4 py-2 text-sm font-medium text-navy hover:bg-cream">
+                Copy invoice details
+              </button>
+            </div>
+            <p className="mt-2 text-xs text-slate">Future Xero integration · Future Healthcode integration</p>
+            {followUpMessage && <p className="mt-2 text-sm text-navy">{followUpMessage}</p>}
+          </section>
+
+          {scenario.stockScenario && scenario.stockScenario.length > 0 && (
+            <section className="rounded-xl border border-cream-dark bg-white p-5">
+              <h2 className="text-lg font-bold text-navy">Stock / treatment impact</h2>
+              <p className="text-sm text-slate">{scenario.stockScenario.join(", ")}</p>
+            </section>
+          )}
+        </>
+      )}
+
+      <section className="rounded-xl border border-cream-dark bg-cream/30 p-5 text-sm text-slate">
+        <h2 className="font-semibold text-navy">Source summary</h2>
+        <ul className="mt-2 list-inside list-disc space-y-1">
+          <li>This appointment came from the {sourceLabel.toLowerCase()}.</li>
+          <li>The treatment note is prepared by Command Hub{recordState.noteSavedToCliniko ? " and saved to Cliniko." : "."}</li>
+          <li>The invoice is a demo draft and has not been sent.</li>
+          <li>Payment status is not connected yet.</li>
+        </ul>
+      </section>
+    </div>
+  );
+}

@@ -74,7 +74,7 @@ export function CommandHubAppointmentsProvider({ children }: { children: ReactNo
   const [status, setStatus] = useState<ClinikoStatusData | null>(null);
   const [initialized, setInitialized] = useState(false);
   const [statusLoading, setStatusLoading] = useState(false);
-  const [demoWeekPreview, setDemoWeekPreview] = useState(false);
+  const [demoWeekPreview, setDemoWeekPreview] = useState(true);
 
   useEffect(() => {
     setDemoWeekPreview(isDemoWeekPreviewActive());

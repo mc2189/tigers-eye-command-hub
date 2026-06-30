@@ -4,7 +4,7 @@ import { DemoWeekReferenceStrip } from "@/components/admin/DemoWeekReferenceStri
 export default function BookingsPage() {
   return (
     <>
-      <p className="sr-only">Needs attention · Ready · Missing setup</p>
+      <p className="sr-only">Needs attention · Ready · Missing setup · Open record</p>
       <p className="mb-4 text-sm text-slate">
         Each appointment card includes{" "}
         <span className="font-medium text-navy">Show all workflow actions</span> when you

@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { useCommandHubAppointments } from "./CommandHubAppointmentsProvider";
 import { PlainEmptyState } from "./PlainEmptyState";
 import { DataSourcePill } from "./DataSourcePill";
+import { OpenRecordButton } from "./OpenRecordButton";
 import { getNotesQueue } from "@/lib/admin-workflow";
 import { DEMO_CLINIC_WEEK_SCENARIOS, DEMO_NOTE_SAFETY_COPY } from "@/lib/demo-clinic-week";
 
@@ -76,6 +77,9 @@ export function NotesWorkflowQueue() {
               <p className="mt-2 text-sm text-slate">
                 Template: <strong>{item.template}</strong>
               </p>
+              <div className="mt-3">
+                <OpenRecordButton appointmentId={item.id} variant="secondary" />
+              </div>
             </li>
           ))}
         </ul>
