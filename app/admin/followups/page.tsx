@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { WorkflowPageHeader } from "@/components/admin/WorkflowPageHeader";
+import { FollowUpWorkflowQueue } from "@/components/admin/FollowUpWorkflowQueue";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { followUpTasks } from "@/lib/demo-data";
 
@@ -30,6 +31,12 @@ export default function FollowupsPage() {
         title="Follow-ups"
         purpose="Send injury check-ins, rebook prompts and review requests after appointments."
       />
+
+      <p className="sr-only">follow-up suggestions from live appointments</p>
+
+      <FollowUpWorkflowQueue />
+
+      <h2 className="mb-4 text-lg font-bold text-navy">Demo follow-up examples</h2>
 
       <div className="space-y-4">
         {tasks.map((task) => (

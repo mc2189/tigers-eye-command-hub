@@ -1,15 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import { useMemo } from "react";
 import { useCommandHubAppointments } from "@/components/admin/CommandHubAppointmentsProvider";
-import { ActionQueue } from "@/components/admin/ActionQueue";
 import { ClinikoLoadState } from "@/components/admin/ClinikoLoadState";
+import { PlainEmptyState } from "@/components/admin/PlainEmptyState";
+import { WorkflowBundleCard } from "@/components/admin/WorkflowBundleCard";
 import { WorkflowHelpPanel } from "@/components/admin/WorkflowHelpPanel";
 import { WorkflowPageHeader } from "@/components/admin/WorkflowPageHeader";
 import { WorkflowSummaryCard } from "@/components/admin/WorkflowSummaryCard";
 import {
-  countTodayWorkflowMetrics,
-  mappedBookingToWorkflowView,
+  getTodayCommandItems,
+  summariseWorkflowActions,
 } from "@/lib/admin-workflow";
 
 const quickActions = [
@@ -26,9 +28,14 @@ export function CommandHubDashboard() {
     useCommandHubAppointments();
 
   const todayIso = new Date().toISOString().split("T")[0];
-  const todayAppointments = mapped.filter((b) => b.date === todayIso);
-  const metrics = countTodayWorkflowMetrics(mapped, todayIso);
-  const commandList = todayAppointments.map(mappedBookingToWorkflowView);
+  const command = useMemo(
+    () => getTodayCommandItems(mapped, todayIso),
+    [mapped, todayIso]
+  );
+  const metrics = useMemo(
+    () => summariseWorkflowActions(command.bundles),
+    [command.bundles]
+  );
 
   return (
     <>
@@ -48,14 +55,20 @@ export function CommandHubDashboard() {
         )}
       </WorkflowPageHeader>
 
-      <p className="sr-only">Today&apos;s command list · Cliniko connected</p>
+      <p className="sr-only">
+        Today&apos;s command list · Notes to complete · Cliniko connected
+      </p>
 
       {loading && <ClinikoLoadState loading />}
-      {error && <div className="mb-6"><ClinikoLoadState error={error} /></div>}
+      {error && (
+        <div className="mb-6">
+          <ClinikoLoadState error={error} />
+        </div>
+      )}
 
-      <section className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <WorkflowSummaryCard
-          label="Today's appointments"
+          label={command.isToday ? "Appointments today" : "Upcoming appointments"}
           value={isLive ? metrics.appointments : "—"}
           hint={isLive ? "From Cliniko test account" : "Connect Cliniko to see live appointments"}
           href="/admin/bookings"
@@ -74,26 +87,54 @@ export function CommandHubDashboard() {
           status={metrics.paymentsToCheck > 0 ? "attention" : "default"}
         />
         <WorkflowSummaryCard
-          label="Invoices to send"
-          value={isLive ? metrics.invoicesToSend : "—"}
+          label="Invoices to review"
+          value={isLive ? metrics.invoicesToReview : "—"}
           href="/admin/invoices"
-          status={metrics.invoicesToSend > 0 ? "attention" : "default"}
+          status={metrics.invoicesToReview > 0 ? "attention" : "default"}
+        />
+        <WorkflowSummaryCard
+          label="Insurance items"
+          value={isLive ? metrics.insuranceItems : "—"}
+          href="/admin/insurance"
+          status={metrics.insuranceItems > 0 ? "attention" : "default"}
+        />
+        <WorkflowSummaryCard
+          label="Stock impacts"
+          value={isLive ? metrics.stockImpacts : "—"}
+          href="/admin/stock"
+          status={metrics.stockImpacts > 0 ? "attention" : "default"}
         />
       </section>
 
       <div className="grid gap-8 xl:grid-cols-[1fr_320px]">
-        <ActionQueue
-          title="Today's command list"
-          appointments={isLive ? commandList : []}
-          emptyTitle={
-            isLive ? "No appointments scheduled for today." : "No live Cliniko appointments found."
-          }
-          emptyDescription={
-            isLive
-              ? "When appointments appear in Cliniko for today, they will show here with the actions each one needs."
-              : "Create a DEMO appointment in Cliniko, then refresh the live feed."
-          }
-        />
+        <section className="space-y-4" aria-labelledby="command-list-heading">
+          <h2 id="command-list-heading" className="text-lg font-bold text-navy">
+            {command.title}
+          </h2>
+          {!isLive ? (
+            <PlainEmptyState
+              title="No live Cliniko appointments found."
+              description="Create a DEMO appointment in Cliniko, then refresh the live feed."
+            />
+          ) : command.bundles.length === 0 ? (
+            <PlainEmptyState
+              title={
+                command.isToday
+                  ? "No appointments scheduled for today."
+                  : "No upcoming appointments found."
+              }
+              description="When appointments appear in Cliniko, they will show here with the actions each one needs."
+            />
+          ) : (
+            <ul className="space-y-3">
+              {command.bundles.map((bundle) => (
+                <li key={bundle.appointmentId}>
+                  <WorkflowBundleCard bundle={bundle} showDetails={false} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
 
         <div className="space-y-6">
           <WorkflowHelpPanel
@@ -101,7 +142,7 @@ export function CommandHubDashboard() {
             items={[
               connected ? "Cliniko connected" : "Cliniko not connected — showing demo examples",
               isLive
-                ? `Live appointments found (${mapped.length} this week)`
+                ? `Live appointments found (${mapped.length} loaded)`
                 : "No live appointments found",
               lastChecked ? `Last checked ${lastChecked}` : "Not checked yet",
               "Demo mode active",

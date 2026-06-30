@@ -5,25 +5,21 @@ import { DataSourcePill } from "./DataSourcePill";
 import { PlainEmptyState } from "./PlainEmptyState";
 import { StatusBadge } from "./StatusBadge";
 import { useCommandHubAppointments } from "./CommandHubAppointmentsProvider";
+import { getStockQueue } from "@/lib/admin-workflow";
 
 export function ClinikoStockPanel() {
   const { mapped, isLive } = useCommandHubAppointments();
+  const queue = useMemo(() => getStockQueue(mapped), [mapped]);
 
-  const stockEstimate = useMemo(() => {
-    const usage: Record<string, { count: number; types: Set<string> }> = {};
-    for (const b of mapped) {
-      for (const item of b.stockImpact) {
-        if (!usage[item]) usage[item] = { count: 0, types: new Set() };
-        usage[item].count += 1;
-        usage[item].types.add(b.appointmentTypeName);
+  const aggregated = useMemo(() => {
+    const usage: Record<string, number> = {};
+    for (const item of queue) {
+      for (const stock of item.items) {
+        usage[stock] = (usage[stock] ?? 0) + 1;
       }
     }
-    return Object.entries(usage).map(([item, data]) => ({
-      item,
-      count: data.count,
-      types: [...data.types],
-    }));
-  }, [mapped]);
+    return Object.entries(usage).map(([name, count]) => ({ name, count }));
+  }, [queue]);
 
   return (
     <section className="mb-8 rounded-xl border border-cream-dark bg-white p-5">
@@ -32,11 +28,12 @@ export function ClinikoStockPanel() {
         {isLive && <DataSourcePill kind="cliniko-test" />}
       </div>
       <p className="mt-2 text-sm text-slate">
-        Estimated consumable usage from live Cliniko appointments. Stock estimate only — not
-        inventory management.
+        Estimated consumables from upcoming appointment types.{" "}
+        <strong>Estimated only</strong> — not inventory management.
       </p>
+      <p className="sr-only">Estimated only</p>
 
-      {!isLive || stockEstimate.length === 0 ? (
+      {!isLive || queue.length === 0 ? (
         <div className="mt-4">
           <PlainEmptyState
             title="No stock usage inferred yet."
@@ -44,23 +41,33 @@ export function ClinikoStockPanel() {
           />
         </div>
       ) : (
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {stockEstimate.map((s) => (
-            <article key={s.item} className="rounded-lg border border-cream-dark p-4">
-              <div className="flex items-start justify-between gap-2">
-                <p className="font-semibold text-navy">{s.item}</p>
-                <StatusBadge
-                  label={s.count >= 3 ? "Reorder soon" : "OK"}
-                  variant={s.count >= 3 ? "warning" : "success"}
-                />
-              </div>
-              <p className="mt-2 text-sm text-slate">
-                Est. {s.count} use{s.count !== 1 ? "s" : ""} from upcoming appointments
-              </p>
-              <p className="mt-1 text-xs text-slate">Inferred from appointment type: {s.types.join(", ")}</p>
-            </article>
-          ))}
-        </div>
+        <>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {aggregated.map((s) => (
+              <article key={s.name} className="rounded-lg border border-cream-dark p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="font-semibold text-navy">{s.name}</p>
+                  <StatusBadge
+                    label={s.count >= 3 ? "Reorder soon" : "OK"}
+                    variant={s.count >= 3 ? "warning" : "success"}
+                  />
+                </div>
+                <p className="mt-2 text-sm text-slate">
+                  Est. {s.count} use{s.count !== 1 ? "s" : ""} from upcoming appointments
+                </p>
+                <p className="mt-1 text-xs text-slate">Estimated only</p>
+              </article>
+            ))}
+          </div>
+          <ul className="mt-6 space-y-2 text-sm text-slate">
+            {queue.map((item) => (
+              <li key={item.bundle.appointmentId}>
+                {item.bundle.patientLabel} · {item.bundle.appointmentType}:{" "}
+                {item.items.join(", ") || "No stock rule configured"}
+              </li>
+            ))}
+          </ul>
+        </>
       )}
     </section>
   );

@@ -53,6 +53,7 @@ const navSections: NavSection[] = [
     items: [
       { href: "/admin/cliniko", label: "Cliniko" },
       { href: "/admin/healthcode", label: "Healthcode" },
+      { href: "/admin/proof", label: "Proof" },
       { href: "/admin/cliniko/test-lab", label: "Demo Proof" },
       { href: "/admin/settings", label: "Settings" },
     ],

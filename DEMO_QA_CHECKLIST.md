@@ -66,11 +66,26 @@ Use this before showing George. Tick each item after verifying in the browser.
 
 ### Today (`/admin`)
 - [ ] Page title reads **Today** with a clear purpose line
-- [ ] Summary cards: appointments, notes, payments, invoices
-- [ ] Today's command list shows live Cliniko appointments with actions needed
+- [ ] Summary cards: appointments, notes, payments, invoices, insurance, stock
+- [ ] Command list shows workflow actions from live Cliniko appointments (Today or Upcoming)
 - [ ] Clinic status panel: Cliniko connected, demo mode, no real patient data
-- [ ] Quick actions include calendar, bookings, notes, invoices, insurance
-- [ ] Cliniko test lab link labelled as technical/demo proof
+
+### Bookings (`/admin/bookings`)
+- [ ] Tabs: All, Needs attention, Ready, Missing setup
+- [ ] Each card shows primary action, why it matters, suggested next step
+- [ ] Live Cliniko appointments use workflow bundles
+
+### Notes (`/admin/notes`)
+- [ ] Appointments needing notes queue from live Cliniko data
+- [ ] Suggested note template per appointment type
+- [ ] Safety copy: no audio stored, Cliniko remains clinical record
+
+### Payments (`/admin/payments`)
+- [ ] Does not pretend real payment status is connected
+- [ ] Payment checks queue from workflow engine
+
+### Proof (`/admin/proof`)
+- [ ] Working now / Inferred workflow / Future integrations sections
 
 ### Walkthrough (`/admin/demo-walkthrough`)
 - [ ] All 11 steps present with Open page buttons

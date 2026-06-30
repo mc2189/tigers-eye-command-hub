@@ -68,6 +68,8 @@ const protectedRoutes = [
   "/admin/insurance",
   "/admin/notes",
   "/admin/stock",
+  "/admin/followups",
+  "/admin/proof",
   "/admin/settings",
   "/api/cliniko/status",
   "/api/cliniko/test-data",
@@ -109,7 +111,8 @@ const contentChecks = {
     return null;
   },
   "/admin": (body) => {
-    if (!/Today'?s command list/i.test(body)) return "missing Today's command list";
+    if (!/Today'?s command/i.test(body)) return "missing Today's command";
+    if (!/Notes to complete/i.test(body)) return "missing Notes to complete";
     if (!/Cliniko connected/i.test(body)) return "missing Cliniko connected status";
     return null;
   },
@@ -117,23 +120,33 @@ const contentChecks = {
     if (!/Review appointments coming from Cliniko/i.test(body)) {
       return "missing bookings purpose line";
     }
+    if (!/Needs attention/i.test(body)) return "missing Needs attention tab";
     return null;
   },
   "/admin/notes": (body) => {
     if (!/Cliniko remains the clinical record/i.test(body)) {
       return "missing notes purpose line";
     }
+    if (!/Appointments needing notes/i.test(body)) {
+      return "missing Appointments needing notes section";
+    }
+    return null;
+  },
+  "/admin/payments": (body) => {
+    if (!/Payment status is not connected yet/i.test(body)) {
+      return "missing payment status disclaimer";
+    }
     return null;
   },
   "/admin/finance": (body) => {
-    if (!/not accounting software/i.test(body)) {
-      return "missing finance disclaimer";
+    if (!/operational planning only/i.test(body)) {
+      return "missing operational planning disclaimer";
     }
     return null;
   },
   "/admin/invoices": (body) => {
-    if (!/invoice or payment check/i.test(body)) {
-      return "missing invoices purpose line";
+    if (!/invoice or payment check|invoice check/i.test(body)) {
+      return "missing invoices purpose/check wording";
     }
     return null;
   },
@@ -144,9 +157,17 @@ const contentChecks = {
     return null;
   },
   "/admin/stock": (body) => {
-    if (!/consumables/i.test(body)) {
-      return "missing stock purpose line";
+    if (!/consumables|Estimated only/i.test(body)) {
+      return "missing stock purpose/estimate wording";
     }
+    return null;
+  },
+  "/admin/followups": (body) => {
+    if (!/follow-up/i.test(body)) return "missing follow-up wording";
+    return null;
+  },
+  "/admin/calendar": (body) => {
+    if (!/Note needed/i.test(body)) return "missing Note needed calendar wording";
     return null;
   },
   "/admin/cliniko": (body) => {

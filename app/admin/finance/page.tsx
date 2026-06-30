@@ -15,11 +15,13 @@ export default function FinancePage() {
         purpose="Operational estimates only. This is not accounting software."
       />
 
+      <p className="sr-only">operational planning only</p>
+
       <CalloutBox title="Workflow estimates" variant="info">
         <p>
-          Figures here are estimated from demo and Cliniko test account data. This is a
-          workflow dashboard — not accounting software. Use Cliniko reports and your
-          accountant for official records.
+          This is operational planning only. It is not accounting software and does not replace
+          Xero, bank reconciliation or formal accounts. Figures here are estimated from demo and
+          Cliniko test account data.
         </p>
       </CalloutBox>
 

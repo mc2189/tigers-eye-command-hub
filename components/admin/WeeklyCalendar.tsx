@@ -22,6 +22,8 @@ import {
 } from "./useMappedClinikoBookings";
 import { useCommandHubAppointments } from "./CommandHubAppointmentsProvider";
 import { DataSourceBadge } from "./DataSourceBadge";
+import { ActionChip } from "./ActionChip";
+import { getWorkflowActionChipsForBooking } from "@/lib/admin-workflow";
 import type { MappedCalendarItem } from "@/lib/cliniko-mappers";
 import { ClinikoLoadState } from "./ClinikoLoadState";
 import { SourceBadge, StatusBadge } from "./StatusBadge";
@@ -107,6 +109,12 @@ export function WeeklyCalendar({
     error,
     reload,
   } = useCommandHubAppointments();
+
+  const bookingsById = useMemo(() => {
+    const map = new Map<string, (typeof mapped)[0]>();
+    for (const b of mapped) map.set(b.id, b);
+    return map;
+  }, [mapped]);
 
   const activeClinikoItems = useMemo(() => {
     let items = clinikoItems;
@@ -258,6 +266,7 @@ export function WeeklyCalendar({
             items={day.items}
             showFinance={showFinance}
             showStock={showStock}
+            bookingsById={bookingsById}
           />
         ))}
       </div>
@@ -276,6 +285,8 @@ export function WeeklyCalendar({
                     item={item}
                     showFinance={showFinance}
                     showStock={showStock}
+                    compact
+                    booking={item.isCliniko ? bookingsById.get(item.id) : undefined}
                   />
                 ))}
               </div>
@@ -292,11 +303,13 @@ function DayColumn({
   items,
   showFinance,
   showStock,
+  bookingsById,
 }: {
   label: string;
   items: DisplayItem[];
   showFinance: boolean;
   showStock: boolean;
+  bookingsById: Map<string, import("@/lib/cliniko-mappers").MappedBooking>;
 }) {
   return (
     <div className="min-w-0">
@@ -313,7 +326,7 @@ function DayColumn({
               item={item}
               showFinance={showFinance}
               showStock={showStock}
-              compact
+              booking={item.isCliniko ? bookingsById.get(item.id) : undefined}
             />
           ))
         )}
@@ -327,13 +340,16 @@ function CalendarCard({
   showFinance,
   showStock,
   compact,
+  booking,
 }: {
   item: DisplayItem;
   showFinance: boolean;
   showStock: boolean;
   compact?: boolean;
+  booking?: import("@/lib/cliniko-mappers").MappedBooking;
 }) {
   const isGap = item.isGap;
+  const workflowChips = booking ? getWorkflowActionChipsForBooking(booking) : [];
 
   return (
     <div
@@ -376,6 +392,18 @@ function CalendarCard({
         <p className="mt-1">
           <StatusBadge label={item.workstream} variant="neutral" />
         </p>
+      )}
+      {workflowChips.length > 0 && (
+        <div className="mt-1.5 flex flex-wrap gap-1">
+          {workflowChips.map((chip) => (
+            <ActionChip
+              key={chip.label}
+              label={chip.label}
+              kind={chip.kind}
+              inferred={chip.inferred}
+            />
+          ))}
+        </div>
       )}
       {showFinance && !isGap && (
         <div className="mt-1.5 flex flex-wrap gap-1">

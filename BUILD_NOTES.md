@@ -113,6 +113,17 @@ It must **not** appear as the active Aviemore booking provider on `/book`.
 - Normal Cliniko page uses plain clinic language: “Cliniko test account”, not “sandbox”
 - Each admin page has a plain-English purpose line answering “what do I need to do next?”
 
+## Workflow intelligence layer
+
+- `lib/admin-workflow.ts` builds **workflow bundles** per live Cliniko appointment: note, payment, invoice, insurance, stock, follow-up and setup actions
+- `lib/appointment-rules.ts` — keyword-based appointment type detection (initial, follow-up, massage, telehealth, insurance, etc.)
+- `lib/clinic-commercial-rules.ts` — demo-safe price/payment/invoice configuration (not George's live prices)
+- Today command list driven by `getTodayCommandItems` — adapts to **Upcoming command list** when no appointments are today
+- Queue helpers: `getNotesQueue`, `getPaymentQueue`, `getInvoiceQueue`, `getInsuranceQueue`, `getStockQueue`, `getFollowUpQueue`
+- `/admin/proof` — honest status of what works now vs inferred workflow vs future integrations
+- No real payment, accounting or clinical-note status is claimed unless integrated
+- Cliniko remains the system of record
+
 ## Cliniko appointment proof update
 
 - Manual Cliniko appointments are read from `/individual_appointments`

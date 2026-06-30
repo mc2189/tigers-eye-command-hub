@@ -3,12 +3,10 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { WorkflowPageHeader } from "@/components/admin/WorkflowPageHeader";
-import { ActionQueue } from "@/components/admin/ActionQueue";
 import { CalloutBox } from "@/components/admin/AdminUI";
 import { MetricCard } from "@/components/admin/MetricCard";
 import { StatusBadge } from "@/components/admin/StatusBadge";
-import { useCommandHubAppointments } from "@/components/admin/CommandHubAppointmentsProvider";
-import { mappedBookingToWorkflowView } from "@/lib/admin-workflow";
+import { PaymentsWorkflowQueue } from "@/components/admin/PaymentsWorkflowQueue";
 import { paymentRules, paymentActionQueue } from "@/lib/demo-data";
 
 const setupCards = [
@@ -21,15 +19,6 @@ const setupCards = [
 ];
 
 export default function PaymentsPage() {
-  const { mapped, isLive } = useCommandHubAppointments();
-
-  const paymentAppointments = useMemo(() => {
-    const filtered = mapped.filter(
-      (b) => b.paymentStatus === "unpaid" || b.paymentStatus === "cash-approval-required"
-    );
-    return filtered.map(mappedBookingToWorkflowView);
-  }, [mapped]);
-
   return (
     <>
       <WorkflowPageHeader
@@ -37,12 +26,7 @@ export default function PaymentsPage() {
         purpose="See which appointments need a payment check and how each payment rule applies."
       />
 
-      <ActionQueue
-        title="Live Cliniko payment checks"
-        appointments={isLive ? paymentAppointments : []}
-        emptyTitle="No payment checks needed from live appointments."
-        emptyDescription="When Cliniko appointments need a payment status check, they will appear here with the actions each one needs."
-      />
+      <PaymentsWorkflowQueue />
 
       <section className="mt-8">
         <h2 className="mb-4 text-lg font-bold text-navy">Setup status</h2>
@@ -88,9 +72,7 @@ export default function PaymentsPage() {
 
       <section className="mt-8">
         <h2 className="mb-4 text-lg font-bold text-navy">Demo payment action queue</h2>
-        <p className="mb-4 text-sm text-slate">
-          Demo examples below. Live Cliniko appointments needing payment checks are listed above.
-        </p>
+        <p className="mb-4 text-sm text-slate">Demo examples below — live checks are listed above.</p>
         <div className="grid gap-4 sm:grid-cols-2">
           {paymentActionQueue.map((item) => (
             <Link
