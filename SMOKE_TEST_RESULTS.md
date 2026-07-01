@@ -2,13 +2,13 @@
 
 | Field | Value |
 |-------|-------|
-| **Last updated** | 2026-07-01 (Server-side demo workflow state — commit `37d7a4e`) |
-| **Feature commit** | `37d7a4e` — Persist Command Hub workflow state server-side |
-| **Smoke record commit** | `a233e97` |
+| **Last updated** | 2026-07-01 (Workflow storage adapter — commit `4377e2c`) |
+| **Feature commit** | `4377e2c` — Add durable workflow storage adapter |
+| **Smoke record commit** | `pending` |
 | **Local lint** | **PASS** |
 | **Local build** | **PASS** |
-| **Local smoke** | **40/40 PASS** (production build on port 3000) |
-| **Production smoke** | **40/40 PASS** (2026-07-01, post `37d7a4e` deploy) |
+| **Local smoke** | **42/42 PASS** (production build on port 3000) |
+| **Production smoke** | **42/42 PASS** (2026-07-01, post `4377e2c` deploy) |
 | **Base URL (prod)** | https://tigers-eye-command-hub.vercel.app |
 
 ## Latest run summary
@@ -17,8 +17,28 @@
 |-------------|--------|--------|--------|-------|
 | Local lint | **PASS** | — | 0 | `npm run lint` |
 | Local build | **PASS** | — | 0 | `npm run build` |
-| Local smoke | **PASS** | 40 | 0 | `npm run smoke:local` |
-| Production (Vercel) | **PASS** | 40 | 0 | Workflow state API auth + content checks |
+| Local smoke | **PASS** | 42 | 0 | `npm run smoke:local` |
+| Production (Vercel) | **PASS** | 42 | 0 | Workflow storage adapter + status API checks |
+
+## Durable workflow storage adapter (`4377e2c`)
+
+- `lib/workflow-storage/` — pluggable adapters: file, Supabase, Vercel KV, Vercel Blob
+- `COMMAND_HUB_WORKFLOW_STORAGE=auto` resolves durable provider or file/tmp fallback
+- API metadata: `GET/PATCH /api/command-hub/workflow-state` returns `storage` object
+- `GET /api/command-hub/workflow-storage/status` — staff-auth diagnostics
+- `WorkflowStorageProofPanel` on proof, settings and test lab
+- Production Vercel (no durable env): **ephemeral** `vercel-tmp` mode
+
+| Route / check | Result |
+|---------------|--------|
+| Unauthenticated workflow APIs | **401 PASS** |
+| Authenticated workflow-state `storage.mode` + `storage.durability` | **PASS** |
+| `/admin/proof` Workflow storage + Cliniko system of record | **PASS** |
+| `/admin/settings` Workflow storage status | **PASS** |
+| `/admin/cliniko/test-lab` Workflow storage proof | **PASS** |
+| No durable credential markers in admin HTML | **PASS** |
+
+Production smoke: **42/42 PASS** on 2026-07-01 after deploy of `4377e2c`.
 
 ## Command Hub server-side demo workflow state (`37d7a4e`)
 
