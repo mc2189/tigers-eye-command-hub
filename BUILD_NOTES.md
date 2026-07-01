@@ -310,6 +310,10 @@ npm run lint
 npm run build
 npm run smoke:local   # dev server required
 npm run smoke:prod    # production URL
+npm run check:workflow-storage        # local status probe
+npm run check:workflow-storage:prod   # production status probe
+# Strict durable (only when Supabase env vars configured):
+EXPECT_DURABLE_WORKFLOW_STORAGE=true npm run smoke:prod
 ```
 
 ## Known limitations

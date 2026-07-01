@@ -313,9 +313,10 @@ Checked admin routes at 375×812 (iPhone SE viewport) via responsive devtools:
 - [ ] Vercel env vars set: `COMMAND_HUB_WORKFLOW_STORAGE=supabase`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`
 - [ ] `/api/command-hub/workflow-storage/status` shows `mode=supabase` and `durability=durable` when configured
 - [ ] `npm run check:workflow-storage:prod --expect-durable` passes after Vercel redeploy
-- [ ] Durable storage checklist visible on proof and settings
-- [ ] Storage-boundary validation still blocks forbidden patches
-- [ ] Cliniko remains clinical system of record; Command Hub stores workflow metadata only
+- [x] Durable storage checklist visible on proof and settings
+- [x] Storage-boundary validation still blocks forbidden patches
+- [x] Cliniko remains clinical system of record; Command Hub stores workflow metadata only
+- [x] Production honestly reports `vercel-tmp` / `ephemeral` until Supabase env vars are added
 
 ---
 
