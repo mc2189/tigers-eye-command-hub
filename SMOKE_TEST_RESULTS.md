@@ -4,7 +4,7 @@
 |-------|-------|
 | **Last updated** | 2026-07-01 (Server-side demo workflow state — commit `37d7a4e`) |
 | **Feature commit** | `37d7a4e` — Persist Command Hub workflow state server-side |
-| **Smoke record commit** | `ac48535` |
+| **Smoke record commit** | `a233e97` |
 | **Local lint** | **PASS** |
 | **Local build** | **PASS** |
 | **Local smoke** | **40/40 PASS** (production build on port 3000) |
