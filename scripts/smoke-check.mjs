@@ -76,6 +76,7 @@ const protectedRoutes = [
   "/admin/proof",
   "/admin/settings",
   "/api/command-hub/workflow-state",
+  "/api/command-hub/workflow-storage/status",
   "/api/cliniko/status",
   "/api/cliniko/individual-appointments?perPage=10",
   "/api/cliniko/test-data",
@@ -329,10 +330,17 @@ const contentChecks = {
     if (!/Preview demo clinic week/i.test(body)) {
       return "missing Preview demo clinic week link";
     }
-    if (!/server-side demo workflow state/i.test(body)) {
-      return "missing server-side demo workflow state wording";
+    if (!/Workflow storage/i.test(body)) return "missing Workflow storage section";
+    if (!/Cliniko remains the system of record/i.test(body)) {
+      return "missing Cliniko remains the system of record wording";
     }
-    if (!/Command Hub demo case/i.test(body)) return "missing Command Hub demo case wording";
+    if (
+      !/Durable workflow storage/i.test(body) &&
+      !/Ephemeral workflow storage/i.test(body) &&
+      !/Local workflow storage/i.test(body)
+    ) {
+      return "missing Durable/Ephemeral/Local workflow storage label";
+    }
     return null;
   },
   "/admin/calendar": (body) => {
@@ -359,6 +367,17 @@ const contentChecks = {
     }
     if (!/Preview demo clinic week/i.test(body)) {
       return "missing Preview demo clinic week link";
+    }
+    if (!/Workflow storage/i.test(body)) return "missing Workflow storage section";
+    if (!/Cliniko remains the system of record/i.test(body)) {
+      return "missing Cliniko remains the system of record wording";
+    }
+    if (
+      !/Durable workflow storage/i.test(body) &&
+      !/Ephemeral workflow storage/i.test(body) &&
+      !/Local workflow storage/i.test(body)
+    ) {
+      return "missing Durable/Ephemeral/Local workflow storage label";
     }
     for (const term of ["Cliniko", "Aviemore", "Setmore"]) {
       if (!body.includes(term)) return `missing "${term}"`;
@@ -387,6 +406,17 @@ const contentChecks = {
     }
     if (!/Patient update safety proof/i.test(body)) {
       return "missing Patient update safety proof section";
+    }
+    if (!/Workflow storage/i.test(body)) return "missing Workflow storage section";
+    if (!/Cliniko remains the system of record/i.test(body)) {
+      return "missing Cliniko remains the system of record wording";
+    }
+    if (
+      !/Durable workflow storage/i.test(body) &&
+      !/Ephemeral workflow storage/i.test(body) &&
+      !/Local workflow storage/i.test(body)
+    ) {
+      return "missing Durable/Ephemeral/Local workflow storage label";
     }
     if (!/read-back verification/i.test(body)) {
       return "missing read-back verification wording";
@@ -473,9 +503,41 @@ const contentChecks = {
     if (!json.store.insuranceCases || typeof json.store.insuranceCases !== "object") {
       return "missing insuranceCases";
     }
+    if (!json.storage || typeof json.storage !== "object") return "missing storage metadata";
+    if (typeof json.storage.mode !== "string") return "missing storage.mode";
+    if (typeof json.storage.durability !== "string") return "missing storage.durability";
     const serialized = JSON.stringify(json);
     if (serialized.includes("CLINIKO_API_KEY") || serialized.includes("DEMO_SESSION_SECRET")) {
       return "API response may leak secret env names";
+    }
+    if (serialized.includes("KV_REST_API_TOKEN") || serialized.includes("SUPABASE_SERVICE_ROLE_KEY")) {
+      return "API response may leak durable storage credentials";
+    }
+    if (serialized.includes("BLOB_READ_WRITE_TOKEN")) {
+      return "API response may leak blob storage token name";
+    }
+    return null;
+  },
+  "/api/command-hub/workflow-storage/status": (body) => {
+    let json;
+    try {
+      json = JSON.parse(body);
+    } catch {
+      return "response is not valid JSON";
+    }
+    if (json.ok !== true) return "ok !== true";
+    if (!json.storage || typeof json.storage !== "object") return "missing storage";
+    if (typeof json.storage.mode !== "string") return "missing storage.mode";
+    if (typeof json.canRead !== "boolean") return "missing canRead";
+    if (typeof json.canWrite !== "boolean") return "missing canWrite";
+    if (typeof json.lastChecked !== "string") return "missing lastChecked";
+    const serialized = JSON.stringify(json);
+    if (
+      serialized.includes("KV_REST_API_TOKEN") ||
+      serialized.includes("SUPABASE_SERVICE_ROLE_KEY") ||
+      serialized.includes("BLOB_READ_WRITE_TOKEN")
+    ) {
+      return "status response may leak storage credential markers";
     }
     return null;
   },
@@ -487,7 +549,14 @@ let skipCount = 0;
 /** @type {string | null} */
 let authCookie = null;
 
-const SECRET_MARKERS = ["CLINIKO_API_KEY", "DEMO_SESSION_SECRET", "DEMO_STAFF_PASSWORD"];
+const SECRET_MARKERS = [
+  "CLINIKO_API_KEY",
+  "DEMO_SESSION_SECRET",
+  "DEMO_STAFF_PASSWORD",
+  "KV_REST_API_TOKEN",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "BLOB_READ_WRITE_TOKEN",
+];
 
 function assertNoSecretsInBody(body, route) {
   for (const marker of SECRET_MARKERS) {
@@ -643,6 +712,7 @@ await checkUnauthenticatedRedirect("/admin/cliniko/test-lab", "/admin/login");
 await checkUnauthenticatedApi("/api/cliniko/status");
 await checkUnauthenticatedApi("/api/cliniko/test-data");
 await checkUnauthenticatedApi("/api/command-hub/workflow-state");
+await checkUnauthenticatedApi("/api/command-hub/workflow-storage/status");
 
 if (STAFF_PASSWORD) {
   const loggedIn = await staffLogin();
@@ -655,7 +725,7 @@ for (const route of protectedRoutes.filter((r) => r !== "/admin/login")) {
   await checkRoute(route, true);
 }
 
-const total = publicRoutes.length + protectedRoutes.length + 6;
+const total = publicRoutes.length + protectedRoutes.length + 7;
 console.log(
   `\nSummary: ${passCount} passed, ${failCount} failed, ${skipCount} skipped, ${total} checks\n`
 );

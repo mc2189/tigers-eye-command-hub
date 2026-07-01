@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
+  getWorkflowStorageInfo,
   patchCommandHubWorkflowStore,
   readCommandHubWorkflowStore,
 } from "@/lib/command-hub-workflow-store";
@@ -9,8 +10,11 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET() {
-  const store = await readCommandHubWorkflowStore();
-  return NextResponse.json({ ok: true, store });
+  const [store, storage] = await Promise.all([
+    readCommandHubWorkflowStore(),
+    getWorkflowStorageInfo(),
+  ]);
+  return NextResponse.json({ ok: true, store, storage });
 }
 
 export async function PATCH(request: NextRequest) {
@@ -22,8 +26,11 @@ export async function PATCH(request: NextRequest) {
   }
 
   try {
-    const store = await patchCommandHubWorkflowStore(body);
-    return NextResponse.json({ ok: true, store });
+    const [store, storage] = await Promise.all([
+      patchCommandHubWorkflowStore(body),
+      getWorkflowStorageInfo(),
+    ]);
+    return NextResponse.json({ ok: true, store, storage });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Workflow state update failed.";
     const blocked = message.includes("Blocked for safety");

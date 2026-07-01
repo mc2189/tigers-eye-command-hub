@@ -307,6 +307,19 @@ Checked admin routes at 375×812 (iPhone SE viewport) via responsive devtools:
 
 ---
 
+## Durable workflow storage adapter
+
+- [x] `lib/workflow-storage/` adapter layer with file, Supabase, Vercel KV and Vercel Blob support
+- [x] `COMMAND_HUB_WORKFLOW_STORAGE=auto` falls back to file/tmp when no durable env vars
+- [x] `/api/command-hub/workflow-state` returns `storage.mode` and `storage.durability`
+- [x] `/api/command-hub/workflow-storage/status` staff-auth diagnostics
+- [x] `/admin/proof`, `/admin/settings`, `/admin/cliniko/test-lab` show Workflow storage panel
+- [x] Storage honestly labelled Durable / Ephemeral / Local
+- [x] No KV/Blob/Supabase credentials in admin HTML
+- [x] Legacy localStorage migration still works via `CommandHubWorkflowProvider`
+
+---
+
 ## Command Hub server-side demo workflow state
 
 - [x] Unauthenticated `GET /api/command-hub/workflow-state` returns HTTP 401

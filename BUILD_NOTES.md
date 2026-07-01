@@ -205,13 +205,13 @@ It must **not** appear as the active Aviemore booking provider on `/book`.
 
 ## Command Hub server-side demo workflow state
 
-- **Not** durable database persistence — server-side demo workflow state for shared staff demo use
-- Local dev: `.data/command-hub-workflow.json`; Vercel: `/tmp/tigers-eye-command-hub-workflow.json` (ephemeral — may reset on deploy, cold start or runtime change)
-- For durable cross-deploy storage, wire Vercel KV/Blob, Supabase, Postgres or similar
-- API: `GET/PATCH /api/command-hub/workflow-state` (staff auth required; protected in `middleware.ts`)
-- Replaced browser `localStorage` for: appointment link/note/invoice flags, insurance demo cases, demo week preview toggle
-- `CommandHubWorkflowProvider` loads state, migrates legacy localStorage once when server store is empty, syncs patches to server
-- Labels: **Command Hub demo case** for workflow flags not in Cliniko
+- Pluggable storage adapters in `lib/workflow-storage/` — file, Supabase, Vercel KV, Vercel Blob
+- Resolver: `COMMAND_HUB_WORKFLOW_STORAGE=auto|file|supabase|vercel-kv|vercel-blob`
+- Local dev: `.data/command-hub-workflow.json` (`local-file`); Vercel without durable env: `/tmp` (`vercel-tmp`, **ephemeral**)
+- API: `GET/PATCH /api/command-hub/workflow-state` returns `{ ok, store, storage }`; `GET /api/command-hub/workflow-storage/status` for diagnostics
+- `CommandHubWorkflowProvider` loads state, migrates legacy localStorage once, exposes `storage` + `migration` metadata
+- UI: `WorkflowStorageProofPanel` on proof, settings and test lab
+- See `docs/WORKFLOW_STORAGE.md` for durable provider setup — **no durable persistence unless env vars are configured**
 - Still browser-only: Cliniko test lab proof badge cards (`localStorage` in `ClinikoTestLabPanel.tsx`)
 
 ## Command Hub GUI polish and live data display fix

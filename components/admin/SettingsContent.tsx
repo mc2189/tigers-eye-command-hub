@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { DataHandlingPanel } from "@/components/admin/DataHandlingPanel";
 import { DemoWeekPreviewToggle } from "@/components/admin/DemoWeekPreviewToggle";
+import { WorkflowStorageProofPanel } from "@/components/admin/WorkflowStorageProofPanel";
 import {
   DemoActionButton,
   DemoFeedbackToast,
@@ -133,6 +134,15 @@ export function SettingsContent() {
         title="Settings"
         subtitle="Demo configuration, integrations and practitioner setup — plain English overview."
       />
+
+      <p className="sr-only">
+        Workflow storage · Cliniko remains the system of record · Durable workflow storage ·
+        Ephemeral workflow storage · Local workflow storage
+      </p>
+
+      <div className="mb-8">
+        <WorkflowStorageProofPanel />
+      </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {cards.map((card) => (

@@ -19,11 +19,24 @@ import type {
   AppointmentRecordState,
   CommandHubWorkflowStore,
 } from "@/lib/command-hub-workflow-types";
+import type {
+  WorkflowMigrationStatus,
+  WorkflowStorageInfo,
+} from "@/lib/workflow-storage/types";
 
 export const COMMAND_HUB_WORKFLOW_CHANGED = "command-hub-workflow-changed";
 
+interface WorkflowApiResponse {
+  ok: boolean;
+  store?: CommandHubWorkflowStore;
+  storage?: WorkflowStorageInfo;
+  message?: string;
+}
+
 interface CommandHubWorkflowContextValue {
   store: CommandHubWorkflowStore | null;
+  storage: WorkflowStorageInfo | null;
+  migration: WorkflowMigrationStatus | null;
   loading: boolean;
   demoWeekPreview: boolean;
   insuranceCases: Record<string, DemoInsuranceCaseDetail>;
@@ -53,63 +66,110 @@ export function useCommandHubWorkflowOptional(): CommandHubWorkflowContextValue 
   return useContext(CommandHubWorkflowContext);
 }
 
-async function fetchStore(): Promise<CommandHubWorkflowStore> {
+async function fetchWorkflow(): Promise<WorkflowApiResponse> {
   const res = await fetch("/api/command-hub/workflow-state", { cache: "no-store" });
-  const json = await res.json();
-  if (!json.ok || !json.store) {
-    throw new Error(json.message ?? "Could not load workflow state.");
-  }
-  return json.store as CommandHubWorkflowStore;
+  return (await res.json()) as WorkflowApiResponse;
 }
 
-async function patchStore(body: Record<string, unknown>): Promise<CommandHubWorkflowStore> {
+async function patchWorkflow(body: Record<string, unknown>): Promise<WorkflowApiResponse> {
   const res = await fetch("/api/command-hub/workflow-state", {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  const json = await res.json();
-  if (!json.ok || !json.store) {
-    throw new Error(json.message ?? "Workflow state update failed.");
-  }
-  return json.store as CommandHubWorkflowStore;
+  return (await res.json()) as WorkflowApiResponse;
+}
+
+function emptyMigration(): WorkflowMigrationStatus {
+  return {
+    attempted: false,
+    migrated: false,
+    source: "none",
+    message: "No legacy browser workflow state found.",
+  };
 }
 
 export function CommandHubWorkflowProvider({ children }: { children: ReactNode }) {
   const [store, setStore] = useState<CommandHubWorkflowStore | null>(null);
+  const [storage, setStorage] = useState<WorkflowStorageInfo | null>(null);
+  const [migration, setMigration] = useState<WorkflowMigrationStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const applyStore = useCallback((next: CommandHubWorkflowStore) => {
-    setStore(next);
+  const applyResponse = useCallback((json: WorkflowApiResponse) => {
+    if (json.store) setStore(json.store);
+    if (json.storage) setStorage(json.storage);
     window.dispatchEvent(new CustomEvent(COMMAND_HUB_WORKFLOW_CHANGED));
   }, []);
 
   const reload = useCallback(async () => {
-    const next = await fetchStore();
-    applyStore(next);
-  }, [applyStore]);
+    const json = await fetchWorkflow();
+    if (!json.ok || !json.store) {
+      throw new Error(json.message ?? "Could not load workflow state.");
+    }
+    applyResponse(json);
+  }, [applyResponse]);
 
   useEffect(() => {
     let cancelled = false;
 
     async function bootstrap() {
       try {
-        let next = await fetchStore();
-        const legacy = collectLegacyBrowserWorkflowState();
-        if (legacy && isWorkflowStoreEmptyForMigration(next)) {
-          next = await patchStore({ migrateFromBrowser: legacy });
-          clearLegacyBrowserWorkflowState();
+        const initial = await fetchWorkflow();
+        if (!initial.ok || !initial.store) {
+          throw new Error(initial.message ?? "Could not load workflow state.");
         }
-        if (!cancelled) applyStore(next);
+
+        let nextStore = initial.store;
+        let nextStorage = initial.storage ?? null;
+        let migrationStatus = emptyMigration();
+
+        const legacy = collectLegacyBrowserWorkflowState();
+        migrationStatus = {
+          attempted: true,
+          migrated: false,
+          source: legacy ? "legacy-localStorage" : "none",
+          message: legacy
+            ? "Legacy browser workflow state detected."
+            : "No legacy browser workflow state found.",
+        };
+
+        if (legacy && isWorkflowStoreEmptyForMigration(nextStore)) {
+          const migrated = await patchWorkflow({ migrateFromBrowser: legacy });
+          if (!migrated.ok || !migrated.store) {
+            throw new Error(migrated.message ?? "Legacy workflow migration failed.");
+          }
+          nextStore = migrated.store;
+          nextStorage = migrated.storage ?? nextStorage;
+          clearLegacyBrowserWorkflowState();
+          migrationStatus = {
+            attempted: true,
+            migrated: true,
+            source: "legacy-localStorage",
+            message: "Legacy browser workflow state migrated to server store.",
+          };
+        }
+
+        if (!cancelled) {
+          setStore(nextStore);
+          setStorage(nextStorage);
+          setMigration(migrationStatus);
+          window.dispatchEvent(new CustomEvent(COMMAND_HUB_WORKFLOW_CHANGED));
+        }
       } catch {
         if (!cancelled) {
-          applyStore({
+          setStore({
             version: 1,
             updatedAt: new Date().toISOString(),
             demoWeekPreview: true,
             appointments: {},
             patients: {},
             insuranceCases: {},
+          });
+          setMigration({
+            attempted: true,
+            migrated: false,
+            source: "none",
+            message: "Workflow bootstrap failed — using in-memory defaults until reload.",
           });
         }
       } finally {
@@ -121,7 +181,7 @@ export function CommandHubWorkflowProvider({ children }: { children: ReactNode }
     return () => {
       cancelled = true;
     };
-  }, [applyStore]);
+  }, []);
 
   const updateAppointmentState = useCallback(
     async (appointmentId: string, patch: Partial<AppointmentRecordState>) => {
@@ -139,39 +199,53 @@ export function CommandHubWorkflowProvider({ children }: { children: ReactNode }
           [appointmentId]: { ...(store?.appointments[appointmentId] ?? {}), ...patch },
         },
       };
-      applyStore(optimistic);
-      const next = await patchStore({ appointmentId, appointmentPatch: patch });
-      applyStore(next);
-      return next.appointments[appointmentId] ?? {};
+      setStore(optimistic);
+      const json = await patchWorkflow({ appointmentId, appointmentPatch: patch });
+      if (!json.ok || !json.store) {
+        throw new Error(json.message ?? "Workflow state update failed.");
+      }
+      applyResponse(json);
+      return json.store.appointments[appointmentId] ?? {};
     },
-    [store, applyStore]
+    [store, applyResponse]
   );
 
   const setDemoWeekPreview = useCallback(
     async (active: boolean) => {
-      if (store) applyStore({ ...store, demoWeekPreview: active });
-      const next = await patchStore({ demoWeekPreview: active });
-      applyStore(next);
+      if (store) setStore({ ...store, demoWeekPreview: active });
+      const json = await patchWorkflow({ demoWeekPreview: active });
+      if (!json.ok || !json.store) {
+        throw new Error(json.message ?? "Workflow state update failed.");
+      }
+      applyResponse(json);
     },
-    [store, applyStore]
+    [store, applyResponse]
   );
 
   const saveInsuranceCase = useCallback(
     async (detail: DemoInsuranceCaseDetail) => {
-      const next = await patchStore({ insuranceCase: detail });
-      applyStore(next);
+      const json = await patchWorkflow({ insuranceCase: detail });
+      if (!json.ok || !json.store) {
+        throw new Error(json.message ?? "Workflow state update failed.");
+      }
+      applyResponse(json);
     },
-    [applyStore]
+    [applyResponse]
   );
 
   const resetInsuranceCases = useCallback(async () => {
-    const next = await patchStore({ resetInsuranceCases: true });
-    applyStore(next);
-  }, [applyStore]);
+    const json = await patchWorkflow({ resetInsuranceCases: true });
+    if (!json.ok || !json.store) {
+      throw new Error(json.message ?? "Workflow state update failed.");
+    }
+    applyResponse(json);
+  }, [applyResponse]);
 
   const value = useMemo<CommandHubWorkflowContextValue>(
     () => ({
       store,
+      storage,
+      migration,
       loading,
       demoWeekPreview: store?.demoWeekPreview ?? true,
       insuranceCases: store?.insuranceCases ?? {},
@@ -185,6 +259,8 @@ export function CommandHubWorkflowProvider({ children }: { children: ReactNode }
     }),
     [
       store,
+      storage,
+      migration,
       loading,
       updateAppointmentState,
       setDemoWeekPreview,
