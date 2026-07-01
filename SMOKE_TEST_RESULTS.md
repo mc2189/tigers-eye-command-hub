@@ -2,13 +2,13 @@
 
 | Field | Value |
 |-------|-------|
-| **Last updated** | 2026-06-30 (Treatment note hardening — commit `0404809`) |
-| **Feature commit** | `0404809` — Harden treatment notes and audit insurance storage |
+| **Last updated** | 2026-06-30 (Patient reconciliation — commit `419690e`) |
+| **Feature commit** | `419690e` — Add existing patient reconciliation and safe updates |
 | **Smoke record commit** | _(this commit)_ |
 | **Local lint** | **PASS** |
 | **Local build** | **PASS** |
 | **Local smoke** | **38/38 PASS** (production build on port 3013) |
-| **Production smoke** | **38/38 PASS** (2026-06-30, post `0404809` deploy) |
+| **Production smoke** | **38/38 PASS** (2026-06-30, post `419690e` deploy) |
 | **Base URL (prod)** | https://tigers-eye-command-hub.vercel.app |
 
 ## Latest run summary
@@ -18,7 +18,7 @@
 | Local lint | **PASS** | — | 0 | `npm run lint` |
 | Local build | **PASS** | — | 0 | `npm run build` |
 | Local smoke | **PASS** | 38 | 0 | `BASE_URL=http://127.0.0.1:3013 node scripts/smoke-check.mjs` |
-| Production (Vercel) | **PASS** | 38 | 0 | Treatment note hardening + insurance audit checks |
+| Production (Vercel) | **PASS** | 38 | 0 | Patient reconciliation + safe DEMO update checks |
 
 ## Treatment note hardening and insurance storage audit
 
