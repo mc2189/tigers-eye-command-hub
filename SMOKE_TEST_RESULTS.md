@@ -4,7 +4,7 @@
 |-------|-------|
 | **Last updated** | 2026-07-01 (Workflow storage adapter — commit `4377e2c`) |
 | **Feature commit** | `4377e2c` — Add durable workflow storage adapter |
-| **Smoke record commit** | `pending` |
+| **Smoke record commit** | `54fccb1` |
 | **Local lint** | **PASS** |
 | **Local build** | **PASS** |
 | **Local smoke** | **42/42 PASS** (production build on port 3000) |
