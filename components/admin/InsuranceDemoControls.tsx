@@ -5,10 +5,9 @@ import type { InsuranceProvider } from "@/lib/insurance-session-workflow";
 import {
   getDemoPatientOptions,
   isDemoPatientLabel,
-  resetDemoInsuranceCases,
-  saveDemoInsuranceCase,
   type DemoInsuranceCaseDetail,
 } from "@/lib/demo-insurance-cases";
+import { useCommandHubWorkflow } from "@/components/admin/CommandHubWorkflowProvider";
 
 const INSURERS: InsuranceProvider[] = [
   "Aviva",
@@ -26,6 +25,7 @@ interface InsuranceDemoControlsProps {
 }
 
 export function InsuranceDemoControls({ patientLabels, onSaved }: InsuranceDemoControlsProps) {
+  const { saveInsuranceCase, resetInsuranceCases } = useCommandHubWorkflow();
   const options = getDemoPatientOptions(patientLabels);
   const [patientLabel, setPatientLabel] = useState(options[0] ?? "DEMO Test Patient 001");
   const [insurer, setInsurer] = useState<InsuranceProvider>("Aviva");
@@ -38,7 +38,7 @@ export function InsuranceDemoControls({ patientLabels, onSaved }: InsuranceDemoC
   );
   const [message, setMessage] = useState<string | null>(null);
 
-  function handleSave() {
+  async function handleSave() {
     if (!isDemoPatientLabel(patientLabel)) {
       setMessage("Only DEMO patient labels are allowed.");
       return;
@@ -52,15 +52,23 @@ export function InsuranceDemoControls({ patientLabels, onSaved }: InsuranceDemoC
       liabilityAccepted,
       invoiceStatus,
     };
-    saveDemoInsuranceCase(detail);
-    setMessage("Demo case detail saved in browser only.");
-    onSaved();
+    try {
+      await saveInsuranceCase(detail);
+      setMessage("Saved to Command Hub demo case (server-stored, not Cliniko).");
+      onSaved();
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Could not save demo case.");
+    }
   }
 
-  function handleReset() {
-    resetDemoInsuranceCases();
-    setMessage("Demo case details reset.");
-    onSaved();
+  async function handleReset() {
+    try {
+      await resetInsuranceCases();
+      setMessage("Demo case details reset to defaults.");
+      onSaved();
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Could not reset demo cases.");
+    }
   }
 
   return (
@@ -70,8 +78,8 @@ export function InsuranceDemoControls({ patientLabels, onSaved }: InsuranceDemoC
       </summary>
       <div className="border-t border-cream-dark px-4 py-4">
         <p className="text-sm text-slate">
-          Demo-only browser state. This does not write to Cliniko and must not be used for real
-          patient data.
+          Command Hub demo case — stored on the server for this demo environment. Does not write to
+          Cliniko and must not be used for real patient data.
         </p>
         <p className="sr-only">Demo case controls</p>
 
@@ -158,14 +166,14 @@ export function InsuranceDemoControls({ patientLabels, onSaved }: InsuranceDemoC
         <div className="mt-4 flex flex-wrap gap-2">
           <button
             type="button"
-            onClick={handleSave}
+            onClick={() => void handleSave()}
             className="min-h-10 rounded-lg bg-green px-4 py-2 text-sm font-semibold text-white hover:bg-green-light"
           >
             Save demo case detail
           </button>
           <button
             type="button"
-            onClick={handleReset}
+            onClick={() => void handleReset()}
             className="min-h-10 rounded-lg border border-cream-dark px-4 py-2 text-sm font-medium text-navy hover:bg-cream"
           >
             Reset demo case details

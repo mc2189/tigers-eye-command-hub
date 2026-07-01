@@ -56,8 +56,10 @@ export function InsuranceCaseTracker() {
         <p className="mt-1 text-slate">
           Patient and appointment records live in the Cliniko test account when seeded. Insurer,
           policy, claim and authorisation details are stored in the{" "}
-          <strong>Command Hub demo case</strong> (browser only) — not written to Cliniko unless
-          custom fields are wired in future.
+          <strong>Command Hub demo case</strong> (server-side demo workflow state) — not written to
+          Cliniko unless custom fields are wired in future. On Vercel this uses ephemeral{" "}
+          <code className="text-xs">/tmp</code> storage; for durable cross-deploy storage, wire
+          Vercel KV/Blob, Supabase, Postgres or similar.
         </p>
         <p className="mt-2 text-xs text-slate">
           Command Hub demo case · Future Healthcode integration · Future Xero integration

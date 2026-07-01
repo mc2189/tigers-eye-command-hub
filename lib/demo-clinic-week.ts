@@ -779,6 +779,6 @@ export const CLINIKO_ENTITY_AUDIT = {
   followUp: { writable: false, label: "Suggested by Command Hub" },
   invoice: { writable: false, label: "Prepared for Cliniko" },
   payment: { writable: false, label: "Future integration" },
-  insuranceCase: { writable: false, label: "Demo-only browser state" },
+  insuranceCase: { writable: false, label: "Command Hub demo case" },
   customFields: { writable: false, label: "Future integration" },
 } as const;

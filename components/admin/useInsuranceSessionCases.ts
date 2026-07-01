@@ -1,16 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { useCommandHubAppointments } from "./CommandHubAppointmentsProvider";
+import { useCommandHubWorkflow } from "./CommandHubWorkflowProvider";
 import {
   buildInsuranceCasesFromAppointments,
   summariseInsuranceCases,
   type InsuranceCase,
 } from "@/lib/insurance-session-workflow";
-import {
-  loadDemoInsuranceCases,
-  type DemoInsuranceCaseDetail,
-} from "@/lib/demo-insurance-cases";
+import type { DemoInsuranceCaseDetail } from "@/lib/demo-insurance-cases";
 import {
   buildWorkflowActionsForAppointments,
   enrichBundlesWithInsuranceCases,
@@ -19,15 +17,13 @@ import {
 
 export function useInsuranceSessionCases() {
   const { mapped, isLive } = useCommandHubAppointments();
-  const [demoDetails, setDemoDetails] = useState<Record<string, DemoInsuranceCaseDetail>>({});
+  const { insuranceCases, reload } = useCommandHubWorkflow();
 
-  useEffect(() => {
-    setDemoDetails(loadDemoInsuranceCases());
-  }, []);
+  const demoDetails = insuranceCases as Record<string, DemoInsuranceCaseDetail>;
 
   const reloadDemoDetails = useCallback(() => {
-    setDemoDetails(loadDemoInsuranceCases());
-  }, []);
+    void reload();
+  }, [reload]);
 
   const cases = useMemo(
     () => buildInsuranceCasesFromAppointments(mapped, demoDetails),

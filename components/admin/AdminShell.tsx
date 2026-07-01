@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { DemoBanner } from "./DemoBanner";
 import { AdminSidebar } from "./AdminSidebar";
+import { CommandHubWorkflowProvider } from "./CommandHubWorkflowProvider";
 import { CommandHubAppointmentsProvider } from "./CommandHubAppointmentsProvider";
 
 const ADMIN_FOOTER =
@@ -12,7 +13,8 @@ interface AdminShellProps {
 
 export function AdminShell({ children }: AdminShellProps) {
   return (
-    <CommandHubAppointmentsProvider>
+    <CommandHubWorkflowProvider>
+      <CommandHubAppointmentsProvider>
       <div className="flex min-h-screen flex-col bg-cream">
         <DemoBanner />
         <div className="flex flex-1">
@@ -27,6 +29,7 @@ export function AdminShell({ children }: AdminShellProps) {
           </div>
         </div>
       </div>
-    </CommandHubAppointmentsProvider>
+      </CommandHubAppointmentsProvider>
+    </CommandHubWorkflowProvider>
   );
 }

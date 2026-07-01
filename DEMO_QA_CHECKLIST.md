@@ -307,6 +307,19 @@ Checked admin routes at 375×812 (iPhone SE viewport) via responsive devtools:
 
 ---
 
+## Command Hub server-side demo workflow state
+
+- [ ] Unauthenticated `GET /api/command-hub/workflow-state` returns HTTP 401
+- [ ] Authenticated admin pages load with `CommandHubWorkflowProvider` (no workflow load errors)
+- [ ] `/admin/insurance` shows saved insurance demo case state (e.g. DEMO-CLAIM-001) from server store
+- [ ] `/admin/appointments/dcw-001` shows Treatment note, Follow-up and Invoice sections
+- [ ] `/admin/proof` or `/admin/settings` shows Preview demo clinic week (server-stored toggle)
+- [ ] Legacy browser `localStorage` keys migrate once on first load without breaking the page
+- [ ] No API secrets (`CLINIKO_API_KEY`, `DEMO_SESSION_SECRET`, staff password) visible in page HTML
+- [ ] Proof page states `/tmp` on Vercel is ephemeral; durable storage needs KV/Blob/Postgres etc.
+
+---
+
 ## Existing patient reconciliation and safe DEMO patient update
 
 - [ ] `/admin/intake` shows Field comparison after DEMO match

@@ -4,7 +4,7 @@
 
 import type { DemoClinicWeekScenario } from "@/lib/demo-clinic-week";
 import type { AppointmentRecordView } from "@/lib/appointment-records";
-import type { AppointmentRecordState } from "@/lib/demo-record-state";
+import type { AppointmentRecordState } from "@/lib/command-hub-workflow-types";
 import { CLINIKO_PATIENT_FIELD_MAP } from "@/lib/cliniko-patient-field-map";
 import {
   INSURANCE_FIELD_AUDIT,
@@ -15,7 +15,7 @@ export type CompletenessStatus =
   | "Saved to Cliniko test account"
   | "Prepared for Cliniko"
   | "Suggested by Command Hub"
-  | "Demo-only browser state"
+  | "Command Hub demo case"
   | "Future integration"
   | "Needs staff confirmation"
   | "Blocked for safety";
@@ -127,11 +127,11 @@ export function buildAppointmentCompleteness(
           : "Prepared for Cliniko";
 
   const invoiceStatus: CompletenessStatus = recordState.invoicePrepared
-    ? "Demo-only browser state"
+    ? "Command Hub demo case"
     : "Prepared for Cliniko";
 
   const insuranceStatus: CompletenessStatus = profile?.insurer
-    ? "Demo-only browser state"
+    ? "Command Hub demo case"
     : "Prepared for Cliniko";
 
   if (profile?.insurer) {
@@ -280,7 +280,7 @@ export function buildClientCompleteness(
       label: "Invoice drafts prepared",
       status: journey.invoiceRecordStatus.includes("Prepared")
         ? "Prepared for Cliniko"
-        : "Demo-only browser state",
+        : "Command Hub demo case",
     },
     {
       label: "Insurance details",

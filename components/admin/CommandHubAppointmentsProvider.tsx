@@ -11,7 +11,7 @@ import {
 } from "react";
 import type { MappedBooking, MappedCalendarItem, DataSource } from "@/lib/cliniko-mappers";
 import { mapDemoClinicWeekToBookings, mapDemoClinicWeekToCalendarItems } from "@/lib/demo-week-to-mapped";
-import { isDemoWeekPreviewActive, DEMO_WEEK_PREVIEW_KEY } from "@/lib/demo-week-preview";
+import { useCommandHubWorkflow } from "./CommandHubWorkflowProvider";
 import { useMappedClinikoBookings } from "./useMappedClinikoBookings";
 import type { ClinikoStatusData } from "./ClinikoConnectionPanel";
 
@@ -74,22 +74,7 @@ export function CommandHubAppointmentsProvider({ children }: { children: ReactNo
   const [status, setStatus] = useState<ClinikoStatusData | null>(null);
   const [initialized, setInitialized] = useState(false);
   const [statusLoading, setStatusLoading] = useState(false);
-  const [demoWeekPreview, setDemoWeekPreview] = useState(true);
-
-  useEffect(() => {
-    setDemoWeekPreview(isDemoWeekPreviewActive());
-    const handler = () => setDemoWeekPreview(isDemoWeekPreviewActive());
-    window.addEventListener("demo-week-preview-changed", handler);
-    return () => window.removeEventListener("demo-week-preview-changed", handler);
-  }, []);
-
-  // Default demo week preview on for rich demo layout unless user opted out
-  useEffect(() => {
-    if (!initialized) return;
-    if (localStorage.getItem(DEMO_WEEK_PREVIEW_KEY) === "inactive") return;
-    if (mapped.length > 0 && mapped.length >= 8) return;
-    setDemoWeekPreview(true);
-  }, [initialized, mapped.length]);
+  const { demoWeekPreview, loading: workflowLoading } = useCommandHubWorkflow();
 
   const demoWeekMapped = useMemo(() => mapDemoClinicWeekToBookings("demo"), []);
   const demoWeekCalendar = useMemo(() => mapDemoClinicWeekToCalendarItems(), []);
@@ -167,7 +152,7 @@ export function CommandHubAppointmentsProvider({ children }: { children: ReactNo
       mapped: effectiveMapped,
       calendarItems: effectiveCalendar,
       source: effectiveSource,
-      loading: appointmentsLoading || statusLoading || !initialized,
+      loading: appointmentsLoading || statusLoading || workflowLoading || !initialized,
       lastChecked,
       error,
       connected,
@@ -196,6 +181,7 @@ export function CommandHubAppointmentsProvider({ children }: { children: ReactNo
       effectiveSource,
       appointmentsLoading,
       statusLoading,
+      workflowLoading,
       initialized,
       lastChecked,
       error,

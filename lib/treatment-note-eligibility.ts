@@ -3,7 +3,7 @@
  */
 
 import type { AppointmentRecordView } from "@/lib/appointment-records";
-import type { AppointmentRecordState } from "@/lib/demo-record-state";
+import type { AppointmentRecordState } from "@/lib/command-hub-workflow-types";
 
 export interface TreatmentNoteEligibility {
   canSave: boolean;

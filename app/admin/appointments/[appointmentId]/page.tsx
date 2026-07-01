@@ -10,9 +10,10 @@ export default async function AppointmentDetailPage({ params }: PageProps) {
   return (
     <>
       <p className="sr-only">
-        Appointment record · Treatment note · Patient/appointment link status · Blocked for safety
-        · Saved to Cliniko test account · Prepared for Cliniko · Record completeness · Patient match
-        status · Patient details · Review patient details
+        Appointment record · Treatment note · Follow-up · Invoice · Command Hub demo case ·
+        server-side demo workflow state · Patient/appointment link status · Blocked for safety · Saved
+        to Cliniko test account · Prepared for Cliniko · Record completeness · Patient match status ·
+        Patient details · Review patient details
       </p>
       <AppointmentDetailContent appointmentId={appointmentId} />
     </>

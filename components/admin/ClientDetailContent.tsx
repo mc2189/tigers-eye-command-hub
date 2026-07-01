@@ -13,7 +13,7 @@ import {
   patientLabelToSlug,
 } from "@/lib/appointment-records";
 import { buildClientJourneys } from "@/lib/demo-client-journey";
-import { getAppointmentState } from "@/lib/demo-record-state";
+import { useCommandHubWorkflow } from "@/components/admin/CommandHubWorkflowProvider";
 import { buildClientCompleteness } from "@/lib/record-completeness";
 import { DEMO_CLINIC_WEEK_SCENARIOS } from "@/lib/demo-clinic-week";
 import { DEMO_INTAKE_SCENARIOS } from "@/lib/demo-intake-scenarios";
@@ -29,6 +29,7 @@ interface ClientDetailContentProps {
 
 export function ClientDetailContent({ clientSlug }: ClientDetailContentProps) {
   const { demoWeekPreview, isLive } = useCommandHubAppointments();
+  const { store } = useCommandHubWorkflow();
 
   const scenario = findScenarioBySlug(clientSlug);
   const patientLabel =
@@ -56,7 +57,7 @@ export function ClientDetailContent({ clientSlug }: ClientDetailContentProps) {
   );
 
   const linkedPatientId = appointments[0]
-    ? getAppointmentState(appointments[0].id).linkedPatientId
+    ? store?.appointments[appointments[0].id]?.linkedPatientId
     : undefined;
 
   const completeness = useMemo(() => {
@@ -235,7 +236,7 @@ export function ClientDetailContent({ clientSlug }: ClientDetailContentProps) {
         <ul className="mt-2 list-inside list-disc space-y-1 text-slate">
           <li>Saved to Cliniko test account: patient/appointment when seeded via test lab</li>
           <li>Prepared for Cliniko: treatment notes, invoice drafts, follow-up suggestions</li>
-          <li>Demo-only browser state: invoice prepared flags, match links</li>
+          <li>Command Hub demo case: invoice prepared flags, match links</li>
           <li>Future integration: payment status, Xero, Healthcode</li>
         </ul>
         <p className="mt-3 font-medium text-navy">Next action: {journey.nextAction}</p>

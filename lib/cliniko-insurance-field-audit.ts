@@ -26,7 +26,7 @@ export const INSURANCE_FIELD_AUDIT: InsuranceFieldAuditEntry[] = [
     canWriteToClinikoNow: false,
     clinikoTarget: "custom_fields (not wired)",
     reason:
-      "Insurer name is stored in Command Hub demo case details (localStorage). Cliniko custom fields are not wired in this integration.",
+      "Insurer name is stored in the Command Hub demo case (server-persisted workflow store). Cliniko custom fields are not wired in this integration.",
     recommendedNextStep:
       "Configure Cliniko custom fields for insurer capture, or integrate Healthcode when ready.",
   },
@@ -85,7 +85,7 @@ export const INSURANCE_FIELD_AUDIT: InsuranceFieldAuditEntry[] = [
     displayLabel: "Patient liability agreement",
     currentStorage: "command-hub-demo",
     canWriteToClinikoNow: false,
-    reason: "Liability flag is demo case browser state — not written to Cliniko.",
+    reason: "Liability flag is Command Hub demo case (server-side workflow state) — not written to Cliniko.",
     recommendedNextStep: "Staff confirmation workflow; optional Cliniko patient notes later.",
   },
   {

@@ -1,5 +1,5 @@
 /**
- * DEMO-only insurance case details — not Cliniko or Healthcode data.
+ * DEMO insurance case details — persisted in Command Hub workflow store (server-side).
  */
 
 import type { InsuranceProvider } from "@/lib/insurance-session-workflow";
@@ -59,6 +59,7 @@ export const DEFAULT_DEMO_INSURANCE_CASES: DemoInsuranceCaseDetail[] = [
   },
 ];
 
+/** @deprecated Server store is source of truth — use useCommandHubWorkflow().insuranceCases */
 export const DEMO_INSURANCE_STORAGE_KEY = "tigers-eye-demo-insurance-cases-v1";
 
 const DEMO_LABEL_PATTERN = /^DEMO\b/i;
@@ -67,44 +68,9 @@ export function isDemoPatientLabel(label: string): boolean {
   return DEMO_LABEL_PATTERN.test(label.trim());
 }
 
-export function loadDemoInsuranceCases(): Record<string, DemoInsuranceCaseDetail> {
-  if (typeof window === "undefined") {
-    return Object.fromEntries(
-      DEFAULT_DEMO_INSURANCE_CASES.map((c) => [c.patientLabel, c])
-    );
-  }
-  try {
-    const raw = localStorage.getItem(DEMO_INSURANCE_STORAGE_KEY);
-    if (!raw) {
-      return Object.fromEntries(
-        DEFAULT_DEMO_INSURANCE_CASES.map((c) => [c.patientLabel, c])
-      );
-    }
-    const parsed = JSON.parse(raw) as Record<string, DemoInsuranceCaseDetail>;
-    if (!parsed || typeof parsed !== "object") return {};
-    const filtered: Record<string, DemoInsuranceCaseDetail> = {};
-    for (const [key, value] of Object.entries(parsed)) {
-      if (isDemoPatientLabel(key) && value?.patientLabel) {
-        filtered[key] = value;
-      }
-    }
-    return filtered;
-  } catch {
-    return {};
-  }
-}
-
-export function saveDemoInsuranceCase(detail: DemoInsuranceCaseDetail): void {
-  if (typeof window === "undefined") return;
-  if (!isDemoPatientLabel(detail.patientLabel)) return;
-  const existing = loadDemoInsuranceCases();
-  existing[detail.patientLabel] = detail;
-  localStorage.setItem(DEMO_INSURANCE_STORAGE_KEY, JSON.stringify(existing));
-}
-
-export function resetDemoInsuranceCases(): void {
-  if (typeof window === "undefined") return;
-  localStorage.removeItem(DEMO_INSURANCE_STORAGE_KEY);
+/** Defaults only — live data from workflow provider / API */
+export function getDefaultDemoInsuranceCases(): Record<string, DemoInsuranceCaseDetail> {
+  return Object.fromEntries(DEFAULT_DEMO_INSURANCE_CASES.map((c) => [c.patientLabel, c]));
 }
 
 export function getDemoPatientOptions(appointmentLabels: string[]): string[] {

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { BookingIntakeInput, PatientMatchResult } from "@/lib/cliniko-patient-matching";
-import { updateAppointmentState } from "@/lib/demo-record-state";
+import { useCommandHubWorkflow } from "@/components/admin/CommandHubWorkflowProvider";
 import { PatientFieldResultPanel } from "@/components/admin/RecordCompletenessPanel";
 import { PatientFieldReconciliationPanel } from "@/components/admin/PatientFieldReconciliationPanel";
 import type { CreateDemoPatientInput } from "@/lib/demo-patient-create";
@@ -18,6 +18,7 @@ export function PatientMatchPanel({
   appointmentId,
   onLinked,
 }: PatientMatchPanelProps) {
+  const { updateAppointmentState } = useCommandHubWorkflow();
   const [result, setResult] = useState<PatientMatchResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -59,7 +60,7 @@ export function PatientMatchPanel({
     const match = result?.suggestedMatches.find((m) => m.id === selectedId);
     if (!match) return;
     const label = `${match.firstName} ${match.lastName}`.trim();
-    updateAppointmentState(appointmentId, {
+    void updateAppointmentState(appointmentId, {
       linkedPatientId: match.id,
       linkedPatientLabel: label,
       matchStatus: "Linked to Cliniko patient record",
@@ -90,7 +91,7 @@ export function PatientMatchPanel({
         return;
       }
       if (json.ok && json.patientId) {
-        updateAppointmentState(appointmentId, {
+        void updateAppointmentState(appointmentId, {
           linkedPatientId: json.patientId,
           linkedPatientLabel: `${intake.firstName} ${intake.lastName}`,
           matchStatus: "Saved to Cliniko test account",

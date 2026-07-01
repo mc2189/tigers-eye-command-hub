@@ -6,8 +6,8 @@ export default function InsurancePage() {
     <>
       <p className="sr-only">
         Insurance cases · approved sessions · Demo case controls · Ready to invoice · authorised
-        sessions · Insurance storage audit · Command Hub demo case · Future Healthcode integration ·
-        Future Xero integration
+        sessions · Insurance storage audit · Command Hub demo case · server-side demo workflow state
+        · DEMO-CLAIM-001 · Future Healthcode integration · Future Xero integration
       </p>
       <InsuranceCaseTracker />
       <DemoWeekReferenceStrip variant="insurance" />

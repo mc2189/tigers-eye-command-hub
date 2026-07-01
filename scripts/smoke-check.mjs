@@ -75,6 +75,7 @@ const protectedRoutes = [
   "/admin/appointments/dcw-001",
   "/admin/proof",
   "/admin/settings",
+  "/api/command-hub/workflow-state",
   "/api/cliniko/status",
   "/api/cliniko/individual-appointments?perPage=10",
   "/api/cliniko/test-data",
@@ -209,6 +210,12 @@ const contentChecks = {
     if (!/Future Xero integration/i.test(body)) {
       return "missing Future Xero integration wording";
     }
+    if (!/server-side demo workflow state/i.test(body)) {
+      return "missing server-side demo workflow state wording";
+    }
+    if (!/DEMO-CLAIM-001/i.test(body)) {
+      return "missing saved insurance demo case (DEMO-CLAIM-001)";
+    }
     return null;
   },
   "/admin/stock": (body) => {
@@ -292,6 +299,12 @@ const contentChecks = {
     if (!/Patient match status/i.test(body)) return "missing Patient match status";
     if (!/Patient details/i.test(body)) return "missing Patient details section";
     if (!/Review patient details/i.test(body)) return "missing Review patient details link";
+    if (!/Follow-up/i.test(body)) return "missing Follow-up section";
+    if (!/Invoice/i.test(body)) return "missing Invoice section";
+    if (!/Command Hub demo case/i.test(body)) return "missing Command Hub demo case wording";
+    if (!/server-side demo workflow state/i.test(body)) {
+      return "missing server-side demo workflow state wording";
+    }
     return null;
   },
   "/admin/clients/demo-alex-wilson": (body) => {
@@ -316,6 +329,10 @@ const contentChecks = {
     if (!/Preview demo clinic week/i.test(body)) {
       return "missing Preview demo clinic week link";
     }
+    if (!/server-side demo workflow state/i.test(body)) {
+      return "missing server-side demo workflow state wording";
+    }
+    if (!/Command Hub demo case/i.test(body)) return "missing Command Hub demo case wording";
     return null;
   },
   "/admin/calendar": (body) => {
@@ -443,6 +460,25 @@ const contentChecks = {
     if (typeof json.practitionerSourceLabel !== "string") return "missing practitionerSourceLabel";
     return null;
   },
+  "/api/command-hub/workflow-state": (body) => {
+    let json;
+    try {
+      json = JSON.parse(body);
+    } catch {
+      return "response is not valid JSON";
+    }
+    if (json.ok !== true) return "ok !== true";
+    if (!json.store || typeof json.store !== "object") return "missing store";
+    if (typeof json.store.demoWeekPreview !== "boolean") return "missing demoWeekPreview";
+    if (!json.store.insuranceCases || typeof json.store.insuranceCases !== "object") {
+      return "missing insuranceCases";
+    }
+    const serialized = JSON.stringify(json);
+    if (serialized.includes("CLINIKO_API_KEY") || serialized.includes("DEMO_SESSION_SECRET")) {
+      return "API response may leak secret env names";
+    }
+    return null;
+  },
 };
 
 let passCount = 0;
@@ -450,6 +486,18 @@ let failCount = 0;
 let skipCount = 0;
 /** @type {string | null} */
 let authCookie = null;
+
+const SECRET_MARKERS = ["CLINIKO_API_KEY", "DEMO_SESSION_SECRET", "DEMO_STAFF_PASSWORD"];
+
+function assertNoSecretsInBody(body, route) {
+  for (const marker of SECRET_MARKERS) {
+    if (body.includes(marker)) return `${route}: exposed secret marker "${marker}"`;
+  }
+  if (STAFF_PASSWORD && STAFF_PASSWORD.length >= 8 && body.includes(STAFF_PASSWORD)) {
+    return `${route}: exposed DEMO_STAFF_PASSWORD value`;
+  }
+  return null;
+}
 
 function parseSetCookie(setCookie) {
   if (!setCookie) return null;
@@ -551,6 +599,15 @@ async function checkRoute(route, requiresAuth) {
       return;
     }
 
+    if (!route.startsWith("/api/")) {
+      const secretError = assertNoSecretsInBody(body, route);
+      if (secretError) {
+        failCount++;
+        console.log(`FAIL  ${label} ${secretError}`);
+        return;
+      }
+    }
+
     const checker = contentChecks[route];
     if (checker) {
       const contentError = checker(body);
@@ -585,6 +642,7 @@ await checkUnauthenticatedRedirect("/admin/bookings", "/admin/login");
 await checkUnauthenticatedRedirect("/admin/cliniko/test-lab", "/admin/login");
 await checkUnauthenticatedApi("/api/cliniko/status");
 await checkUnauthenticatedApi("/api/cliniko/test-data");
+await checkUnauthenticatedApi("/api/command-hub/workflow-state");
 
 if (STAFF_PASSWORD) {
   const loggedIn = await staffLogin();
@@ -597,7 +655,7 @@ for (const route of protectedRoutes.filter((r) => r !== "/admin/login")) {
   await checkRoute(route, true);
 }
 
-const total = publicRoutes.length + protectedRoutes.length + 5;
+const total = publicRoutes.length + protectedRoutes.length + 6;
 console.log(
   `\nSummary: ${passCount} passed, ${failCount} failed, ${skipCount} skipped, ${total} checks\n`
 );

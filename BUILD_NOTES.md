@@ -126,7 +126,7 @@ It must **not** appear as the active Aviemore booking provider on `/book`.
 
 ## Insurance session tracking workflow
 
-- Insurance cases inferred from appointment types plus **demo case details** (browser `localStorage` only)
+- Insurance cases inferred from appointment types plus **Command Hub demo case** details (server-side demo workflow state)
 - Approved sessions, sessions used and sessions remaining calculated per case
 - Missing claim, authorisation, liability and invoice details surfaced via checklist
 - `/admin/insurance` rebuilt as case tracker with tabs: All cases, Needs details, Ready to invoice, Sessions used
@@ -142,7 +142,7 @@ It must **not** appear as the active Aviemore booking provider on `/book`.
 - `lib/demo-week-to-mapped.ts` — maps scenarios to `MappedBooking` for workflow engine
 - `lib/demo-client-journey.ts` — client journey view data with honest source labels
 - `lib/demo-clinic-week-seed.ts` — Cliniko test-lab seeding (DEMO patients + appointments only)
-- Demo week preview mode (`localStorage`) — rich layout without mixing unlabelled data
+- Demo week preview mode (server-side demo workflow state) — rich layout without mixing unlabelled data
 - `/admin/clients` — client journey page under Clinic sidebar group
 - Test lab: Demo Clinic Week panel (preview, seed, check, cleanup)
 - Today/Bookings/Insurance/Invoices/Notes/Follow-ups enriched with scenario data
@@ -202,6 +202,17 @@ It must **not** appear as the active Aviemore booking provider on `/book`.
 - Test lab: **Patient update safety proof** panel
 - Writable fields: name, email, phone, DOB, address, emergency contact, GP, reason, occupation, medical notes
 - Prepared-only: insurance fields, marketing source, preferred location/practitioner (Command Hub demo case)
+
+## Command Hub server-side demo workflow state
+
+- **Not** durable database persistence — server-side demo workflow state for shared staff demo use
+- Local dev: `.data/command-hub-workflow.json`; Vercel: `/tmp/tigers-eye-command-hub-workflow.json` (ephemeral — may reset on deploy, cold start or runtime change)
+- For durable cross-deploy storage, wire Vercel KV/Blob, Supabase, Postgres or similar
+- API: `GET/PATCH /api/command-hub/workflow-state` (staff auth required; protected in `middleware.ts`)
+- Replaced browser `localStorage` for: appointment link/note/invoice flags, insurance demo cases, demo week preview toggle
+- `CommandHubWorkflowProvider` loads state, migrates legacy localStorage once when server store is empty, syncs patches to server
+- Labels: **Command Hub demo case** for workflow flags not in Cliniko
+- Still browser-only: Cliniko test lab proof badge cards (`localStorage` in `ClinikoTestLabPanel.tsx`)
 
 ## Command Hub GUI polish and live data display fix
 

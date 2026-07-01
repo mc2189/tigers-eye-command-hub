@@ -17,11 +17,17 @@ function isProtectedClinikoApi(pathname: string): boolean {
   return pathname.startsWith("/api/cliniko/");
 }
 
+function isProtectedCommandHubApi(pathname: string): boolean {
+  return pathname.startsWith("/api/command-hub/");
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const needsAuth =
-    isProtectedAdminPath(pathname) || isProtectedClinikoApi(pathname);
+    isProtectedAdminPath(pathname) ||
+    isProtectedClinikoApi(pathname) ||
+    isProtectedCommandHubApi(pathname);
 
   if (!needsAuth) {
     return NextResponse.next();
@@ -74,5 +80,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/cliniko/:path*"],
+  matcher: ["/admin/:path*", "/api/cliniko/:path*", "/api/command-hub/:path*"],
 };

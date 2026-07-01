@@ -40,7 +40,21 @@ export default function ProofPage() {
         purpose="What is working now versus what is inferred or planned — honest demo status for George."
       />
 
-      <p className="sr-only">Preview demo clinic week</p>
+      <p className="sr-only">
+        Preview demo clinic week · server-side demo workflow state · Command Hub demo case
+      </p>
+
+      <section className="mb-6 rounded-xl border border-cream-dark bg-cream/40 p-4 text-sm">
+        <p className="font-semibold text-navy">Command Hub demo workflow state</p>
+        <p className="mt-1 text-slate">
+          Appointment flags, insurance demo case details and the demo week preview toggle are stored
+          as <strong>server-side demo workflow state</strong> (not browser localStorage). This is
+          better than per-browser storage for a shared demo, but the Vercel{" "}
+          <code className="text-xs">/tmp</code> file is ephemeral — it may reset across deployments,
+          cold starts or runtime changes. For durable cross-deploy storage, wire Vercel KV/Blob,
+          Supabase, Postgres or similar.
+        </p>
+      </section>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <WorkflowHelpPanel title="Working now" items={workingNow} />

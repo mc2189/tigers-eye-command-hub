@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useCommandHubAppointments } from "@/components/admin/CommandHubAppointmentsProvider";
+import {
+  useCommandHubWorkflow,
+} from "@/components/admin/CommandHubWorkflowProvider";
 import { DataSourcePill } from "@/components/admin/DataSourcePill";
 import { OpenClientButton } from "@/components/admin/OpenRecordButton";
 import { PatientMatchPanel } from "@/components/admin/PatientMatchPanel";
@@ -10,10 +13,6 @@ import { RecordCompletenessPanel } from "@/components/admin/RecordCompletenessPa
 import { WhatThisShows } from "@/components/admin/WhatThisShows";
 import { resolveAppointmentRecord } from "@/lib/appointment-records";
 import { DEMO_NOTE_SAFETY_COPY } from "@/lib/demo-clinic-week";
-import {
-  getAppointmentState,
-  updateAppointmentState,
-} from "@/lib/demo-record-state";
 import type { BookingIntakeInput } from "@/lib/cliniko-patient-matching";
 import { buildAppointmentCompleteness } from "@/lib/record-completeness";
 import { patientLabelToSlug } from "@/lib/appointment-records";
@@ -37,7 +36,11 @@ function formatDay(date: string): string {
 
 export function AppointmentDetailContent({ appointmentId }: AppointmentDetailContentProps) {
   const { mapped, demoWeekPreview, configured } = useCommandHubAppointments();
-  const [recordState, setRecordState] = useState(getAppointmentState(appointmentId));
+  const { store, updateAppointmentState } = useCommandHubWorkflow();
+  const recordState = useMemo(
+    () => store?.appointments[appointmentId] ?? {},
+    [store?.appointments, appointmentId]
+  );
   const [noteSaving, setNoteSaving] = useState(false);
   const [noteMessage, setNoteMessage] = useState<string | null>(null);
   const [followUpMessage, setFollowUpMessage] = useState<string | null>(null);
@@ -48,12 +51,6 @@ export function AppointmentDetailContent({ appointmentId }: AppointmentDetailCon
     () => resolveAppointmentRecord(appointmentId, mapped, { isPreview: demoWeekPreview }),
     [appointmentId, mapped, demoWeekPreview]
   );
-
-  useEffect(() => {
-    const refresh = () => setRecordState(getAppointmentState(appointmentId));
-    window.addEventListener("demo-record-state-changed", refresh);
-    return () => window.removeEventListener("demo-record-state-changed", refresh);
-  }, [appointmentId]);
 
   useEffect(() => {
     fetch("/api/cliniko/status")
@@ -122,7 +119,7 @@ export function AppointmentDetailContent({ appointmentId }: AppointmentDetailCon
         }),
       });
       const json = await res.json();
-      updateAppointmentState(appointmentId, {
+      void updateAppointmentState(appointmentId, {
         noteSavedToCliniko:
           json.status === "saved" && json.verified !== false && json.mode === "created",
         noteClinikoId: json.noteId,
@@ -140,7 +137,7 @@ export function AppointmentDetailContent({ appointmentId }: AppointmentDetailCon
     } finally {
       setNoteSaving(false);
     }
-  }, [scenario, record, linkedPatientId, appointmentId]);
+  }, [scenario, record, linkedPatientId, appointmentId, updateAppointmentState]);
 
   const copyNoteDraft = useCallback(async () => {
     if (!scenario) return;
@@ -152,9 +149,9 @@ export function AppointmentDetailContent({ appointmentId }: AppointmentDetailCon
   }, [scenario]);
 
   const prepareInvoice = useCallback(() => {
-    updateAppointmentState(appointmentId, { invoicePrepared: true });
-    setFollowUpMessage("Prepared invoice draft — demo-only browser state");
-  }, [appointmentId]);
+    void updateAppointmentState(appointmentId, { invoicePrepared: true });
+    setFollowUpMessage("Prepared invoice draft — Command Hub demo case");
+  }, [appointmentId, updateAppointmentState]);
 
   const copyInvoice = useCallback(async () => {
     if (!scenario) return;
@@ -193,7 +190,7 @@ export function AppointmentDetailContent({ appointmentId }: AppointmentDetailCon
       });
       const json = await res.json();
       if (json.status === "created" || json.status === "duplicate") {
-        updateAppointmentState(appointmentId, {
+        void updateAppointmentState(appointmentId, {
           followUpBookedInCliniko: true,
           followUpClinikoAppointmentId: json.appointmentId ?? json.duplicateOf,
         });
@@ -206,7 +203,7 @@ export function AppointmentDetailContent({ appointmentId }: AppointmentDetailCon
     } finally {
       setFollowUpBooking(false);
     }
-  }, [scenario, linkedPatientId, intakeInput, appointmentId]);
+  }, [scenario, linkedPatientId, intakeInput, appointmentId, updateAppointmentState]);
 
   const completeness = useMemo(() => {
     if (!record) return null;
@@ -315,7 +312,7 @@ export function AppointmentDetailContent({ appointmentId }: AppointmentDetailCon
           <li>Appointment: {record.isLiveCliniko ? "Saved to Cliniko test account" : "Prepared for Cliniko"}</li>
           <li>Treatment note: {noteStatusLabel}</li>
           <li>Follow-up: {scenario?.followUpScenario?.bookedInCliniko ? "Saved to Cliniko test account" : "Suggested by Command Hub"}</li>
-          <li>Invoice: {recordState.invoicePrepared ? "Demo-only browser state" : "Prepared for Cliniko"}</li>
+          <li>Invoice: {recordState.invoicePrepared ? "Command Hub demo case" : "Prepared for Cliniko"}</li>
           <li>Payment: Future integration</li>
           {scenario?.insuranceScenario && (
             <li>Insurance: {scenario.insuranceScenario}</li>
@@ -378,7 +375,7 @@ export function AppointmentDetailContent({ appointmentId }: AppointmentDetailCon
           intake={intakeInput}
           appointmentId={appointmentId}
           onLinked={(patientId, label) => {
-            updateAppointmentState(appointmentId, {
+            void updateAppointmentState(appointmentId, {
               linkedPatientId: patientId,
               linkedPatientLabel: label,
               matchStatus: "Linked to Cliniko patient record",
@@ -490,7 +487,7 @@ export function AppointmentDetailContent({ appointmentId }: AppointmentDetailCon
                   : "Book DEMO follow-up in Cliniko test account"}
               </button>
               <button type="button" onClick={() => {
-                updateAppointmentState(appointmentId, { followUpPrepared: true });
+                void updateAppointmentState(appointmentId, { followUpPrepared: true });
                 setFollowUpMessage("Prepared follow-up appointment — Prepared for Cliniko");
               }} className="min-h-10 rounded-lg border border-cream-dark px-4 py-2 text-sm font-medium text-navy hover:bg-cream">
                 Prepare follow-up
