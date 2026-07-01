@@ -10,6 +10,8 @@
     "smoke": "node scripts/smoke-check.mjs",
     "smoke:local": "BASE_URL=http://localhost:3000 node scripts/smoke-check.mjs",
     "smoke:prod": "BASE_URL=https://tigers-eye-command-hub.vercel.app node scripts/smoke-check.mjs",
+    "check:workflow-storage": "node scripts/check-workflow-storage.mjs",
+    "check:workflow-storage:prod": "node scripts/check-workflow-storage.mjs --base-url=https://tigers-eye-command-hub.vercel.app",
     "sync:vercel-env": "node scripts/sync-vercel-env.mjs",
     "test": "node --test lib/cliniko-demo-appointments.test.ts"
   },

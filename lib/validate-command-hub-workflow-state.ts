@@ -174,6 +174,7 @@ export function validateCommandHubWorkflowStore(store: CommandHubWorkflowStore):
     demoWeekPreview: store.demoWeekPreview,
     version: store.version,
     updatedAt: store.updatedAt,
+    storageHealthCheckAt: store.storageHealthCheckAt,
   });
 
   for (const [appointmentId, state] of Object.entries(store.appointments)) {

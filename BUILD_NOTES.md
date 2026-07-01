@@ -224,6 +224,15 @@ It must **not** appear as the active Aviemore booking provider on `/book`.
 - Insurance fields remain Command Hub demo case data — not Cliniko-saved unless integrations are wired
 - One-line policy: clinical truth in Cliniko; operational workflow state in Command Hub; no duplicate patient database
 
+## Supabase durable workflow storage
+
+- `lib/workflow-storage/supabase-workflow-store.ts` — PostgREST read/upsert with read-back verification
+- Explicit `COMMAND_HUB_WORKFLOW_STORAGE=supabase` does not silently fall back to `/tmp`
+- `GET /api/command-hub/workflow-storage/status` — `canRead`, `canWrite`, `message`, durable checklist UI
+- `scripts/check-workflow-storage.mjs` — `--expect-durable` for Supabase verification
+- `EXPECT_DURABLE_WORKFLOW_STORAGE=true` optional strict smoke flag
+- Production uses `vercel-tmp` until Supabase env vars are added in Vercel — see `docs/WORKFLOW_STORAGE.md`
+
 ## Command Hub GUI polish and live data display fix
 
 - **Root cause:** `toPatientLabel()` in `lib/cliniko.ts` abbreviated full DEMO names (e.g. `DEMO Test Patient 001` → `DEMO 0.`)

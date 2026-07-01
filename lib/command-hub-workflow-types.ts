@@ -47,6 +47,8 @@ export interface CommandHubWorkflowStore {
   appointments: Record<string, AppointmentRecordState>;
   patients: Record<string, { clinikoPatientId?: string; createdAt?: string }>;
   insuranceCases: Record<string, DemoInsuranceCaseDetail>;
+  /** Operational metadata — storage health probe timestamp only */
+  storageHealthCheckAt?: string;
 }
 
 export interface WorkflowStatePatch {

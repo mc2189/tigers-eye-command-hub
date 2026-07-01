@@ -50,6 +50,8 @@ export function normalizeWorkflowStore(raw: unknown): CommandHubWorkflowStore {
       obj.appointments && typeof obj.appointments === "object" ? obj.appointments : {},
     patients: obj.patients && typeof obj.patients === "object" ? obj.patients : {},
     insuranceCases: sanitizeInsuranceCases(obj.insuranceCases) ?? base.insuranceCases,
+    storageHealthCheckAt:
+      typeof obj.storageHealthCheckAt === "string" ? obj.storageHealthCheckAt : undefined,
   };
 }
 

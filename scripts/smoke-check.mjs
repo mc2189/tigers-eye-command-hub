@@ -343,9 +343,13 @@ const contentChecks = {
     if (
       !/Durable workflow storage/i.test(body) &&
       !/Ephemeral workflow storage/i.test(body) &&
-      !/Local workflow storage/i.test(body)
+      !/Local workflow storage/i.test(body) &&
+      !/Supabase workflow storage unavailable/i.test(body)
     ) {
       return "missing Durable/Ephemeral/Local workflow storage label";
+    }
+    if (!/Durable storage checklist/i.test(body)) {
+      return "missing Durable storage checklist";
     }
     return null;
   },
@@ -387,9 +391,13 @@ const contentChecks = {
     if (
       !/Durable workflow storage/i.test(body) &&
       !/Ephemeral workflow storage/i.test(body) &&
-      !/Local workflow storage/i.test(body)
+      !/Local workflow storage/i.test(body) &&
+      !/Supabase workflow storage unavailable/i.test(body)
     ) {
       return "missing Durable/Ephemeral/Local workflow storage label";
+    }
+    if (!/Durable storage checklist/i.test(body)) {
+      return "missing Durable storage checklist";
     }
     for (const term of ["Cliniko", "Aviemore", "Setmore"]) {
       if (!body.includes(term)) return `missing "${term}"`;
@@ -544,9 +552,11 @@ const contentChecks = {
     if (json.ok !== true) return "ok !== true";
     if (!json.storage || typeof json.storage !== "object") return "missing storage";
     if (typeof json.storage.mode !== "string") return "missing storage.mode";
+    if (typeof json.storage.durability !== "string") return "missing storage.durability";
     if (typeof json.canRead !== "boolean") return "missing canRead";
     if (typeof json.canWrite !== "boolean") return "missing canWrite";
     if (typeof json.lastChecked !== "string") return "missing lastChecked";
+    if (typeof json.message !== "string" || !json.message.trim()) return "missing message";
     const serialized = JSON.stringify(json);
     if (
       serialized.includes("KV_REST_API_TOKEN") ||
@@ -751,6 +761,51 @@ async function checkForbiddenWorkflowPatch() {
   }
 }
 
+async function checkExpectDurableStorage() {
+  const expectDurable = process.env.EXPECT_DURABLE_WORKFLOW_STORAGE === "true";
+  const label = "EXPECT_DURABLE workflow storage".padEnd(36);
+  if (!expectDurable) {
+    skipCount++;
+    console.log(`SKIP  ${label} (EXPECT_DURABLE_WORKFLOW_STORAGE not set)`);
+    return;
+  }
+  if (!authCookie) {
+    skipCount++;
+    console.log(`SKIP  ${label} (no DEMO_STAFF_PASSWORD for auth)`);
+    return;
+  }
+
+  try {
+    const res = await fetch(`${BASE_URL}/api/command-hub/workflow-storage/status`, {
+      headers: { Cookie: authCookie, Accept: "application/json" },
+      cache: "no-store",
+    });
+    const json = await res.json();
+    if (!json.ok || !json.storage) {
+      failCount++;
+      console.log(`FAIL  ${label} status response invalid`);
+      return;
+    }
+    if (json.storage.durability !== "durable" || json.storage.mode !== "supabase") {
+      failCount++;
+      console.log(
+        `FAIL  ${label} expected mode=supabase durability=durable, got mode=${json.storage.mode} durability=${json.storage.durability}`
+      );
+      return;
+    }
+    if (!json.canRead || !json.canWrite) {
+      failCount++;
+      console.log(`FAIL  ${label} durable storage must pass read/write verification`);
+      return;
+    }
+    passCount++;
+    console.log(`PASS  ${label}`);
+  } catch (err) {
+    failCount++;
+    console.log(`FAIL  ${label} ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
 console.log(`\nTigers Eye smoke check — ${BASE_URL}\n`);
 
 for (const route of publicRoutes) {
@@ -782,8 +837,9 @@ for (const route of protectedRoutes.filter((r) => r !== "/admin/login")) {
 
 console.log("\nAuthenticated workflow boundary checks\n");
 await checkForbiddenWorkflowPatch();
+await checkExpectDurableStorage();
 
-const total = publicRoutes.length + protectedRoutes.length + 8;
+const total = publicRoutes.length + protectedRoutes.length + 9;
 console.log(
   `\nSummary: ${passCount} passed, ${failCount} failed, ${skipCount} skipped, ${total} checks\n`
 );
