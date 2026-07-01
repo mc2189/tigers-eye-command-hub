@@ -16,6 +16,7 @@ import {
 } from "@/lib/demo-record-state";
 import type { BookingIntakeInput } from "@/lib/cliniko-patient-matching";
 import { buildAppointmentCompleteness } from "@/lib/record-completeness";
+import { patientLabelToSlug } from "@/lib/appointment-records";
 import { getTreatmentNoteEligibility } from "@/lib/treatment-note-eligibility";
 
 interface AppointmentDetailContentProps {
@@ -323,6 +324,51 @@ export function AppointmentDetailContent({ appointmentId }: AppointmentDetailCon
         {record.clinikoAppointmentId && (
           <p className="mt-2 text-xs text-slate">Cliniko record ID available in test account</p>
         )}
+      </section>
+
+      <section className="rounded-xl border border-cream-dark bg-white p-5">
+        <h2 className="text-lg font-bold text-navy">Patient details</h2>
+        <p className="sr-only">Patient details · Review patient details</p>
+        <ul className="mt-3 space-y-1 text-sm text-navy">
+          <li>
+            Matched to Cliniko:{" "}
+            {recordState.linkedPatientId ? "Yes — patient linked" : "Not yet linked"}
+          </li>
+          <li>
+            Fields already saved:{" "}
+            {recordState.linkedPatientId
+              ? "Core DEMO patient fields when seeded/linked"
+              : "None — preview only"}
+          </li>
+          <li>Fields prepared-only: Insurance, preferred location/practitioner</li>
+          <li>
+            Fields needing review:{" "}
+            {record.isDemoWeekPreview && !recordState.linkedPatientId
+              ? "Link patient via intake first"
+              : "Compare intake vs Cliniko on intake page"}
+          </li>
+        </ul>
+        <p className="mt-3 text-sm text-slate">
+          {record.isDemoWeekPreview && !recordState.linkedPatientId
+            ? "Demo week preview — patient fields are prepared only until seeded or linked."
+            : recordState.linkedPatientId
+              ? "Patient record linked to Cliniko test account."
+              : "Patient record not yet linked."}
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Link
+            href="/admin/intake"
+            className="min-h-9 rounded-lg border border-cream-dark px-3 py-1.5 text-sm font-medium text-navy hover:bg-cream"
+          >
+            Review patient details
+          </Link>
+          <Link
+            href={`/admin/clients/${patientLabelToSlug(record.patientLabel)}`}
+            className="min-h-9 rounded-lg border border-cream-dark px-3 py-1.5 text-sm font-medium text-navy hover:bg-cream"
+          >
+            Open client record
+          </Link>
+        </div>
       </section>
 
       {completeness && <RecordCompletenessPanel summary={completeness} />}

@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { BookingIntakeInput, PatientMatchResult } from "@/lib/cliniko-patient-matching";
 import { updateAppointmentState } from "@/lib/demo-record-state";
 import { PatientFieldResultPanel } from "@/components/admin/RecordCompletenessPanel";
+import { PatientFieldReconciliationPanel } from "@/components/admin/PatientFieldReconciliationPanel";
 import type { CreateDemoPatientInput } from "@/lib/demo-patient-create";
 
 interface PatientMatchPanelProps {
@@ -21,6 +22,7 @@ export function PatientMatchPanel({
   const [loading, setLoading] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [linkConfirmed, setLinkConfirmed] = useState(false);
   const [createResult, setCreateResult] = useState<{
     savedFields: Array<{ label: string; value: string }>;
     preparedOnlyFields: Array<{ label: string; value: string; reason: string }>;
@@ -33,6 +35,7 @@ export function PatientMatchPanel({
     setLoading(true);
     setActionMessage(null);
     setCreateResult(null);
+    setLinkConfirmed(false);
     try {
       const res = await fetch("/api/cliniko/patient-match", {
         method: "POST",
@@ -43,6 +46,7 @@ export function PatientMatchPanel({
       setResult(json);
       if (json.matchStatus === "exact" && json.suggestedMatches[0]) {
         setSelectedId(json.suggestedMatches[0].id);
+        setLinkConfirmed(true);
       }
     } catch {
       setActionMessage("Could not run match.");
@@ -62,6 +66,7 @@ export function PatientMatchPanel({
     });
     onLinked?.(match.id, label);
     setActionMessage("Linked to Cliniko patient record");
+    setLinkConfirmed(true);
   }
 
   async function createNewPatient() {
@@ -205,6 +210,20 @@ export function PatientMatchPanel({
       {actionMessage && !createResult && (
         <p className="mt-2 text-sm font-medium text-navy">{actionMessage}</p>
       )}
+
+      {result &&
+        linkConfirmed &&
+        selectedId &&
+        (result.matchStatus === "exact" || result.matchStatus === "possible") &&
+        result.recommendedAction !== "do-not-write" && (
+          <PatientFieldReconciliationPanel
+            intake={intake}
+            patientId={selectedId}
+            staffConfirmationRequired={result.staffConfirmationRequired}
+            linkedToCliniko={!selectedId.startsWith("demo-week-")}
+            useLocalSnapshot={selectedId.startsWith("demo-week-")}
+          />
+        )}
     </section>
   );
 }

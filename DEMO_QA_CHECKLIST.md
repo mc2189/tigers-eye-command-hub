@@ -307,6 +307,19 @@ Checked admin routes at 375×812 (iPhone SE viewport) via responsive devtools:
 
 ---
 
+## Existing patient reconciliation and safe DEMO patient update
+
+- [ ] `/admin/intake` shows Field comparison after DEMO match
+- [ ] Already matches / Missing / Different / Prepared-only groups visible
+- [ ] Update requires staff confirmation checkbox
+- [ ] Nothing is updated automatically copy visible
+- [ ] Non-DEMO/unsafe scenario shows Blocked for safety
+- [ ] `/admin/clients/demo-alex-wilson` shows Client record reconciliation
+- [ ] `/admin/appointments/dcw-001` shows Patient details and Review patient details
+- [ ] `/admin/cliniko/test-lab` shows Patient update safety proof
+
+---
+
 ## Automated smoke tests
 
 ```bash

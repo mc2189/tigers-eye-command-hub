@@ -11,7 +11,8 @@ export default async function ClientDetailPage({ params }: PageProps) {
   return (
     <>
       <p className="sr-only">
-        Clinical record · Command Hub prepares note drafts · Record completeness · Future integration
+        Clinical record · Command Hub prepares note drafts · Client record reconciliation ·
+        Review intake matching and updates · Record completeness · Future integration
       </p>
       <ClientDetailContent clientSlug={clientId} />
     </>

@@ -191,6 +191,18 @@ It must **not** appear as the active Aviemore booking provider on `/book`.
 - Mobile/responsive QA documented in `DEMO_QA_CHECKLIST.md` (375px admin routes)
 - Smoke checks expanded for note safety, clinical record, insurance audit, test-lab proof panels
 
+## Existing patient reconciliation and safe DEMO patient update
+
+- `lib/patient-field-reconciliation.ts` — compares intake vs Cliniko patient per field (matches, missing, different, prepared-only, not-safe)
+- `lib/demo-patient-update.ts` + `POST /api/cliniko/update-demo-patient-intake` — staff-confirmed, selected-field-only PATCH with read-back verification
+- `POST /api/cliniko/patient-reconciliation` — server-side field comparison for linked DEMO patients
+- `/admin/intake` — Field comparison panel with selectable updates after match confirmation
+- `/admin/clients/[clientId]` — Client record reconciliation summary + link to intake
+- `/admin/appointments/[appointmentId]` — Patient details status + Review patient details link
+- Test lab: **Patient update safety proof** panel
+- Writable fields: name, email, phone, DOB, address, emergency contact, GP, reason, occupation, medical notes
+- Prepared-only: insurance fields, marketing source, preferred location/practitioner (Command Hub demo case)
+
 ## Command Hub GUI polish and live data display fix
 
 - **Root cause:** `toPatientLabel()` in `lib/cliniko.ts` abbreviated full DEMO names (e.g. `DEMO Test Patient 001` → `DEMO 0.`)

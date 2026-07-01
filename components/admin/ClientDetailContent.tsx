@@ -16,6 +16,12 @@ import { buildClientJourneys } from "@/lib/demo-client-journey";
 import { getAppointmentState } from "@/lib/demo-record-state";
 import { buildClientCompleteness } from "@/lib/record-completeness";
 import { DEMO_CLINIC_WEEK_SCENARIOS } from "@/lib/demo-clinic-week";
+import { DEMO_INTAKE_SCENARIOS } from "@/lib/demo-intake-scenarios";
+import {
+  profileToClinikoSnapshot,
+  reconcilePatientFields,
+} from "@/lib/patient-field-reconciliation";
+import { ReconciliationSummaryStrip } from "@/components/admin/PatientFieldReconciliationPanel";
 
 interface ClientDetailContentProps {
   clientSlug: string;
@@ -57,6 +63,27 @@ export function ClientDetailContent({ clientSlug }: ClientDetailContentProps) {
     if (!journey) return null;
     return buildClientCompleteness(journey, appointments, linkedPatientId);
   }, [journey, appointments, linkedPatientId]);
+
+  const reconciliation = useMemo(() => {
+    if (!scenario) return null;
+    const intakeScenario =
+      scenario.patientLabel === "DEMO Alex Wilson"
+        ? DEMO_INTAKE_SCENARIOS.find((s) => s.id === "exact-email")
+        : DEMO_INTAKE_SCENARIOS.find(
+            (s) =>
+              s.input.firstName &&
+              scenario.patientLabel.includes(s.input.lastName ?? "")
+          );
+    const intake = intakeScenario?.input ?? {
+      firstName: profileToClinikoSnapshot(scenario.clientProfile).firstName ?? "",
+      lastName: profileToClinikoSnapshot(scenario.clientProfile).lastName ?? "",
+      email: scenario.clientProfile.email,
+    };
+    return reconcilePatientFields(intake, profileToClinikoSnapshot(scenario.clientProfile), {
+      linkedToCliniko: Boolean(linkedPatientId),
+      staffConfirmationRequired: intakeScenario?.expectedStatus === "possible",
+    });
+  }, [scenario, linkedPatientId]);
 
   if (!patientLabel || !journey) {
     return (
@@ -117,6 +144,33 @@ export function ClientDetailContent({ clientSlug }: ClientDetailContentProps) {
             </li>
           ))}
         </ul>
+      </section>
+
+      <section className="rounded-xl border border-cream-dark bg-white p-5">
+        <h2 className="text-lg font-bold text-navy">Client record reconciliation</h2>
+        <p className="sr-only">Client record reconciliation · Review intake matching and updates</p>
+        <p className="mt-1 text-sm text-slate">
+          {linkedPatientId
+            ? "Linked to Cliniko test account"
+            : "Demo week preview — not linked to Cliniko unless seeded."}
+        </p>
+        {reconciliation && (
+          <>
+            <ReconciliationSummaryStrip reconciliation={reconciliation} />
+            <p className="mt-4 text-sm text-slate">
+              Safe update status:{" "}
+              {reconciliation.canUpdateAny
+                ? "Writable fields available via intake (staff confirmation required)"
+                : reconciliation.blockedReason ?? "Review fields on intake page"}
+            </p>
+          </>
+        )}
+        <Link
+          href="/admin/intake"
+          className="mt-4 inline-block min-h-9 rounded-lg border border-cream-dark px-3 py-1.5 text-sm font-medium text-navy hover:bg-cream"
+        >
+          Review intake matching and updates
+        </Link>
       </section>
 
       <section className="rounded-xl border border-cream-dark bg-white p-5">

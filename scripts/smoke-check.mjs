@@ -251,6 +251,17 @@ const contentChecks = {
     if (!/Unsafe\/non-DEMO input blocked/i.test(body)) {
       return "missing Unsafe/non-DEMO input blocked scenario";
     }
+    if (!/Field comparison/i.test(body)) return "missing Field comparison";
+    if (!/Already matches Cliniko/i.test(body)) return "missing Already matches Cliniko";
+    if (!/Missing in Cliniko/i.test(body)) return "missing Missing in Cliniko";
+    if (!/Different from Cliniko/i.test(body)) return "missing Different from Cliniko";
+    if (!/Update selected DEMO fields in Cliniko/i.test(body)) {
+      return "missing Update selected DEMO fields in Cliniko";
+    }
+    if (!/Nothing is updated automatically/i.test(body)) {
+      return "missing Nothing is updated automatically";
+    }
+    if (!/Blocked for safety/i.test(body)) return "missing Blocked for safety";
     return null;
   },
   "/admin/appointments/dcw-001": (body) => {
@@ -279,6 +290,8 @@ const contentChecks = {
       return "missing note save status label";
     }
     if (!/Patient match status/i.test(body)) return "missing Patient match status";
+    if (!/Patient details/i.test(body)) return "missing Patient details section";
+    if (!/Review patient details/i.test(body)) return "missing Review patient details link";
     return null;
   },
   "/admin/clients/demo-alex-wilson": (body) => {
@@ -286,6 +299,12 @@ const contentChecks = {
     if (!/Clinical record/i.test(body)) return "missing Clinical record section";
     if (!/Command Hub prepares note drafts/i.test(body)) {
       return "missing Command Hub prepares note drafts copy";
+    }
+    if (!/Client record reconciliation/i.test(body)) {
+      return "missing Client record reconciliation";
+    }
+    if (!/Review intake matching and updates/i.test(body)) {
+      return "missing Review intake matching and updates";
     }
     if (!/Future integration/i.test(body)) return "missing Future integration section";
     return null;
@@ -348,6 +367,12 @@ const contentChecks = {
     }
     if (!/Insurance field storage audit/i.test(body)) {
       return "missing Insurance field storage audit section";
+    }
+    if (!/Patient update safety proof/i.test(body)) {
+      return "missing Patient update safety proof section";
+    }
+    if (!/read-back verification/i.test(body)) {
+      return "missing read-back verification wording";
     }
     if (!/Cliniko appointment discovery|Run appointment discovery|Live Cliniko DEMO appointments/i.test(body)) {
       return "missing Cliniko test lab discovery sections";

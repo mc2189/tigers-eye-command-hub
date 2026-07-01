@@ -9,6 +9,7 @@ import { DemoClinicWeekPanel } from "@/components/admin/DemoClinicWeekPanel";
 import { PatientRecordWriteProofPanel } from "@/components/admin/PatientRecordWriteProofPanel";
 import { TreatmentNoteSafetyProofPanelLoader } from "@/components/admin/TreatmentNoteSafetyProofPanelLoader";
 import { InsuranceFieldStorageAuditPanel } from "@/components/admin/InsuranceFieldStorageAuditPanel";
+import { PatientUpdateSafetyProofPanel } from "@/components/admin/PatientUpdateSafetyProofPanel";
 
 export default function ClinikoTestLabPage() {
   return (
@@ -28,8 +29,8 @@ export default function ClinikoTestLabPage() {
       <p className="sr-only">
         Technical test lab. Cliniko test lab — Live Cliniko DEMO appointments. Cliniko appointment discovery.
         Run appointment discovery. Appointment source diagnostics. Clear local proof state.
-        Check for DEMO appointments. Appointment proof diagnostics. Treatment note safety proof.
-        Insurance field storage audit. Patient record write proof.
+        Check for DEMO appointments. Appointment proof diagnostics.         Treatment note safety proof.
+        Insurance field storage audit. Patient update safety proof. Patient record write proof.
       </p>
 
       <div className="mb-6 rounded-xl border border-amber-300 bg-amber-50 p-5">
@@ -58,6 +59,7 @@ export default function ClinikoTestLabPage() {
         <DataHandlingPanel />
         <TreatmentNoteSafetyProofPanelLoader />
         <InsuranceFieldStorageAuditPanel />
+        <PatientUpdateSafetyProofPanel />
         <PatientRecordWriteProofPanel />
       </div>
     </>

@@ -25,7 +25,7 @@ export const CLINIKO_PATIENT_FIELD_MAP: ClinikoPatientFieldDefinition[] = [
     sourceField: "firstName",
     clinikoField: "first_name",
     canWriteNow: true,
-    writeMode: "create",
+    writeMode: "update",
     displayLabel: "First name",
   },
   {
@@ -33,7 +33,7 @@ export const CLINIKO_PATIENT_FIELD_MAP: ClinikoPatientFieldDefinition[] = [
     sourceField: "lastName",
     clinikoField: "last_name",
     canWriteNow: true,
-    writeMode: "create",
+    writeMode: "update",
     displayLabel: "Last name",
   },
   {
@@ -41,7 +41,7 @@ export const CLINIKO_PATIENT_FIELD_MAP: ClinikoPatientFieldDefinition[] = [
     sourceField: "email",
     clinikoField: "email",
     canWriteNow: true,
-    writeMode: "create",
+    writeMode: "update",
     displayLabel: "Email",
   },
   {
@@ -49,7 +49,7 @@ export const CLINIKO_PATIENT_FIELD_MAP: ClinikoPatientFieldDefinition[] = [
     sourceField: "phone",
     clinikoField: "patient_phone_numbers[].number",
     canWriteNow: true,
-    writeMode: "create",
+    writeMode: "update",
     displayLabel: "Phone",
   },
   {
@@ -57,7 +57,7 @@ export const CLINIKO_PATIENT_FIELD_MAP: ClinikoPatientFieldDefinition[] = [
     sourceField: "dateOfBirth",
     clinikoField: "date_of_birth",
     canWriteNow: true,
-    writeMode: "create",
+    writeMode: "update",
     displayLabel: "Date of birth",
   },
   {
@@ -65,7 +65,7 @@ export const CLINIKO_PATIENT_FIELD_MAP: ClinikoPatientFieldDefinition[] = [
     sourceField: "addressLine1",
     clinikoField: "address_1",
     canWriteNow: true,
-    writeMode: "create",
+    writeMode: "update",
     displayLabel: "Address line 1",
   },
   {
@@ -73,7 +73,7 @@ export const CLINIKO_PATIENT_FIELD_MAP: ClinikoPatientFieldDefinition[] = [
     sourceField: "addressLine2",
     clinikoField: "address_2",
     canWriteNow: true,
-    writeMode: "create",
+    writeMode: "update",
     displayLabel: "Address line 2",
   },
   {
@@ -81,7 +81,7 @@ export const CLINIKO_PATIENT_FIELD_MAP: ClinikoPatientFieldDefinition[] = [
     sourceField: "city",
     clinikoField: "city",
     canWriteNow: true,
-    writeMode: "create",
+    writeMode: "update",
     displayLabel: "Town/city",
   },
   {
@@ -89,7 +89,7 @@ export const CLINIKO_PATIENT_FIELD_MAP: ClinikoPatientFieldDefinition[] = [
     sourceField: "postcode",
     clinikoField: "post_code",
     canWriteNow: true,
-    writeMode: "create",
+    writeMode: "update",
     displayLabel: "Postcode",
   },
   {
@@ -97,7 +97,7 @@ export const CLINIKO_PATIENT_FIELD_MAP: ClinikoPatientFieldDefinition[] = [
     sourceField: "emergencyContact",
     clinikoField: "emergency_contact",
     canWriteNow: true,
-    writeMode: "create",
+    writeMode: "update",
     displayLabel: "Emergency contact",
   },
   {
@@ -105,7 +105,7 @@ export const CLINIKO_PATIENT_FIELD_MAP: ClinikoPatientFieldDefinition[] = [
     sourceField: "gpOrReferrer",
     clinikoField: "referral_source",
     canWriteNow: true,
-    writeMode: "create",
+    writeMode: "update",
     displayLabel: "GP / referral source",
   },
   {
@@ -113,7 +113,7 @@ export const CLINIKO_PATIENT_FIELD_MAP: ClinikoPatientFieldDefinition[] = [
     sourceField: "reasonForVisit",
     clinikoField: "appointment_notes",
     canWriteNow: true,
-    writeMode: "create",
+    writeMode: "update",
     displayLabel: "Reason for visit",
   },
   {
@@ -121,7 +121,7 @@ export const CLINIKO_PATIENT_FIELD_MAP: ClinikoPatientFieldDefinition[] = [
     sourceField: "occupationOrActivity",
     clinikoField: "occupation",
     canWriteNow: true,
-    writeMode: "create",
+    writeMode: "update",
     displayLabel: "Occupation/activity",
   },
   {
@@ -129,7 +129,7 @@ export const CLINIKO_PATIENT_FIELD_MAP: ClinikoPatientFieldDefinition[] = [
     sourceField: "medicalWarning",
     clinikoField: "notes",
     canWriteNow: true,
-    writeMode: "create",
+    writeMode: "update",
     displayLabel: "Medical warning flag",
   },
   {
