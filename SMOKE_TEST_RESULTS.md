@@ -2,13 +2,13 @@
 
 | Field | Value |
 |-------|-------|
-| **Last updated** | 2026-06-30 (Patient reconciliation — commit `419690e`) |
-| **Feature commit** | `419690e` — Add existing patient reconciliation and safe updates |
-| **Smoke record commit** | `e071706` |
+| **Last updated** | 2026-07-01 (Server-side demo workflow state — commit `37d7a4e`) |
+| **Feature commit** | `37d7a4e` — Persist Command Hub workflow state server-side |
+| **Smoke record commit** | `ac48535` |
 | **Local lint** | **PASS** |
 | **Local build** | **PASS** |
-| **Local smoke** | **38/38 PASS** (production build on port 3013) |
-| **Production smoke** | **38/38 PASS** (2026-06-30, post `419690e` deploy) |
+| **Local smoke** | **40/40 PASS** (production build on port 3000) |
+| **Production smoke** | **40/40 PASS** (2026-07-01, post `37d7a4e` deploy) |
 | **Base URL (prod)** | https://tigers-eye-command-hub.vercel.app |
 
 ## Latest run summary
@@ -17,8 +17,29 @@
 |-------------|--------|--------|--------|-------|
 | Local lint | **PASS** | — | 0 | `npm run lint` |
 | Local build | **PASS** | — | 0 | `npm run build` |
-| Local smoke | **PASS** | 38 | 0 | `BASE_URL=http://127.0.0.1:3013 node scripts/smoke-check.mjs` |
-| Production (Vercel) | **PASS** | 38 | 0 | Patient reconciliation + safe DEMO update checks |
+| Local smoke | **PASS** | 40 | 0 | `npm run smoke:local` |
+| Production (Vercel) | **PASS** | 40 | 0 | Workflow state API auth + content checks |
+
+## Command Hub server-side demo workflow state (`37d7a4e`)
+
+- `lib/command-hub-workflow-store.ts` — server-side demo workflow state (`.data/` locally, `/tmp` on Vercel — ephemeral)
+- `lib/command-hub-workflow-migrate.ts` — one-time legacy browser `localStorage` migration
+- API: `GET/PATCH /api/command-hub/workflow-state` (staff auth; middleware-protected)
+- `CommandHubWorkflowProvider` — loads, migrates, optimistic PATCH sync
+- Moved from browser: appointment record flags, insurance demo cases, demo week preview toggle
+- Still browser-only: Cliniko test lab proof badge cards (`localStorage`)
+
+| Route / check | Result |
+|---------------|--------|
+| Unauthenticated `GET /api/command-hub/workflow-state` | **401 PASS** |
+| Authenticated `GET /api/command-hub/workflow-state` | **PASS** (store JSON) |
+| `/admin/insurance` | **PASS** (DEMO-CLAIM-001, server-side demo workflow state) |
+| `/admin/appointments/dcw-001` | **PASS** (note, follow-up, invoice, Command Hub demo case) |
+| `/admin/proof` | **PASS** (demo week preview + ephemeral `/tmp` honesty) |
+| `/admin/settings` | **PASS** (Preview demo clinic week) |
+| No API secrets in admin HTML | **PASS** |
+
+Production smoke: **40/40 PASS** on 2026-07-01 after deploy of `37d7a4e` (attempt 3 after deploy propagation).
 
 ## Existing patient reconciliation and safe DEMO patient update (`419690e`)
 
