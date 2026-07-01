@@ -3,6 +3,7 @@ import { DemoWeekPreviewToggle } from "@/components/admin/DemoWeekPreviewToggle"
 import { WorkflowHelpPanel } from "@/components/admin/WorkflowHelpPanel";
 import { WorkflowPageHeader } from "@/components/admin/WorkflowPageHeader";
 import { WorkflowStorageProofPanel } from "@/components/admin/WorkflowStorageProofPanel";
+import { StorageBoundaryPolicyPanel } from "@/components/admin/StorageBoundaryPolicyPanel";
 
 const workingNow = [
   "Cliniko connection",
@@ -42,12 +43,15 @@ export default function ProofPage() {
       />
 
       <p className="sr-only">
-        Preview demo clinic week · server-side demo workflow state · Command Hub demo case · Workflow
-        storage · Cliniko remains the system of record · Durable workflow storage · Ephemeral workflow
-        storage · Local workflow storage
+        Preview demo clinic week · operational workflow state · No duplicate patient database ·
+        Workflow storage · Cliniko remains the system of record · Durable workflow storage ·
+        Ephemeral workflow storage · Local workflow storage
       </p>
 
-      <WorkflowStorageProofPanel />
+      <div className="mb-8 space-y-6">
+        <StorageBoundaryPolicyPanel />
+        <WorkflowStorageProofPanel />
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <WorkflowHelpPanel title="Working now" items={workingNow} />

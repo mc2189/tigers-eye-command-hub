@@ -340,7 +340,7 @@ export function buildAppointmentWorkflowBundle(
       status: "needs-attention",
       label: "Insurance details missing",
       whyItMatters: "Insurer-funded work needs claim and session details captured.",
-      suggestedNextStep: "Open the insurance checklist and capture missing fields in Cliniko.",
+      suggestedNextStep: "Open the insurance checklist and capture missing fields in the Command Hub demo case.",
       source: "inferred",
     });
   }

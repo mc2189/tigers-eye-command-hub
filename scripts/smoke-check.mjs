@@ -334,6 +334,12 @@ const contentChecks = {
     if (!/Cliniko remains the system of record/i.test(body)) {
       return "missing Cliniko remains the system of record wording";
     }
+    if (!/No duplicate patient database/i.test(body)) {
+      return "missing No duplicate patient database wording";
+    }
+    if (!/operational workflow state/i.test(body)) {
+      return "missing operational workflow state wording";
+    }
     if (
       !/Durable workflow storage/i.test(body) &&
       !/Ephemeral workflow storage/i.test(body) &&
@@ -372,6 +378,12 @@ const contentChecks = {
     if (!/Cliniko remains the system of record/i.test(body)) {
       return "missing Cliniko remains the system of record wording";
     }
+    if (!/Cliniko source of truth/i.test(body)) {
+      return "missing Cliniko source of truth wording";
+    }
+    if (!/Command Hub workflow state/i.test(body)) {
+      return "missing Command Hub workflow state wording";
+    }
     if (
       !/Durable workflow storage/i.test(body) &&
       !/Ephemeral workflow storage/i.test(body) &&
@@ -408,6 +420,10 @@ const contentChecks = {
       return "missing Patient update safety proof section";
     }
     if (!/Workflow storage/i.test(body)) return "missing Workflow storage section";
+    if (!/Storage boundary policy/i.test(body)) {
+      return "missing Storage boundary policy section";
+    }
+    if (!/forbidden fields/i.test(body)) return "missing forbidden fields wording";
     if (!/Cliniko remains the system of record/i.test(body)) {
       return "missing Cliniko remains the system of record wording";
     }
@@ -696,6 +712,45 @@ async function checkRoute(route, requiresAuth) {
   }
 }
 
+async function checkForbiddenWorkflowPatch() {
+  const label = "workflow PATCH forbidden field".padEnd(36);
+  if (!authCookie) {
+    skipCount++;
+    console.log(`SKIP  ${label} (no DEMO_STAFF_PASSWORD for auth)`);
+    return;
+  }
+
+  try {
+    const res = await fetch(`${BASE_URL}/api/command-hub/workflow-state`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Cookie: authCookie,
+      },
+      body: JSON.stringify({
+        appointmentId: "dcw-001",
+        appointmentPatch: {
+          treatmentNoteBody: "This note must not be stored in workflow state.",
+          email: "patient@example.com",
+        },
+      }),
+    });
+    const json = await res.json();
+    if (res.status === 403 && json.ok === false && /Blocked for storage boundary/i.test(json.message ?? "")) {
+      passCount++;
+      console.log(`PASS  ${label}`);
+      return;
+    }
+    failCount++;
+    console.log(
+      `FAIL  ${label} expected HTTP 403 storage boundary block, got ${res.status} ${json.message ?? ""}`
+    );
+  } catch (err) {
+    failCount++;
+    console.log(`FAIL  ${label} ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
 console.log(`\nTigers Eye smoke check — ${BASE_URL}\n`);
 
 for (const route of publicRoutes) {
@@ -725,7 +780,10 @@ for (const route of protectedRoutes.filter((r) => r !== "/admin/login")) {
   await checkRoute(route, true);
 }
 
-const total = publicRoutes.length + protectedRoutes.length + 7;
+console.log("\nAuthenticated workflow boundary checks\n");
+await checkForbiddenWorkflowPatch();
+
+const total = publicRoutes.length + protectedRoutes.length + 8;
 console.log(
   `\nSummary: ${passCount} passed, ${failCount} failed, ${skipCount} skipped, ${total} checks\n`
 );

@@ -66,15 +66,20 @@ export function WorkflowStorageProofPanel({ compact = false }: WorkflowStoragePr
   return (
     <section className="rounded-xl border border-cream-dark bg-white p-5">
       <p className="sr-only">
-        Workflow storage · Cliniko remains the system of record · Durable workflow storage ·
-        Ephemeral workflow storage · Local workflow storage
+        Workflow storage · Cliniko remains the system of record · Cliniko source of truth · Command
+        Hub workflow state · No duplicate patient database · Durable workflow storage · Ephemeral
+        workflow storage · Local workflow storage · operational workflow state
       </p>
 
       <h2 className="text-lg font-bold text-navy">Workflow storage</h2>
       <p className="mt-1 text-sm text-slate">
         Cliniko remains the system of record for patients, appointments and treatment notes.
         Command Hub stores operational workflow state such as invoice flags, insurance demo cases and
-        follow-up workflow decisions.
+        follow-up workflow decisions. Durable workflow storage is for operational metadata, not a
+        replacement for Cliniko.
+      </p>
+      <p className="mt-2 text-xs font-medium text-navy">
+        Cliniko source of truth · Command Hub workflow state · No duplicate patient database
       </p>
 
       {storage ? (

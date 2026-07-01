@@ -190,7 +190,7 @@ export function buildAppointmentCompleteness(
       label: "Insurance details",
       status: profile?.insurer ? insuranceStatus : "Prepared for Cliniko",
       detail: profile?.insurer
-        ? "Command Hub demo case — not saved to Cliniko"
+        ? "Command Hub demo case — not saved to Cliniko unless custom fields or Healthcode/Xero are configured"
         : undefined,
     },
     { label: "Payment status", status: "Future integration" },

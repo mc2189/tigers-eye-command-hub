@@ -307,6 +307,18 @@ Checked admin routes at 375×812 (iPhone SE viewport) via responsive devtools:
 
 ---
 
+## Cliniko-first storage policy enforcement
+
+- [x] `docs/CLINIKO_FIRST_STORAGE_POLICY.md` formal policy document
+- [x] `lib/storage-boundary-policy.ts` field classification layer
+- [x] `lib/validate-command-hub-workflow-state.ts` blocks forbidden workflow patches
+- [x] `StorageBoundaryPolicyPanel` on proof, settings and test lab
+- [x] Insurance wording does not claim Cliniko persistence for demo case fields
+- [x] Workflow API returns 403 for forbidden/secret-like patches
+- [x] Cliniko remains system of record; Command Hub stores workflow metadata only
+
+---
+
 ## Durable workflow storage adapter
 
 - [x] `lib/workflow-storage/` adapter layer with file, Supabase, Vercel KV and Vercel Blob support

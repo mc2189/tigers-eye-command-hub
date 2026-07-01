@@ -214,6 +214,16 @@ It must **not** appear as the active Aviemore booking provider on `/book`.
 - See `docs/WORKFLOW_STORAGE.md` for durable provider setup — **no durable persistence unless env vars are configured**
 - Still browser-only: Cliniko test lab proof badge cards (`localStorage` in `ClinikoTestLabPanel.tsx`)
 
+## Cliniko-first storage policy and workflow boundary enforcement
+
+- `docs/CLINIKO_FIRST_STORAGE_POLICY.md` — formal storage policy
+- `lib/storage-boundary-policy.ts` — field classification registry
+- `lib/validate-command-hub-workflow-state.ts` — server-side validation before workflow store writes
+- Forbidden in workflow store: demographics, treatment note body, raw Cliniko payloads, secrets
+- `StorageBoundaryPolicyPanel` on proof, settings and test lab
+- Insurance fields remain Command Hub demo case data — not Cliniko-saved unless integrations are wired
+- One-line policy: clinical truth in Cliniko; operational workflow state in Command Hub; no duplicate patient database
+
 ## Command Hub GUI polish and live data display fix
 
 - **Root cause:** `toPatientLabel()` in `lib/cliniko.ts` abbreviated full DEMO names (e.g. `DEMO Test Patient 001` → `DEMO 0.`)

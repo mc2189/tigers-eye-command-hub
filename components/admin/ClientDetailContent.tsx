@@ -236,7 +236,7 @@ export function ClientDetailContent({ clientSlug }: ClientDetailContentProps) {
         <ul className="mt-2 list-inside list-disc space-y-1 text-slate">
           <li>Saved to Cliniko test account: patient/appointment when seeded via test lab</li>
           <li>Prepared for Cliniko: treatment notes, invoice drafts, follow-up suggestions</li>
-          <li>Command Hub demo case: invoice prepared flags, match links</li>
+          <li>Command Hub demo case: invoice prepared flags, match links, insurance workflow details (not saved to Cliniko unless custom fields or Healthcode/Xero are configured)</li>
           <li>Future integration: payment status, Xero, Healthcode</li>
         </ul>
         <p className="mt-3 font-medium text-navy">Next action: {journey.nextAction}</p>

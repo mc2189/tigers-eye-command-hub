@@ -337,7 +337,10 @@ export function AppointmentDetailContent({ appointmentId }: AppointmentDetailCon
               ? "Core DEMO patient fields when seeded/linked"
               : "None — preview only"}
           </li>
-          <li>Fields prepared-only: Insurance, preferred location/practitioner</li>
+          <li>
+            Fields prepared-only: Insurance (Command Hub demo case — not Cliniko-saved unless custom
+            fields configured), preferred location/practitioner
+          </li>
           <li>
             Fields needing review:{" "}
             {record.isDemoWeekPreview && !recordState.linkedPatientId

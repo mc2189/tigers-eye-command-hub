@@ -5,6 +5,9 @@ import {
   readCommandHubWorkflowStore,
 } from "@/lib/command-hub-workflow-store";
 import type { WorkflowStatePatch } from "@/lib/command-hub-workflow-types";
+import {
+  isStorageBoundaryBlockedMessage,
+} from "@/lib/validate-command-hub-workflow-state";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -33,7 +36,7 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ ok: true, store, storage });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Workflow state update failed.";
-    const blocked = message.includes("Blocked for safety");
+    const blocked = isStorageBoundaryBlockedMessage(message);
     return NextResponse.json(
       { ok: false, message },
       { status: blocked ? 403 : 500 }

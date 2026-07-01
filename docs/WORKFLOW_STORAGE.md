@@ -83,3 +83,9 @@ Both routes are protected by demo staff middleware.
 ## Legacy migration
 
 On first authenticated admin load, `CommandHubWorkflowProvider` migrates one-time legacy browser `localStorage` keys when the server store is empty, then clears local keys after a successful PATCH.
+
+## Cliniko-first boundary enforcement
+
+Durable adapters store **workflow metadata only** — not a clinical database. Server-side validation (`lib/validate-command-hub-workflow-state.ts`) blocks demographics, note bodies, raw Cliniko payloads and secrets before writes.
+
+Full policy: [CLINIKO_FIRST_STORAGE_POLICY.md](./CLINIKO_FIRST_STORAGE_POLICY.md)

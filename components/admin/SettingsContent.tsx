@@ -6,6 +6,7 @@ import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { DataHandlingPanel } from "@/components/admin/DataHandlingPanel";
 import { DemoWeekPreviewToggle } from "@/components/admin/DemoWeekPreviewToggle";
 import { WorkflowStorageProofPanel } from "@/components/admin/WorkflowStorageProofPanel";
+import { StorageBoundaryPolicyPanel } from "@/components/admin/StorageBoundaryPolicyPanel";
 import {
   DemoActionButton,
   DemoFeedbackToast,
@@ -136,11 +137,13 @@ export function SettingsContent() {
       />
 
       <p className="sr-only">
-        Workflow storage · Cliniko remains the system of record · Durable workflow storage ·
-        Ephemeral workflow storage · Local workflow storage
+        Workflow storage · Cliniko remains the system of record · Cliniko source of truth · Command
+        Hub workflow state · operational workflow state · No duplicate patient database · Durable
+        workflow storage · Ephemeral workflow storage · Local workflow storage
       </p>
 
-      <div className="mb-8">
+      <div className="mb-8 space-y-6">
+        <StorageBoundaryPolicyPanel />
         <WorkflowStorageProofPanel />
       </div>
 

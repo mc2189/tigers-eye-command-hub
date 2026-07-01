@@ -11,6 +11,7 @@ import { TreatmentNoteSafetyProofPanelLoader } from "@/components/admin/Treatmen
 import { InsuranceFieldStorageAuditPanel } from "@/components/admin/InsuranceFieldStorageAuditPanel";
 import { PatientUpdateSafetyProofPanel } from "@/components/admin/PatientUpdateSafetyProofPanel";
 import { WorkflowStorageProofPanel } from "@/components/admin/WorkflowStorageProofPanel";
+import { StorageBoundaryPolicyPanel } from "@/components/admin/StorageBoundaryPolicyPanel";
 
 export default function ClinikoTestLabPage() {
   return (
@@ -32,8 +33,10 @@ export default function ClinikoTestLabPage() {
         Run appointment discovery. Appointment source diagnostics. Clear local proof state.
         Check for DEMO appointments. Appointment proof diagnostics.         Treatment note safety proof.
         Insurance field storage audit. Patient update safety proof. Patient record write proof.
-        Workflow storage · Cliniko remains the system of record · Durable workflow storage ·
-        Ephemeral workflow storage · Local workflow storage
+        Workflow storage · Storage boundary policy · forbidden fields · Cliniko remains the system
+        of record · Cliniko source of truth · Command Hub workflow state · operational workflow
+        state · No duplicate patient database · Durable workflow storage · Ephemeral workflow storage
+        · Local workflow storage
       </p>
 
       <div className="mb-6 rounded-xl border border-amber-300 bg-amber-50 p-5">
@@ -60,6 +63,7 @@ export default function ClinikoTestLabPage() {
           <ClinikoMappingHealthPanel />
         </ClinikoPanelErrorBoundary>
         <DataHandlingPanel />
+        <StorageBoundaryPolicyPanel technical />
         <WorkflowStorageProofPanel compact />
         <TreatmentNoteSafetyProofPanelLoader />
         <InsuranceFieldStorageAuditPanel />
