@@ -4,7 +4,7 @@
 |-------|-------|
 | **Last updated** | 2026-07-01 (Cliniko-first storage boundary — commit `33090db`) |
 | **Feature commit** | `33090db` — Enforce Cliniko-first storage boundary |
-| **Smoke record commit** | `pending` |
+| **Smoke record commit** | `cd7f72c` |
 | **Local lint** | **PASS** |
 | **Local build** | **PASS** |
 | **Local smoke** | **43/43 PASS** (production build on port 3000) |
