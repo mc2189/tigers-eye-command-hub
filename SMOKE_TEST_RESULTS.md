@@ -2,13 +2,13 @@
 
 | Field | Value |
 |-------|-------|
-| **Last updated** | 2026-07-01 (Workflow storage adapter — commit `4377e2c`) |
-| **Feature commit** | `4377e2c` — Add durable workflow storage adapter |
-| **Smoke record commit** | `54fccb1` |
+| **Last updated** | 2026-07-01 (Cliniko-first storage boundary — commit `33090db`) |
+| **Feature commit** | `33090db` — Enforce Cliniko-first storage boundary |
+| **Smoke record commit** | `pending` |
 | **Local lint** | **PASS** |
 | **Local build** | **PASS** |
-| **Local smoke** | **42/42 PASS** (production build on port 3000) |
-| **Production smoke** | **42/42 PASS** (2026-07-01, post `4377e2c` deploy) |
+| **Local smoke** | **43/43 PASS** (production build on port 3000) |
+| **Production smoke** | **43/43 PASS** (2026-07-01, post `33090db` deploy) |
 | **Base URL (prod)** | https://tigers-eye-command-hub.vercel.app |
 
 ## Latest run summary
@@ -17,8 +17,27 @@
 |-------------|--------|--------|--------|-------|
 | Local lint | **PASS** | — | 0 | `npm run lint` |
 | Local build | **PASS** | — | 0 | `npm run build` |
-| Local smoke | **PASS** | 42 | 0 | `npm run smoke:local` |
-| Production (Vercel) | **PASS** | 42 | 0 | Workflow storage adapter + status API checks |
+| Local smoke | **PASS** | 43 | 0 | `npm run smoke:local` |
+| Production (Vercel) | **PASS** | 43 | 0 | Storage boundary policy + forbidden PATCH check |
+
+## Cliniko-first storage boundary enforcement (`33090db`)
+
+- `docs/CLINIKO_FIRST_STORAGE_POLICY.md` — formal policy document
+- `lib/storage-boundary-policy.ts` — field classification registry
+- `lib/validate-command-hub-workflow-state.ts` — server-side validation before workflow writes
+- `StorageBoundaryPolicyPanel` on proof, settings and test lab
+- Workflow PATCH rejects forbidden fields (demographics, note body, secrets) with HTTP 403
+- Insurance wording: Command Hub demo case — not Cliniko-saved unless integrations configured
+
+| Route / check | Result |
+|---------------|--------|
+| `/admin/proof` storage boundary + no duplicate patient database | **PASS** |
+| `/admin/settings` Cliniko source of truth + workflow state | **PASS** |
+| `/admin/cliniko/test-lab` storage boundary policy + forbidden fields | **PASS** |
+| Authenticated forbidden workflow PATCH | **403 PASS** |
+| No credential markers in admin HTML | **PASS** |
+
+Production smoke: **43/43 PASS** on 2026-07-01 after deploy of `33090db` (attempt 3).
 
 ## Durable workflow storage adapter (`4377e2c`)
 
