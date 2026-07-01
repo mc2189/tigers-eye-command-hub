@@ -4,7 +4,7 @@
 |-------|-------|
 | **Last updated** | 2026-06-30 (Patient reconciliation — commit `419690e`) |
 | **Feature commit** | `419690e` — Add existing patient reconciliation and safe updates |
-| **Smoke record commit** | _(this commit)_ |
+| **Smoke record commit** | `e071706` |
 | **Local lint** | **PASS** |
 | **Local build** | **PASS** |
 | **Local smoke** | **38/38 PASS** (production build on port 3013) |
@@ -19,6 +19,25 @@
 | Local build | **PASS** | — | 0 | `npm run build` |
 | Local smoke | **PASS** | 38 | 0 | `BASE_URL=http://127.0.0.1:3013 node scripts/smoke-check.mjs` |
 | Production (Vercel) | **PASS** | 38 | 0 | Patient reconciliation + safe DEMO update checks |
+
+## Existing patient reconciliation and safe DEMO patient update (`419690e`)
+
+- `lib/patient-field-reconciliation.ts` — field-by-field intake vs Cliniko comparison
+- `lib/demo-patient-update.ts` — staff-confirmed selected-field PATCH with read-back
+- API: `POST /api/cliniko/patient-reconciliation`, `POST /api/cliniko/update-demo-patient-intake`
+- Intake field comparison panel after DEMO match confirmation
+- Client detail: Client record reconciliation summary
+- Appointment detail: Patient details section
+- Test lab: Patient update safety proof
+
+| Route | Content check | Result |
+|-------|---------------|--------|
+| `/admin/intake` | Field comparison, update safety copy | PASS |
+| `/admin/clients/demo-alex-wilson` | Client record reconciliation | PASS |
+| `/admin/appointments/dcw-001` | Patient details, Review patient details | PASS |
+| `/admin/cliniko/test-lab` | Patient update safety proof, read-back verification | PASS |
+
+Production smoke: **38/38 PASS** on 2026-06-30 after deploy of `419690e`.
 
 ## Treatment note hardening and insurance storage audit
 
