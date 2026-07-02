@@ -43,7 +43,7 @@ async function trySupabaseAdapter(
   if (!supabase) {
     if (preference === "supabase") {
       return createUnavailableSupabaseAdapter(
-        "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY."
+        "Missing SUPABASE_URL or SUPABASE_SECRET_KEY / SUPABASE_SERVICE_ROLE_KEY."
       );
     }
     return null;

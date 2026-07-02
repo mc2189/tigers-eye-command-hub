@@ -5,6 +5,11 @@ import {
   normalizeWorkflowStore,
   stampWorkflowStore,
 } from "@/lib/workflow-storage/store-utils";
+import {
+  getSupabaseProjectUrl,
+  getSupabaseServiceRoleKey,
+  isSupabaseWorkflowCredentialsConfigured,
+} from "@/lib/workflow-storage/supabase-env";
 import type { CommandHubWorkflowStore } from "@/lib/command-hub-workflow-types";
 import type { WorkflowStorageInfo, WorkflowStoreAdapter } from "@/lib/workflow-storage/types";
 
@@ -12,9 +17,7 @@ const DEFAULT_TABLE = "command_hub_workflow_state";
 const DEFAULT_STORE_ID = "tigers-eye-demo";
 
 export function isSupabaseWorkflowStorageConfigured(): boolean {
-  return Boolean(
-    process.env.SUPABASE_URL?.trim() && process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()
-  );
+  return isSupabaseWorkflowCredentialsConfigured();
 }
 
 export function getSupabaseWorkflowConfig() {
@@ -33,7 +36,7 @@ function supabaseInfo(configured: boolean, description?: string, warning?: strin
       description ??
       (configured
         ? "Command Hub workflow state is stored in Supabase. Cliniko remains the system of record for patients, appointments and clinical notes."
-        : "Supabase workflow storage is not configured (missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY)."),
+        : "Supabase workflow storage is not configured (missing SUPABASE_URL or SUPABASE_SECRET_KEY / SUPABASE_SERVICE_ROLE_KEY)."),
     warning,
     configured,
   };
@@ -42,7 +45,7 @@ function supabaseInfo(configured: boolean, description?: string, warning?: strin
 function classifySupabaseHttpError(status: number, bodyText: string): string {
   const snippet = bodyText.slice(0, 200);
   if (status === 401 || status === 403) {
-    return "Supabase authentication failed — check SUPABASE_SERVICE_ROLE_KEY.";
+    return "Supabase authentication failed — check SUPABASE_SECRET_KEY or SUPABASE_SERVICE_ROLE_KEY.";
   }
   if (status === 404 || /PGRST205/i.test(snippet) || /relation .* does not exist/i.test(snippet)) {
     return "Supabase table missing — run the SQL in docs/WORKFLOW_STORAGE.md.";
@@ -74,8 +77,8 @@ export function createUnavailableSupabaseAdapter(reason: string): WorkflowStoreA
 }
 
 export function createSupabaseWorkflowStore(): WorkflowStoreAdapter | null {
-  const url = process.env.SUPABASE_URL?.trim();
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  const url = getSupabaseProjectUrl();
+  const serviceKey = getSupabaseServiceRoleKey();
   if (!url || !serviceKey) return null;
 
   const { table, storeId } = getSupabaseWorkflowConfig();

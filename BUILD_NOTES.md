@@ -233,6 +233,7 @@ It must **not** appear as the active Aviemore booking provider on `/book`.
 - `EXPECT_DURABLE_WORKFLOW_STORAGE=true` optional strict smoke flag
 - `lib/workflow-storage/supabase-env.ts` — `SUPABASE_SECRET_KEY` or legacy `SUPABASE_SERVICE_ROLE_KEY`
 - `scripts/probe-supabase-workflow-storage.mjs` — local preflight before Vercel deploy
+- `npm run sync:vercel-env:supabase` — sync Supabase env vars from `.env.local` to Vercel (never prints secrets)
 - Production **active** (2026-07-02): `mode=supabase`, `durability=durable`, `canRead` + `canWrite` verified
 
 ## Command Hub GUI polish and live data display fix
@@ -314,6 +315,8 @@ npm run smoke:local   # dev server required
 npm run smoke:prod    # production URL
 npm run check:workflow-storage        # local status probe
 npm run check:workflow-storage:prod   # production status probe
+npm run probe:supabase                # local Supabase table read/write preflight
+npm run sync:vercel-env:supabase      # push Supabase env vars to Vercel (requires CLI login)
 # Strict durable (only when Supabase env vars configured):
 EXPECT_DURABLE_WORKFLOW_STORAGE=true npm run smoke:prod
 ```

@@ -103,11 +103,20 @@ Do not commit real values.
 2. Add the variables above for **Production** (and Preview if needed)
 3. Set `COMMAND_HUB_WORKFLOW_STORAGE=supabase`
 4. **Redeploy** production
-5. Run production smoke:
+5. Run local preflight (optional):
+   ```bash
+   npm run probe:supabase
+   ```
+6. Sync to Vercel (after `npx vercel login && npx vercel link`):
+   ```bash
+   npm run sync:vercel-env:supabase
+   npx vercel --prod
+   ```
+7. Run production smoke:
    ```bash
    DEMO_STAFF_PASSWORD=<password> npm run smoke:prod
    ```
-6. Confirm status API:
+8. Confirm status API:
    ```bash
    npm run check:workflow-storage:prod:durable
    ```

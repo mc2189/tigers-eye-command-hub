@@ -12,7 +12,10 @@
     "smoke:prod": "BASE_URL=https://tigers-eye-command-hub.vercel.app node scripts/smoke-check.mjs",
     "check:workflow-storage": "node scripts/check-workflow-storage.mjs",
     "check:workflow-storage:prod": "node scripts/check-workflow-storage.mjs --base-url=https://tigers-eye-command-hub.vercel.app",
+    "check:workflow-storage:prod:durable": "node scripts/check-workflow-storage.mjs --base-url=https://tigers-eye-command-hub.vercel.app --expect-durable",
+    "probe:supabase": "node scripts/probe-supabase-workflow-storage.mjs",
     "sync:vercel-env": "node scripts/sync-vercel-env.mjs",
+    "sync:vercel-env:supabase": "node scripts/sync-vercel-env.mjs --supabase",
     "test": "node --test lib/cliniko-demo-appointments.test.ts"
   },
   "dependencies": {
