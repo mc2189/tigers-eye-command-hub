@@ -2,13 +2,14 @@
 
 | Field | Value |
 |-------|-------|
-| **Last updated** | 2026-07-02 (Supabase durable workflow storage activated in production) |
-| **Feature commit** | `4ea56ff` — Enable Supabase durable workflow storage checks |
-| **Smoke record commit** | `5a97c26` |
+| **Last updated** | 2026-07-02 (Insurance invoice preparation workflow wired into admin) |
+| **Feature commit** | `d6e53c7` — Wire insurance invoice draft workflow into admin |
+| **Smoke record commit** | _(pending this commit)_ |
 | **Local lint** | **PASS** |
 | **Local build** | **PASS** |
-| **Local smoke** | **43/44 PASS** (1 skipped: `EXPECT_DURABLE_WORKFLOW_STORAGE`; fresh build on port 3010) |
-| **Production smoke** | **44/44 PASS** (2026-07-02, strict durable check enabled) |
+| **Local test** | **PASS** (6 tests) |
+| **Local smoke** | **45/46 PASS** (1 skipped: `EXPECT_DURABLE_WORKFLOW_STORAGE`; port 3001) |
+| **Production smoke** | **46/46 PASS** (2026-07-02, strict durable check enabled) |
 | **Production storage** | `supabase` / `durable` — env vars configured in Vercel Production |
 | **Base URL (prod)** | https://tigers-eye-command-hub.vercel.app |
 
@@ -18,10 +19,33 @@
 |-------------|--------|--------|--------|-------|
 | Local lint | **PASS** | — | 0 | `npm run lint` |
 | Local build | **PASS** | — | 0 | `npm run build` |
-| Local smoke | **PASS** | 43 | 0 | `BASE_URL=http://localhost:3010` (44 checks; 1 skipped) |
-| Local storage check | **PASS** | — | 0 | `supabase` / `durable` after local env + table setup |
-| Production (Vercel) | **PASS** | 44 | 0 | `EXPECT_DURABLE_WORKFLOW_STORAGE=true` |
+| Local test | **PASS** | 6 | 0 | `npm run test` |
+| Local smoke | **PASS** | 45 | 0 | `BASE_URL=http://localhost:3001` (46 checks; 1 skipped durable) |
+| Production (Vercel) | **PASS** | 46 | 0 | `EXPECT_DURABLE_WORKFLOW_STORAGE=true npm run smoke:prod` |
 | Production storage check | **PASS** | — | 0 | `mode=supabase`, `durability=durable`, `canRead` + `canWrite` |
+
+## Insurance invoice preparation workflow (`d6e53c7`)
+
+- `/admin/invoices` — preparation hub: Ready to invoice, Needs missing details, Prepared drafts, future Xero/Healthcode
+- `/admin/invoices/demo-aviva` — stable smoke route for DEMO Sarah McKay Aviva invoice draft
+- Copy/export actions (summary, details, session table, CSV, JSON) — client-side only; **Prepared invoice draft — not sent**
+- Workflow flags in Supabase `store.invoiceDrafts[invoiceDraftId]` — prepared/exported timestamps only; full drafts not persisted
+- Appointment, client and insurance pages link to invoice drafts
+- Cliniko remains clinical system of record; no real invoice submission; Xero/Healthcode remain future integrations
+- Storage-boundary forbidden PATCH still **403**; no credential markers in admin HTML
+
+| Route / check | Result |
+|---------------|--------|
+| `/admin/invoices` Ready to invoice + Needs missing details + Open invoice draft | **PASS** |
+| `/admin/invoices/demo-aviva` Invoice draft + Copy + CSV + Prepared wording | **PASS** |
+| `/admin/insurance` Open invoice draft | **PASS** |
+| `/admin/clients/demo-sarah-mckay` Invoice draft | **PASS** |
+| `/admin/appointments/dcw-001` Open/Prepared invoice draft wording | **PASS** |
+| Forbidden workflow PATCH | **403 PASS** |
+| `EXPECT_DURABLE_WORKFLOW_STORAGE` | **PASS** |
+| No `SUPABASE_SECRET_KEY` / `CLINIKO_API_KEY` in admin HTML | **PASS** |
+
+Production smoke: **46/46 PASS** on 2026-07-02 after deploy of `d6e53c7`.
 
 ## Supabase durable workflow storage — production activation (2026-07-02)
 
