@@ -236,6 +236,13 @@ It must **not** appear as the active Aviemore booking provider on `/book`.
 - `npm run sync:vercel-env:supabase` — sync Supabase env vars from `.env.local` to Vercel (never prints secrets)
 - Production **active** (2026-07-02): `mode=supabase`, `durability=durable`, `canRead` + `canWrite` verified
 
+## Insurance invoice draft model (Part A)
+
+- `lib/invoice-draft-types.ts` — `InsuranceInvoiceDraft`, session lines, export pack, readiness
+- `lib/demo-invoice-drafts.ts` — DEMO policy/session seeds for default insurance cases
+- `lib/build-insurance-invoice-draft.ts` — builds draft + plain-text export pack from `InsuranceCase` (read-only derivation)
+- Not Xero/Healthcode integration — export pack is for staff copy/review; Cliniko remains clinical system of record
+
 ## Command Hub GUI polish and live data display fix
 
 - **Root cause:** `toPatientLabel()` in `lib/cliniko.ts` abbreviated full DEMO names (e.g. `DEMO Test Patient 001` → `DEMO 0.`)
