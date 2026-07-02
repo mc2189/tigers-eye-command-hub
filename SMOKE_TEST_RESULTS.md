@@ -4,7 +4,7 @@
 |-------|-------|
 | **Last updated** | 2026-07-02 (Supabase durable workflow storage activated in production) |
 | **Feature commit** | `4ea56ff` — Enable Supabase durable workflow storage checks |
-| **Smoke record commit** | *(this commit)* |
+| **Smoke record commit** | `5a97c26` |
 | **Local lint** | **PASS** |
 | **Local build** | **PASS** |
 | **Local smoke** | **43/44 PASS** (1 skipped: `EXPECT_DURABLE_WORKFLOW_STORAGE`; fresh build on port 3010) |
