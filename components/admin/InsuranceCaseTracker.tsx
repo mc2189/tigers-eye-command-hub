@@ -58,9 +58,7 @@ export function InsuranceCaseTracker() {
           policy, claim and authorisation details are{" "}
           <strong>Command Hub demo case data</strong> (server-side demo workflow state) unless a
           Cliniko custom-field or Healthcode/Xero integration is configured — not written to Cliniko
-          today. On Vercel this uses ephemeral{" "}
-          <code className="text-xs">/tmp</code> storage; for durable cross-deploy storage, wire
-          Vercel KV/Blob, Supabase, Postgres or similar.
+          today. Durable workflow metadata is stored in Supabase when configured.
         </p>
         <p className="mt-2 text-xs text-slate">
           Command Hub demo case · Future Healthcode integration · Future Xero integration

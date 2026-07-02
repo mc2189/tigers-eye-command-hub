@@ -143,8 +143,28 @@ Use this before showing George. Tick each item after verifying in the browser.
 - [ ] Estimated income disclaimer visible
 
 ### Invoices (`/admin/invoices`)
-- [ ] Invoice queue loads or shows empty/error state
+- [ ] Ready to invoice / Needs missing details / Prepared invoice drafts sections visible
+- [ ] Open invoice draft links work
+- [ ] `/admin/invoices/demo-aviva` opens invoice draft detail
+- [ ] Copy invoice details and CSV/JSON download work (or fail gracefully)
+- [ ] Mark prepared / Mark exported persist after refresh (Supabase workflow state)
+- [ ] Future Xero / Future Healthcode labelled — not claimed as live
 - [ ] Demo invoice actions respond
+
+### Invoice draft detail (`/admin/invoices/demo-aviva`)
+- [ ] Invoice draft, billing summary, insurer details, sessions table visible
+- [ ] Prepared invoice draft — not sent honesty label visible
+- [ ] No secrets in page HTML
+
+### Client invoice journey (`/admin/clients/demo-sarah-mckay`)
+- [ ] Invoice draft section with Open invoice draft link
+
+### Appointment invoice link (`/admin/appointments/dcw-001`)
+- [ ] Open invoice draft or Prepared invoice draft wording in invoice section
+
+### Insurance invoice links (`/admin/insurance`)
+- [ ] Open invoice draft per case
+- [ ] Honesty note: demo case data, not sent to insurer
 
 ### Insurance (`/admin/insurance`)
 - [ ] Inferred cases callout — not stored

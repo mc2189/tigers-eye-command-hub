@@ -65,12 +65,14 @@ const protectedRoutes = [
   "/admin/payments",
   "/admin/finance",
   "/admin/invoices",
+  "/admin/invoices/demo-aviva",
   "/admin/insurance",
   "/admin/notes",
   "/admin/stock",
   "/admin/followups",
   "/admin/clients",
   "/admin/clients/demo-alex-wilson",
+  "/admin/clients/demo-sarah-mckay",
   "/admin/intake",
   "/admin/appointments/dcw-001",
   "/admin/proof",
@@ -173,10 +175,9 @@ const contentChecks = {
     if (!/invoice or payment check|invoice check/i.test(body)) {
       return "missing invoices purpose/check wording";
     }
-    if (!/Insurance invoice queue/i.test(body)) {
-      return "missing Insurance invoice queue section";
-    }
-    if (!/Ready to draft/i.test(body)) return "missing Ready to draft wording";
+    if (!/Ready to invoice/i.test(body)) return "missing Ready to invoice section";
+    if (!/Needs missing details/i.test(body)) return "missing Needs missing details section";
+    if (!/Open invoice draft/i.test(body)) return "missing Open invoice draft action";
     if (!/Insurance invoice draft/i.test(body)) {
       return "missing Insurance invoice draft section";
     }
@@ -188,6 +189,17 @@ const contentChecks = {
     }
     if (!/Future Healthcode integration/i.test(body)) {
       return "missing Future Healthcode integration wording";
+    }
+    return null;
+  },
+  "/admin/invoices/demo-aviva": (body) => {
+    if (!/Invoice draft/i.test(body)) return "missing Invoice draft heading";
+    if (!/Copy invoice details/i.test(body)) return "missing Copy invoice details action";
+    if (!/Download invoice draft as CSV/i.test(body)) {
+      return "missing Download invoice draft as CSV action";
+    }
+    if (!/Prepared invoice draft/i.test(body)) {
+      return "missing Prepared invoice draft wording";
     }
     return null;
   },
@@ -211,6 +223,7 @@ const contentChecks = {
     if (!/Future Xero integration/i.test(body)) {
       return "missing Future Xero integration wording";
     }
+    if (!/Open invoice draft/i.test(body)) return "missing Open invoice draft action";
     if (!/server-side demo workflow state/i.test(body)) {
       return "missing server-side demo workflow state wording";
     }
@@ -302,6 +315,9 @@ const contentChecks = {
     if (!/Review patient details/i.test(body)) return "missing Review patient details link";
     if (!/Follow-up/i.test(body)) return "missing Follow-up section";
     if (!/Invoice/i.test(body)) return "missing Invoice section";
+    if (!/Open invoice draft/i.test(body) && !/Prepared invoice draft/i.test(body)) {
+      return "missing Open invoice draft or Prepared invoice draft wording";
+    }
     if (!/Command Hub demo case/i.test(body)) return "missing Command Hub demo case wording";
     if (!/server-side demo workflow state/i.test(body)) {
       return "missing server-side demo workflow state wording";
@@ -321,6 +337,11 @@ const contentChecks = {
       return "missing Review intake matching and updates";
     }
     if (!/Future integration/i.test(body)) return "missing Future integration section";
+    return null;
+  },
+  "/admin/clients/demo-sarah-mckay": (body) => {
+    if (!/Invoice draft/i.test(body)) return "missing Invoice draft section";
+    if (!/Open invoice draft/i.test(body)) return "missing Open invoice draft action";
     return null;
   },
   "/admin/proof": (body) => {
@@ -534,7 +555,7 @@ const contentChecks = {
     if (serialized.includes("CLINIKO_API_KEY") || serialized.includes("DEMO_SESSION_SECRET")) {
       return "API response may leak secret env names";
     }
-    if (serialized.includes("KV_REST_API_TOKEN") || serialized.includes("SUPABASE_SERVICE_ROLE_KEY")) {
+    if (serialized.includes("KV_REST_API_TOKEN") || serialized.includes("SUPABASE_SERVICE_ROLE_KEY") || serialized.includes("SUPABASE_SECRET_KEY")) {
       return "API response may leak durable storage credentials";
     }
     if (serialized.includes("BLOB_READ_WRITE_TOKEN")) {
@@ -561,6 +582,7 @@ const contentChecks = {
     if (
       serialized.includes("KV_REST_API_TOKEN") ||
       serialized.includes("SUPABASE_SERVICE_ROLE_KEY") ||
+      serialized.includes("SUPABASE_SECRET_KEY") ||
       serialized.includes("BLOB_READ_WRITE_TOKEN")
     ) {
       return "status response may leak storage credential markers";
@@ -581,6 +603,7 @@ const SECRET_MARKERS = [
   "DEMO_STAFF_PASSWORD",
   "KV_REST_API_TOKEN",
   "SUPABASE_SERVICE_ROLE_KEY",
+  "SUPABASE_SECRET_KEY",
   "BLOB_READ_WRITE_TOKEN",
 ];
 

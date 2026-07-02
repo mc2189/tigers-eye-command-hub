@@ -6,6 +6,7 @@ import { useCommandHubAppointments } from "@/components/admin/CommandHubAppointm
 import {
   useCommandHubWorkflow,
 } from "@/components/admin/CommandHubWorkflowProvider";
+import { useInvoiceDraftList } from "@/components/admin/useInvoiceDraftList";
 import { DataSourcePill } from "@/components/admin/DataSourcePill";
 import { OpenClientButton } from "@/components/admin/OpenRecordButton";
 import { PatientMatchPanel } from "@/components/admin/PatientMatchPanel";
@@ -16,6 +17,7 @@ import { DEMO_NOTE_SAFETY_COPY } from "@/lib/demo-clinic-week";
 import type { BookingIntakeInput } from "@/lib/cliniko-patient-matching";
 import { buildAppointmentCompleteness } from "@/lib/record-completeness";
 import { patientLabelToSlug } from "@/lib/appointment-records";
+import { invoiceDraftDetailPath } from "@/lib/invoice-draft-ids";
 import { getTreatmentNoteEligibility } from "@/lib/treatment-note-eligibility";
 
 interface AppointmentDetailContentProps {
@@ -37,6 +39,7 @@ function formatDay(date: string): string {
 export function AppointmentDetailContent({ appointmentId }: AppointmentDetailContentProps) {
   const { mapped, demoWeekPreview, configured } = useCommandHubAppointments();
   const { store, updateAppointmentState } = useCommandHubWorkflow();
+  const { items: invoiceDraftItems } = useInvoiceDraftList();
   const recordState = useMemo(
     () => store?.appointments[appointmentId] ?? {},
     [store?.appointments, appointmentId]
@@ -61,6 +64,12 @@ export function AppointmentDetailContent({ appointmentId }: AppointmentDetailCon
 
   const scenario = record?.scenario;
   const profile = scenario?.clientProfile;
+
+  const invoiceDraftItem = useMemo(() => {
+    if (!scenario?.patientLabel) return undefined;
+    const slug = patientLabelToSlug(scenario.patientLabel);
+    return invoiceDraftItems.find((item) => item.clientSlug === slug);
+  }, [invoiceDraftItems, scenario?.patientLabel]);
 
   const sourceLabel = record?.isDemoWeekPreview
     ? "Demo week preview"
@@ -514,6 +523,7 @@ export function AppointmentDetailContent({ appointmentId }: AppointmentDetailCon
 
           <section id="invoice-payment" className="rounded-xl border border-cream-dark bg-white p-5">
             <h2 className="text-lg font-bold text-navy">Invoice / payment</h2>
+            <p className="sr-only">Open invoice draft · Prepared invoice draft</p>
             <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
               <div><dt className="text-slate">Expected fee</dt><dd>£{scenario.expectedFee}</dd></div>
               <div><dt className="text-slate">Payment status</dt><dd>Future integration — payment check suggested</dd></div>
@@ -538,8 +548,21 @@ export function AppointmentDetailContent({ appointmentId }: AppointmentDetailCon
               <button type="button" onClick={() => void copyInvoice()} className="min-h-10 rounded-lg border border-cream-dark px-4 py-2 text-sm font-medium text-navy hover:bg-cream">
                 Copy invoice details
               </button>
+              {invoiceDraftItem ? (
+                <Link
+                  href={invoiceDraftDetailPath(invoiceDraftItem.id)}
+                  className="min-h-10 inline-flex items-center rounded-lg border border-green/40 bg-green-muted/30 px-4 py-2 text-sm font-medium text-navy hover:bg-cream"
+                >
+                  Open invoice draft
+                </Link>
+              ) : null}
             </div>
-            <p className="mt-2 text-xs text-slate">Future Xero integration · Future Healthcode integration</p>
+            <p className="mt-2 text-xs text-slate">
+              {recordState.invoicePrepared
+                ? "Prepared invoice draft — not sent"
+                : "Prepared for Cliniko — use Open invoice draft for insurance export pack"}
+              {" · "}Future Xero integration · Future Healthcode integration
+            </p>
             {followUpMessage && <p className="mt-2 text-sm text-navy">{followUpMessage}</p>}
           </section>
 

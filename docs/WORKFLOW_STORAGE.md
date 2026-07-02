@@ -6,7 +6,8 @@ Command Hub stores **operational demo workflow state** separately from Cliniko. 
 
 ## What is stored in Command Hub workflow state
 
-- Invoice prepared flags
+- Invoice prepared/exported flags (per `invoiceDraftId` in `store.invoiceDrafts`)
+- Invoice draft copy/export timestamps and last staff action label
 - Note/follow-up workflow flags
 - Linked patient decisions (Cliniko IDs + DEMO labels)
 - Insurance demo case details (DEMO labels only)

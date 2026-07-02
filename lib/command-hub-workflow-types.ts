@@ -40,6 +40,17 @@ export interface AppointmentRecordState {
   };
 }
 
+/** Operational invoice workflow flags only — not full draft payloads. */
+export interface InvoiceDraftWorkflowState {
+  invoiceDraftPrepared?: boolean;
+  invoiceDraftExported?: boolean;
+  invoiceDraftCopiedAt?: string;
+  invoiceDraftExportedAt?: string;
+  invoiceDraftLastAction?: string;
+  invoiceDraftPreparedAt?: string;
+  invoiceDraftPreparedByDemoStaff?: boolean;
+}
+
 export interface CommandHubWorkflowStore {
   version: 1;
   updatedAt: string;
@@ -47,6 +58,7 @@ export interface CommandHubWorkflowStore {
   appointments: Record<string, AppointmentRecordState>;
   patients: Record<string, { clinikoPatientId?: string; createdAt?: string }>;
   insuranceCases: Record<string, DemoInsuranceCaseDetail>;
+  invoiceDrafts: Record<string, InvoiceDraftWorkflowState>;
   /** Operational metadata — storage health probe timestamp only */
   storageHealthCheckAt?: string;
 }
@@ -57,11 +69,14 @@ export interface WorkflowStatePatch {
   appointmentPatch?: Partial<AppointmentRecordState>;
   insuranceCase?: DemoInsuranceCaseDetail;
   resetInsuranceCases?: boolean;
+  invoiceDraftId?: string;
+  invoiceDraftPatch?: Partial<InvoiceDraftWorkflowState>;
   /** One-time merge from legacy browser localStorage */
   migrateFromBrowser?: {
     appointments?: Record<string, AppointmentRecordState>;
     patients?: Record<string, { clinikoPatientId?: string; createdAt?: string }>;
     insuranceCases?: Record<string, DemoInsuranceCaseDetail>;
+    invoiceDrafts?: Record<string, InvoiceDraftWorkflowState>;
     demoWeekPreview?: boolean;
   };
 }

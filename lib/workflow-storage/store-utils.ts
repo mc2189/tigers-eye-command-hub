@@ -6,6 +6,7 @@ import {
 import type {
   AppointmentRecordState,
   CommandHubWorkflowStore,
+  InvoiceDraftWorkflowState,
   WorkflowStatePatch,
 } from "@/lib/command-hub-workflow-types";
 
@@ -21,6 +22,7 @@ export function createDefaultWorkflowStore(): CommandHubWorkflowStore {
     insuranceCases: Object.fromEntries(
       DEFAULT_DEMO_INSURANCE_CASES.map((c) => [c.patientLabel, c])
     ),
+    invoiceDrafts: {},
   };
 }
 
@@ -50,6 +52,8 @@ export function normalizeWorkflowStore(raw: unknown): CommandHubWorkflowStore {
       obj.appointments && typeof obj.appointments === "object" ? obj.appointments : {},
     patients: obj.patients && typeof obj.patients === "object" ? obj.patients : {},
     insuranceCases: sanitizeInsuranceCases(obj.insuranceCases) ?? base.insuranceCases,
+    invoiceDrafts:
+      obj.invoiceDrafts && typeof obj.invoiceDrafts === "object" ? obj.invoiceDrafts : {},
     storageHealthCheckAt:
       typeof obj.storageHealthCheckAt === "string" ? obj.storageHealthCheckAt : undefined,
   };
@@ -81,6 +85,7 @@ export function applyWorkflowPatch(
         ...next.insuranceCases,
         ...(sanitizeInsuranceCases(m.insuranceCases) ?? {}),
       },
+      invoiceDrafts: { ...next.invoiceDrafts, ...(m.invoiceDrafts ?? {}) },
     };
   }
 
@@ -93,6 +98,14 @@ export function applyWorkflowPatch(
     next.appointments = {
       ...next.appointments,
       [id]: { ...(next.appointments[id] ?? {}), ...patch.appointmentPatch },
+    };
+  }
+
+  if (patch.invoiceDraftId && patch.invoiceDraftPatch) {
+    const id = patch.invoiceDraftId;
+    next.invoiceDrafts = {
+      ...next.invoiceDrafts,
+      [id]: { ...(next.invoiceDrafts[id] ?? {}), ...patch.invoiceDraftPatch },
     };
   }
 

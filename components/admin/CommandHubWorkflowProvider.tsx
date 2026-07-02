@@ -18,6 +18,7 @@ import {
 import type {
   AppointmentRecordState,
   CommandHubWorkflowStore,
+  InvoiceDraftWorkflowState,
 } from "@/lib/command-hub-workflow-types";
 import type {
   WorkflowMigrationStatus,
@@ -48,6 +49,11 @@ interface CommandHubWorkflowContextValue {
   setDemoWeekPreview: (active: boolean) => Promise<void>;
   saveInsuranceCase: (detail: DemoInsuranceCaseDetail) => Promise<void>;
   resetInsuranceCases: () => Promise<void>;
+  getInvoiceDraftState: (invoiceDraftId: string) => InvoiceDraftWorkflowState;
+  updateInvoiceDraftState: (
+    invoiceDraftId: string,
+    patch: Partial<InvoiceDraftWorkflowState>
+  ) => Promise<InvoiceDraftWorkflowState>;
   reload: () => Promise<void>;
 }
 
@@ -164,6 +170,7 @@ export function CommandHubWorkflowProvider({ children }: { children: ReactNode }
             appointments: {},
             patients: {},
             insuranceCases: {},
+            invoiceDrafts: {},
           });
           setMigration({
             attempted: true,
@@ -193,6 +200,7 @@ export function CommandHubWorkflowProvider({ children }: { children: ReactNode }
           appointments: {},
           patients: {},
           insuranceCases: {},
+          invoiceDrafts: {},
         }),
         appointments: {
           ...(store?.appointments ?? {}),
@@ -241,6 +249,34 @@ export function CommandHubWorkflowProvider({ children }: { children: ReactNode }
     applyResponse(json);
   }, [applyResponse]);
 
+  const updateInvoiceDraftState = useCallback(
+    async (invoiceDraftId: string, patch: Partial<InvoiceDraftWorkflowState>) => {
+      const optimistic: CommandHubWorkflowStore = {
+        ...(store ?? {
+          version: 1,
+          updatedAt: new Date().toISOString(),
+          demoWeekPreview: true,
+          appointments: {},
+          patients: {},
+          insuranceCases: {},
+          invoiceDrafts: {},
+        }),
+        invoiceDrafts: {
+          ...(store?.invoiceDrafts ?? {}),
+          [invoiceDraftId]: { ...(store?.invoiceDrafts[invoiceDraftId] ?? {}), ...patch },
+        },
+      };
+      setStore(optimistic);
+      const json = await patchWorkflow({ invoiceDraftId, invoiceDraftPatch: patch });
+      if (!json.ok || !json.store) {
+        throw new Error(json.message ?? "Workflow state update failed.");
+      }
+      applyResponse(json);
+      return json.store.invoiceDrafts[invoiceDraftId] ?? {};
+    },
+    [store, applyResponse]
+  );
+
   const value = useMemo<CommandHubWorkflowContextValue>(
     () => ({
       store,
@@ -251,7 +287,10 @@ export function CommandHubWorkflowProvider({ children }: { children: ReactNode }
       insuranceCases: store?.insuranceCases ?? {},
       getAppointmentState: (appointmentId: string) =>
         store?.appointments[appointmentId] ?? {},
+      getInvoiceDraftState: (invoiceDraftId: string) =>
+        store?.invoiceDrafts?.[invoiceDraftId] ?? {},
       updateAppointmentState,
+      updateInvoiceDraftState,
       setDemoWeekPreview,
       saveInsuranceCase,
       resetInsuranceCases,
@@ -263,6 +302,7 @@ export function CommandHubWorkflowProvider({ children }: { children: ReactNode }
       migration,
       loading,
       updateAppointmentState,
+      updateInvoiceDraftState,
       setDemoWeekPreview,
       saveInsuranceCase,
       resetInsuranceCases,

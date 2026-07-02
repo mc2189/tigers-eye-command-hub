@@ -243,6 +243,18 @@ It must **not** appear as the active Aviemore booking provider on `/book`.
 - `lib/build-insurance-invoice-draft.ts` — builds draft + plain-text export pack from `InsuranceCase` (read-only derivation)
 - Not Xero/Healthcode integration — export pack is for staff copy/review; Cliniko remains clinical system of record
 
+## Insurance invoice preparation workflow (Parts B–J)
+
+- `/admin/invoices` — insurance invoice preparation hub: Ready to invoice, Needs missing details, Prepared drafts, private checks, external work, future integrations
+- `/admin/invoices/[invoiceDraftId]` — invoice draft detail; stable smoke route `/admin/invoices/demo-aviva` (DEMO Sarah McKay / Aviva)
+- `components/admin/InsuranceInvoicePreparationHub.tsx`, `InvoiceDraftCard.tsx`, `InvoiceDraftDetail.tsx`, `InvoiceDraftActions.tsx`
+- `lib/invoice-draft-registry.ts`, `lib/invoice-draft-ids.ts`, `lib/invoice-export-formatters.ts`, `lib/invoice-defaults.ts`
+- Copy/export actions (summary, details, session table, CSV, JSON) — client-side only; labelled **Prepared invoice draft — not sent**
+- Workflow flags in Supabase (`store.invoiceDrafts[invoiceDraftId]`): prepared, exported, copied/exported timestamps, last action — **not** full draft objects
+- Appointment (`/admin/appointments/[id]`), client (`/admin/clients/[slug]`) and insurance pages link to invoice drafts
+- Storage-boundary validation extended for invoice draft workflow fields; forbidden PATCH still returns 403
+- Xero and Healthcode remain future integrations; no real invoice submission
+
 ## Command Hub GUI polish and live data display fix
 
 - **Root cause:** `toPatientLabel()` in `lib/cliniko.ts` abbreviated full DEMO names (e.g. `DEMO Test Patient 001` → `DEMO 0.`)

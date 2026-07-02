@@ -1,4 +1,6 @@
+import Link from "next/link";
 import type { InsuranceCase } from "@/lib/insurance-session-workflow";
+import { getStableInvoiceDraftId, invoiceDraftDetailPath } from "@/lib/invoice-draft-ids";
 import { InsuranceMissingDetailsChecklist } from "./InsuranceMissingDetailsChecklist";
 import { InsuranceSessionProgress } from "./InsuranceSessionProgress";
 import { DataSourcePill } from "./DataSourcePill";
@@ -70,6 +72,20 @@ export function InsuranceCaseCard({ insuranceCase }: InsuranceCaseCardProps) {
           Future Healthcode integration · Future Xero integration
         </p>
       </div>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Link
+          href={invoiceDraftDetailPath(getStableInvoiceDraftId(insuranceCase))}
+          className="min-h-9 inline-flex items-center rounded-lg bg-green px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-light"
+        >
+          Open invoice draft
+        </Link>
+      </div>
+
+      <p className="mt-3 text-xs text-slate">
+        Insurance details are Command Hub demo case data unless Cliniko custom fields, Healthcode or
+        Xero are configured. Invoice drafts are prepared in Command Hub and not sent.
+      </p>
 
       <div className="mt-4">
         <InsuranceMissingDetailsChecklist insuranceCase={insuranceCase} />

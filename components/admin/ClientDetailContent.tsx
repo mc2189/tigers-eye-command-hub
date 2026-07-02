@@ -14,6 +14,8 @@ import {
 } from "@/lib/appointment-records";
 import { buildClientJourneys } from "@/lib/demo-client-journey";
 import { useCommandHubWorkflow } from "@/components/admin/CommandHubWorkflowProvider";
+import { useInvoiceDraftList } from "@/components/admin/useInvoiceDraftList";
+import { invoiceDraftDetailPath } from "@/lib/invoice-draft-ids";
 import { buildClientCompleteness } from "@/lib/record-completeness";
 import { DEMO_CLINIC_WEEK_SCENARIOS } from "@/lib/demo-clinic-week";
 import { DEMO_INTAKE_SCENARIOS } from "@/lib/demo-intake-scenarios";
@@ -30,6 +32,11 @@ interface ClientDetailContentProps {
 export function ClientDetailContent({ clientSlug }: ClientDetailContentProps) {
   const { demoWeekPreview, isLive } = useCommandHubAppointments();
   const { store } = useCommandHubWorkflow();
+  const { items: invoiceDraftItems } = useInvoiceDraftList();
+  const invoiceDraftItem = useMemo(
+    () => invoiceDraftItems.find((item) => item.clientSlug === clientSlug),
+    [invoiceDraftItems, clientSlug]
+  );
 
   const scenario = findScenarioBySlug(clientSlug);
   const patientLabel =
@@ -230,6 +237,38 @@ export function ClientDetailContent({ clientSlug }: ClientDetailContentProps) {
       </section>
 
       {completeness && <RecordCompletenessPanel summary={completeness} />}
+
+      <section className="rounded-xl border border-cream-dark bg-white p-5">
+        <h2 className="text-lg font-bold text-navy">Invoice draft</h2>
+        <p className="sr-only">Invoice draft · Open invoice draft</p>
+        {invoiceDraftItem ? (
+          <>
+            <p className="mt-2 text-sm text-slate">
+              {invoiceDraftItem.draft.readiness.readyToExport
+                ? "Invoice draft available — ready to invoice"
+                : "Missing insurance details — complete DEMO case before export"}
+            </p>
+            {invoiceDraftItem.workflow.invoiceDraftPrepared ? (
+              <p className="mt-2 text-sm font-medium text-green">
+                Invoice draft prepared — not sent
+              </p>
+            ) : null}
+            {invoiceDraftItem.workflow.invoiceDraftExported ? (
+              <p className="mt-1 text-sm text-slate">Invoice exported in Command Hub workflow state</p>
+            ) : null}
+            <Link
+              href={invoiceDraftDetailPath(invoiceDraftItem.id)}
+              className="mt-3 inline-flex min-h-10 items-center rounded-lg bg-green px-4 text-sm font-semibold text-white hover:bg-green-light"
+            >
+              Open invoice draft
+            </Link>
+          </>
+        ) : (
+          <p className="mt-2 text-sm text-slate">
+            No insurance invoice draft for this client — private or non-insurance journey.
+          </p>
+        )}
+      </section>
 
       <section className="rounded-xl border border-cream-dark bg-cream/30 p-5 text-sm">
         <h2 className="font-semibold text-navy">What is saved vs prepared</h2>

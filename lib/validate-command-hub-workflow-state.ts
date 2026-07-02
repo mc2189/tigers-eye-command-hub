@@ -4,6 +4,7 @@ import { isDemoPatientLabel } from "@/lib/demo-insurance-cases";
 import type {
   AppointmentRecordState,
   CommandHubWorkflowStore,
+  InvoiceDraftWorkflowState,
   WorkflowStatePatch,
 } from "@/lib/command-hub-workflow-types";
 import { FORBIDDEN_WORKFLOW_STORE_KEYS } from "@/lib/storage-boundary-policy";
@@ -25,12 +26,24 @@ const ALLOWED_APPOINTMENT_STATE_KEYS = new Set<keyof AppointmentRecordState>([
 
 const ALLOWED_PATIENT_ENTRY_KEYS = new Set(["clinikoPatientId", "createdAt"]);
 
+const ALLOWED_INVOICE_DRAFT_STATE_KEYS = new Set<keyof InvoiceDraftWorkflowState>([
+  "invoiceDraftPrepared",
+  "invoiceDraftExported",
+  "invoiceDraftCopiedAt",
+  "invoiceDraftExportedAt",
+  "invoiceDraftLastAction",
+  "invoiceDraftPreparedAt",
+  "invoiceDraftPreparedByDemoStaff",
+]);
+
 const ALLOWED_TOP_LEVEL_PATCH_KEYS = new Set<keyof WorkflowStatePatch>([
   "demoWeekPreview",
   "appointmentId",
   "appointmentPatch",
   "insuranceCase",
   "resetInsuranceCases",
+  "invoiceDraftId",
+  "invoiceDraftPatch",
   "migrateFromBrowser",
 ]);
 
@@ -62,7 +75,7 @@ const RAW_PAYLOAD_KEY_PATTERN =
   /^(rawCliniko|clinikoPayload|fullPatient|patientDemographics|_raw)/i;
 
 const SECRET_KEY_PATTERN =
-  /^(apiKey|api_key|password|sessionSecret|serviceRole|CLINIKO_API_KEY|DEMO_SESSION_SECRET|KV_REST_API_TOKEN|SUPABASE_SERVICE_ROLE_KEY|BLOB_READ_WRITE_TOKEN)$/i;
+  /^(apiKey|api_key|password|sessionSecret|serviceRole|CLINIKO_API_KEY|DEMO_SESSION_SECRET|KV_REST_API_TOKEN|SUPABASE_SERVICE_ROLE_KEY|SUPABASE_SECRET_KEY|BLOB_READ_WRITE_TOKEN)$/i;
 
 const SECRET_VALUE_MARKERS = [
   "CLINIKO_API_KEY",
@@ -70,6 +83,7 @@ const SECRET_VALUE_MARKERS = [
   "DEMO_STAFF_PASSWORD",
   "KV_REST_API_TOKEN",
   "SUPABASE_SERVICE_ROLE_KEY",
+  "SUPABASE_SECRET_KEY",
   "BLOB_READ_WRITE_TOKEN",
 ];
 
@@ -135,6 +149,15 @@ function walkValue(path: string, value: unknown): void {
   }
 }
 
+function validateInvoiceDraftState(path: string, state: Partial<InvoiceDraftWorkflowState>): void {
+  for (const key of Object.keys(state)) {
+    if (!ALLOWED_INVOICE_DRAFT_STATE_KEYS.has(key as keyof InvoiceDraftWorkflowState)) {
+      boundaryError(`unknown invoice draft workflow field "${key}" at ${path}`);
+    }
+  }
+  walkValue(path, state);
+}
+
 function validateAppointmentState(path: string, state: Partial<AppointmentRecordState>): void {
   for (const key of Object.keys(state)) {
     if (!ALLOWED_APPOINTMENT_STATE_KEYS.has(key as keyof AppointmentRecordState)) {
@@ -188,6 +211,10 @@ export function validateCommandHubWorkflowStore(store: CommandHubWorkflowStore):
   for (const [label, detail] of Object.entries(store.insuranceCases)) {
     validateInsuranceCase(`store.insuranceCases.${label}`, detail);
   }
+
+  for (const [draftId, state] of Object.entries(store.invoiceDrafts ?? {})) {
+    validateInvoiceDraftState(`store.invoiceDrafts.${draftId}`, state);
+  }
 }
 
 export function validateWorkflowStatePatch(patch: WorkflowStatePatch): void {
@@ -213,6 +240,13 @@ export function validateWorkflowStatePatch(patch: WorkflowStatePatch): void {
     validateInsuranceCase("patch.insuranceCase", patch.insuranceCase);
   }
 
+  if (patch.invoiceDraftId && patch.invoiceDraftPatch) {
+    validateInvoiceDraftState(
+      `patch.invoiceDrafts.${patch.invoiceDraftId}`,
+      patch.invoiceDraftPatch
+    );
+  }
+
   if (patch.migrateFromBrowser) {
     const m = patch.migrateFromBrowser;
     for (const [appointmentId, state] of Object.entries(m.appointments ?? {})) {
@@ -226,6 +260,9 @@ export function validateWorkflowStatePatch(patch: WorkflowStatePatch): void {
     }
     for (const [label, detail] of Object.entries(m.insuranceCases ?? {})) {
       validateInsuranceCase(`patch.migrateFromBrowser.insuranceCases.${label}`, detail);
+    }
+    for (const [draftId, state] of Object.entries(m.invoiceDrafts ?? {})) {
+      validateInvoiceDraftState(`patch.migrateFromBrowser.invoiceDrafts.${draftId}`, state);
     }
   }
 }

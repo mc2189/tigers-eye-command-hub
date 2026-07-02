@@ -18,6 +18,7 @@ Command Hub reads from Cliniko and writes back only through safety-gated DEMO AP
 - Cliniko patient ID
 - Cliniko appointment ID (via appointment map keys and `followUpClinikoAppointmentId`)
 - Workflow completion flags (invoice prepared, note saved status, follow-up prepared/booked)
+- Invoice draft workflow metadata keyed by `invoiceDraftId` (`invoiceDraftPrepared`, `invoiceDraftExported`, copy/export timestamps, last action — **not** the full draft object)
 - Staff-reviewed / match decisions (`matchStatus`, linked patient label — DEMO only)
 - DEMO insurance case workflow data (insurer, claim, auth, sessions — DEMO labels only)
 - Demo week preview state
