@@ -4,7 +4,7 @@
 |-------|-------|
 | **Last updated** | 2026-07-02 (Insurance invoice preparation workflow wired into admin) |
 | **Feature commit** | `d6e53c7` — Wire insurance invoice draft workflow into admin |
-| **Smoke record commit** | _(pending this commit)_ |
+| **Smoke record commit** | `e548c95` |
 | **Local lint** | **PASS** |
 | **Local build** | **PASS** |
 | **Local test** | **PASS** (6 tests) |
