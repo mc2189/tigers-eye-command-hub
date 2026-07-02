@@ -2,14 +2,14 @@
 
 | Field | Value |
 |-------|-------|
-| **Last updated** | 2026-07-01 (Supabase durable workflow storage checks — commit `4ea56ff`) |
+| **Last updated** | 2026-07-02 (Supabase durable workflow storage activated in production) |
 | **Feature commit** | `4ea56ff` — Enable Supabase durable workflow storage checks |
-| **Smoke record commit** | `9ce0043` |
+| **Smoke record commit** | *(this commit)* |
 | **Local lint** | **PASS** |
 | **Local build** | **PASS** |
 | **Local smoke** | **43/44 PASS** (1 skipped: `EXPECT_DURABLE_WORKFLOW_STORAGE`; fresh build on port 3010) |
-| **Production smoke** | **43/44 PASS** (2026-07-01, post `4ea56ff` deploy) |
-| **Production storage** | `vercel-tmp` / `ephemeral` — Supabase env vars not yet configured in Vercel |
+| **Production smoke** | **44/44 PASS** (2026-07-02, strict durable check enabled) |
+| **Production storage** | `supabase` / `durable` — env vars configured in Vercel Production |
 | **Base URL (prod)** | https://tigers-eye-command-hub.vercel.app |
 
 ## Latest run summary
@@ -19,9 +19,32 @@
 | Local lint | **PASS** | — | 0 | `npm run lint` |
 | Local build | **PASS** | — | 0 | `npm run build` |
 | Local smoke | **PASS** | 43 | 0 | `BASE_URL=http://localhost:3010` (44 checks; 1 skipped) |
-| Local storage check | **PASS** | — | 0 | `local-file` / `local-dev` — no Supabase env locally |
-| Production (Vercel) | **PASS** | 43 | 0 | Durable checklist UI + storage status `message` field |
-| Production storage check | **PASS** | — | 0 | `vercel-tmp` / `ephemeral` — honest fallback |
+| Local storage check | **PASS** | — | 0 | `supabase` / `durable` after local env + table setup |
+| Production (Vercel) | **PASS** | 44 | 0 | `EXPECT_DURABLE_WORKFLOW_STORAGE=true` |
+| Production storage check | **PASS** | — | 0 | `mode=supabase`, `durability=durable`, `canRead` + `canWrite` |
+
+## Supabase durable workflow storage — production activation (2026-07-02)
+
+- Supabase env vars configured in **Vercel Production** (`COMMAND_HUB_WORKFLOW_STORAGE=supabase`, `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, table + store id)
+- `command_hub_workflow_state` table created in Supabase (workflow metadata JSON only)
+- Production storage: **`mode=supabase`**, **`durability=durable`**
+- Storage status probe: **`canRead=yes`**, **`canWrite=yes`**
+- Strict durable smoke: **`EXPECT_DURABLE_WORKFLOW_STORAGE=true`** — **44/44 PASS**
+- Cliniko remains the clinical system of record; Supabase holds operational workflow metadata only
+- No patient/clinical database duplication; storage-boundary validation preserved
+- No credential markers in admin HTML or API JSON
+
+| Route / check | Result |
+|---------------|--------|
+| `npm run check:workflow-storage:prod` | **PASS** (`supabase` / `durable`) |
+| `npm run check:workflow-storage:prod:durable` | **PASS** |
+| `EXPECT_DURABLE_WORKFLOW_STORAGE=true npm run smoke:prod` | **44/44 PASS** |
+| Authenticated storage status `storage.mode` + `storage.durability` | **PASS** |
+| Authenticated storage status `canRead` + `canWrite` | **PASS** |
+| Forbidden workflow PATCH | **403 PASS** |
+| No credential markers in admin HTML | **PASS** |
+
+Production smoke: **44/44 PASS** on 2026-07-02 after Supabase env sync + Vercel redeploy.
 
 ## Supabase durable workflow storage checks (`4ea56ff`)
 
@@ -31,7 +54,7 @@
 - `scripts/check-workflow-storage.mjs` — `--expect-durable` flag
 - `EXPECT_DURABLE_WORKFLOW_STORAGE=true` optional strict smoke (skipped by default)
 - `docs/WORKFLOW_STORAGE.md` — Supabase SQL, Vercel env guidance, strict verification
-- Production remains **ephemeral** (`vercel-tmp`) until Supabase credentials are added in Vercel
+- Production was **ephemeral** (`vercel-tmp`) until Supabase credentials were added in Vercel — now **active** (`supabase` / `durable`, verified 2026-07-02)
 
 | Route / check | Result |
 |---------------|--------|

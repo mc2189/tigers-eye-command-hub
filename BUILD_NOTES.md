@@ -207,7 +207,7 @@ It must **not** appear as the active Aviemore booking provider on `/book`.
 
 - Pluggable storage adapters in `lib/workflow-storage/` — file, Supabase, Vercel KV, Vercel Blob
 - Resolver: `COMMAND_HUB_WORKFLOW_STORAGE=auto|file|supabase|vercel-kv|vercel-blob`
-- Local dev: `.data/command-hub-workflow.json` (`local-file`); Vercel without durable env: `/tmp` (`vercel-tmp`, **ephemeral**)
+- Local dev: `.data/command-hub-workflow.json` (`local-file`) or **Supabase** when env vars set; legacy fallback `/tmp` (`vercel-tmp`) when no durable provider
 - API: `GET/PATCH /api/command-hub/workflow-state` returns `{ ok, store, storage }`; `GET /api/command-hub/workflow-storage/status` for diagnostics
 - `CommandHubWorkflowProvider` loads state, migrates legacy localStorage once, exposes `storage` + `migration` metadata
 - UI: `WorkflowStorageProofPanel` on proof, settings and test lab
@@ -231,7 +231,9 @@ It must **not** appear as the active Aviemore booking provider on `/book`.
 - `GET /api/command-hub/workflow-storage/status` — `canRead`, `canWrite`, `message`, durable checklist UI
 - `scripts/check-workflow-storage.mjs` — `--expect-durable` for Supabase verification
 - `EXPECT_DURABLE_WORKFLOW_STORAGE=true` optional strict smoke flag
-- Production uses `vercel-tmp` until Supabase env vars are added in Vercel — see `docs/WORKFLOW_STORAGE.md`
+- `lib/workflow-storage/supabase-env.ts` — `SUPABASE_SECRET_KEY` or legacy `SUPABASE_SERVICE_ROLE_KEY`
+- `scripts/probe-supabase-workflow-storage.mjs` — local preflight before Vercel deploy
+- Production **active** (2026-07-02): `mode=supabase`, `durability=durable`, `canRead` + `canWrite` verified
 
 ## Command Hub GUI polish and live data display fix
 

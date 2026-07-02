@@ -49,11 +49,13 @@ lib/validate-command-hub-workflow-state.ts
 |------|------------|-------------|
 | `local-file` | `local-dev` | Local `.data/command-hub-workflow.json` |
 | `vercel-tmp` | `ephemeral` | Vercel `/tmp` when no durable provider configured |
-| `supabase` | `durable` | `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` + working table |
+| `supabase` | `durable` | `SUPABASE_URL` + `SUPABASE_SECRET_KEY` (or `SUPABASE_SERVICE_ROLE_KEY`) + working table |
 | `vercel-kv` | `durable` | `KV_REST_API_URL` + `KV_REST_API_TOKEN` |
 | `vercel-blob` | `durable` | `BLOB_READ_WRITE_TOKEN` |
 
-**Honest limitation:** If no durable provider env vars are configured on Vercel, workflow state remains **server-side but ephemeral** (`/tmp`).
+**Production (2026-07-02):** Vercel Production uses **`supabase` / `durable`** — verified via `check:workflow-storage:prod:durable` and strict smoke.
+
+**Fallback:** If no durable provider env vars are configured on Vercel, workflow state remains **server-side but ephemeral** (`/tmp`).
 
 ---
 
@@ -84,10 +86,14 @@ The service-role key must only be configured in Vercel/server env vars. It must 
 ```env
 COMMAND_HUB_WORKFLOW_STORAGE=supabase
 SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+SUPABASE_SECRET_KEY=your-secret-key
+# Legacy alias also supported:
+# SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 COMMAND_HUB_SUPABASE_TABLE=command_hub_workflow_state
 COMMAND_HUB_WORKFLOW_STORE_ID=tigers-eye-demo
 ```
+
+Use the **secret** key from the Supabase Connect dialog — not `SUPABASE_PUBLISHABLE_KEY`. This app does not install `@supabase/server`, `@supabase/ssr`, or `SUPABASE_JWKS_URL`; staff auth stays on `DEMO_STAFF_PASSWORD`.
 
 Do not commit real values.
 
@@ -103,9 +109,11 @@ Do not commit real values.
    ```
 6. Confirm status API:
    ```bash
-   npm run check:workflow-storage:prod
+   npm run check:workflow-storage:prod:durable
    ```
    Expect `mode=supabase`, `durability=durable`, `canRead=yes`, `canWrite=yes`
+
+**Activated in production:** 2026-07-02 — strict smoke **44/44 PASS** with `EXPECT_DURABLE_WORKFLOW_STORAGE=true`.
 
 ### Strict durable verification
 
